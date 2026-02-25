@@ -64,6 +64,26 @@
   box-shadow: var(--shadow-sm);
 }
 
+.nav-menu button.ai-button {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.1));
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  color: #FFD700;
+  font-weight: 600;
+}
+
+.nav-menu button.ai-button:hover {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.2));
+  border-color: rgba(255, 215, 0, 0.5);
+  color: #FFD700;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+}
+
+.nav-menu button.ai-button.active {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #1a1a1a;
+  border: none;
+}
+
 .app-header.scroll-mode .nav-menu button.active::after {
   content: '';
   position: absolute;

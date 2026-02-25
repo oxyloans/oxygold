@@ -1,0 +1,140 @@
+/* Simple Coming Soon Banner */
+
+.coming-soon-page {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FFF9F0 0%, #F5EFE0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.banner {
+  width: 100%;
+  padding: 80px 60px;
+  text-align: center;
+}
+
+.banner-content {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.small-text {
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #8B7355;
+  margin-bottom: 20px;
+}
+
+.main-title {
+  font-family: Georgia, serif;
+  font-size: 80px;
+  font-weight: 400;
+  letter-spacing: 8px;
+  margin: 0 0 40px 0;
+  line-height: 1;
+}
+
+.oxy-text {
+  color: #1a1410;
+}
+
+.gold-text {
+  color: #D4AF37;
+}
+
+.coming-soon {
+  font-family: system-ui, sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: 12px;
+  color: #D4AF37;
+  margin: 0 0 30px 0;
+}
+
+.description {
+  font-family: system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: #4a3f35;
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+
+.badges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #6B5744;
+}
+
+.badges span:nth-child(even) {
+  color: #D4AF37;
+  font-weight: 300;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .banner {
+    padding: 60px 40px;
+  }
+
+  .main-title {
+    font-size: 48px;
+    letter-spacing: 4px;
+  }
+
+  .coming-soon {
+    font-size: 32px;
+    letter-spacing: 8px;
+  }
+
+  .description {
+    font-size: 16px;
+  }
+
+  .badges {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .banner {
+    padding: 40px 30px;
+  }
+
+  .main-title {
+    font-size: 36px;
+    letter-spacing: 3px;
+  }
+
+  .coming-soon {
+    font-size: 24px;
+    letter-spacing: 6px;
+  }
+
+  .description {
+    font-size: 14px;
+  }
+
+  .badges {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .badges span:nth-child(even) {
+    display: none;
+  }
+}

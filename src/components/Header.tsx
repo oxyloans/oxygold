@@ -64,6 +64,12 @@ const Header = () => {
           >
             FAQ
           </button>
+          <button 
+            className={`ai-button ${isActive('/oxygold-ai') ? 'active' : ''}`}
+            onClick={() => handleNavigate('/oxygold-ai')}
+          >
+            OXYGOLD.AI
+          </button>
         </nav>
       </div>
     </header>
