@@ -3,10 +3,10 @@ import '../styles/Footer.css';
 const Footer = () => {
   return (
     <footer className="app-footer">
-      <div className="footer-content">
-        <div className="footer-grid">
+      {/* <div className="footer-content">
+        <div className="footer-grid"> */}
           {/* Brand Section */}
-          <div className="footer-section brand-section">
+          {/* <div className="footer-section brand-section">
             <img 
               src="https://www.askoxy.ai/static/media/askoxylogoblack.56dbb158b7a0beaf4fbe.png" 
               alt="ASKOXY.AI" 
@@ -15,10 +15,10 @@ const Footer = () => {
             <p className="footer-description">
               ASKOXY.AI offers unlimited ChatGPT prompts, empowering innovation without cost barriers.
             </p>
-          </div>
+          </div> */}
 
           {/* Services Section */}
-          <div className="footer-section">
+          {/* <div className="footer-section">
             <h4 className="footer-heading">Services</h4>
             <ul className="footer-links">
               <li><a href="#ai-training">AI & GEN AI Training</a></li>
@@ -28,10 +28,10 @@ const Footer = () => {
               <li><a href="#careers">We Are Hiring</a></li>
               <li><a href="#contact">Contact Us</a></li>
             </ul>
-          </div>
+          </div> */}
 
           {/* Company & Contact Section */}
-          <div className="footer-section">
+          {/* <div className="footer-section">
             <h4 className="footer-heading">Company</h4>
             <div className="footer-contact">
               <p className="company-name">OXYKART TECHNOLOGIES PVT LTD</p>
@@ -49,10 +49,10 @@ const Footer = () => {
                 <a href="tel:+919110564106">+91 91105 64106</a>
               </p>
             </div>
-          </div>
+          </div> */}
 
           {/* App Download Section */}
-          <div className="footer-section app-section">
+          {/* <div className="footer-section app-section">
             <h4 className="footer-heading">Get Our App</h4>
             <p className="app-description">
               Download ASKOXY.AI for a seamless experience.
@@ -77,15 +77,15 @@ const Footer = () => {
                 </div>
               </a>
             </div>
-          </div>
-        </div>
-      </div>
+          </div> */}
+        {/* </div>
+      </div> */}
 
       {/* Bottom Bar */}
       <div className="footer-bottom">
         <div className="footer-bottom-content">
           <p className="copyright">
-            © 2026 ASKOXY.AI. All rights reserved. | CIN: U72900TG2020PTC142391
+            © 2026 OXYGOLD.AI. All rights reserved.
           </p>
           <div className="footer-bottom-links">
             <a href="#terms">Terms & Conditions</a>

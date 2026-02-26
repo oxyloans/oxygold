@@ -50,7 +50,7 @@ function AppContent() {
             <Header />
             <div className="page-container">
               <Routes>
-                <Route path="/" element={<Landing />} />
+                <Route path="/" element={<OxyGoldAI />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />
                 <Route path="/buy-gold" element={<BuyGold onDataPass={handleDataPass} />} />
                 <Route path="/sell-gold" element={<SellGold onDataPass={handleDataPass} />} />
@@ -64,7 +64,7 @@ function AppContent() {
                 <Route path="/sell-success" element={<SellSuccess sellData={transactionData} />} />
                 <Route path="/portfolio" element={<Portfolio />} />
                 <Route path="/faq" element={<FAQ />} />
-                <Route path="/oxygold-ai" element={<OxyGoldAI />} />
+                <Route path="/oxygold-ai" element={<Landing />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </div>

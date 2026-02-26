@@ -18,7 +18,7 @@ const Header = () => {
   return (
     <header className="app-header">
       <div className="header-container">
-        <h1 className="logo" onClick={() => handleNavigate('/')}>
+        <h1 className="logo">
           <span className="logo-oxy">OXY</span>
           <span className="logo-gold">GOLD</span>
         </h1>
@@ -33,7 +33,7 @@ const Header = () => {
           <span></span>
         </button>
 
-        <nav className={`nav-menu ${isMenuOpen ? 'open' : ''}`}>
+        {/* <nav className={`nav-menu ${isMenuOpen ? 'open' : ''}`}>
           <button 
             className={isActive('/') ? 'active' : ''} 
             onClick={() => handleNavigate('/')}
@@ -70,7 +70,7 @@ const Header = () => {
           >
             OXYGOLD.AI
           </button>
-        </nav>
+        </nav> */}
       </div>
     </header>
   );
