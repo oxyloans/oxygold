@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import './styles/App.css';
-import './index.css';
+// import './styles/App.css';
+// import './index.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Landing from './pages/Landing';
@@ -68,7 +68,7 @@ function AppContent() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </div>
-            <Footer />
+            {/* <Footer /> */}
           </>
         } />
       </Routes>
