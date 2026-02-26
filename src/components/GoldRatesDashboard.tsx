@@ -1,10 +1,8 @@
-
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  Line,
   BarChart,
   Bar,
   XAxis,
@@ -13,104 +11,6 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import {
-  BadgeCheck,
-  CalendarDays,
-  MapPin,
-  ShieldCheck,
-  Star,
-  Facebook,
-  Instagram,
-  Twitter,
-  Sparkles,
-  Lock,
-  Wallet,
-  Boxes,
-  Landmark,
-  BookOpen,
-  FileScan,
-  Truck,
-  Scale,
-  Coins,
-} from "lucide-react";
-
-type AssetMap = {
-  logo: string;
-  heroPoster: string;
-  personCutout: string;
-  partnerLogos: string[];
-};
-
-type Props = { assets?: Partial<AssetMap> };
-
-const BRAND = {
-  purple: {
-    primary: "#5B2EFF",
-    deepBg: "#2B0A59",
-    luxuryDark: "#3D0B7A",
-    soft: "#8A5BFF",
-    lightUI: "#EDE7FF",
-  },
-  gold: {
-    primary: "#D4AF37",
-    dark: "#B8962E",
-    bright: "#F5D36C",
-    softBg: "#FFF6D8",
-    rich: "#C9A227",
-  },
-};
-
-const DEFAULT_ASSETS: AssetMap = {
-  logo: "/assets/oxygold-logo.png",
-  heroPoster: "/assets/namaste-mumbai.png",
-  personCutout: "/assets/person.png",
-  partnerLogos: [
-    "/assets/brand-1.png",
-    "/assets/brand-2.png",
-    "/assets/brand-3.png",
-    "/assets/brand-4.png",
-  ],
-};
-
-const provideCards = [
-  {
-    title: "FRACTIONAL DIGITAL GOLD",
-    desc: "Start small. Grow securely with transparent pricing.",
-    icon: <Wallet className="h-6 w-6" />,
-  },
-  {
-    title: "AI-DRIVEN TRUST LAYER",
-    desc: "Track & trace readiness, audit-friendly records, compliance focus.",
-    icon: <ShieldCheck className="h-6 w-6" />,
-  },
-  {
-    title: "SECURE VAULTING",
-    desc: "Vault-grade security aligned with wealth authority.",
-    icon: <Lock className="h-6 w-6" />,
-  },
-  {
-    title: "INSTANT LIQUIDITY",
-    desc: "Buy/Sell anytime with smooth settlement flow.",
-    icon: <Sparkles className="h-6 w-6" />,
-  },
-];
-
-const trustBullets = [
-  "Purple-first UI for authority & security",
-  "Gold accents only for premium highlights (20% rule)",
-  "Clean fintech experience (not jewelry / not flashy retail)",
-  "Audit-ready, scalable platform architecture",
-];
-
-const testimonials = [
-  { name: "Sarah Chen", role: "Investor", text: "Premium feel + secure vaulting. Clean fintech UI.", rating: 5 },
-  { name: "Aparna Isha", role: "Professional", text: "Transparent pricing and trust-first experience.", rating: 5 },
-  { name: "Caites Ruiz", role: "Trader", text: "Fast workflow. Smooth settlement.", rating: 4 },
-];
-
-/* =========================
-   ✅ SECTION-4: GOLD RATES DASHBOARD (YOUR CODE)
-   ========================= */
 
 type ShopRate = {
   id: string;
@@ -136,88 +36,87 @@ const API_SHOPS =
 const API_IBJA =
   "https://meta.oxyloans.com/api/oxybrick-service/getIbjGoldRates";
 
-// ✅ keep as you provided (but best practice: move to env var)
-const ACCESS_TOKEN =
+/** last fallback only (keep yours if needed) */
+const HARDCODE_FALLBACK_TOKEN =
   "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4N2ZmMWE2My1jY2MyLTQ4MjQtOGQwMy1mMWEyYmVmODMzYjQiLCJpYXQiOjE3NzA4ODIyNjIsImV4cCI6MTc3MTc0NjI2Mn0.G-tBfedu0p0tsi9XVk6FQLT9xDqmpp4_Zkz0eT-lbad6_1OAXfUrrIMQ3d4vdEtkAbFjSr6GVlPOxvolAuoF0w";
 
-function formatINR(n: number | null | undefined) {
-  if (n === null || n === undefined) return "—";
-  return new Intl.NumberFormat("en-IN").format(n);
-}
+const safeNum = (v: any) => {
+  if (v === null || v === undefined) return null;
+  const n = Number(String(v).replace(/[^\d.]/g, ""));
+  return Number.isFinite(n) ? n : null;
+};
 
-function formatDateLabel(fetchDate: string) {
-  const datePart = fetchDate?.split(" ")?.[0] ?? fetchDate;
-  const [y, m, d] = datePart.split("-");
-  if (!y || !m || !d) return fetchDate;
-  return `${d}/${m}`;
-}
+const formatINR = (v: number | null) => {
+  if (v === null || v === undefined || !Number.isFinite(v)) return "--";
+  try {
+    return new Intl.NumberFormat("en-IN").format(Math.round(v));
+  } catch {
+    return String(Math.round(v));
+  }
+};
 
-function formatUpdatedTime(ms: number | null | undefined) {
-  if (!ms) return "—";
-  const dt = new Date(ms);
-  return dt.toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+const formatDateLabel = (s: string) => {
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return s;
+  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+};
 
-function shortName(name: string) {
-  const n = (name || "").trim();
-  if (!n) return "—";
-  if (n.length <= 12) return n;
-  const first = n.split(" ")[0];
-  return first.length >= 6 ? first : n.slice(0, 12) + "…";
-}
-
-function safeNum(x: string | null) {
-  if (!x) return null;
-  const v = Number(x);
-  return Number.isFinite(v) ? v : null;
-}
-
-const CustomTooltip = ({
-  active,
-  payload,
+const Tip = ({
   label,
-  variant,
+  rows,
 }: {
-  active?: boolean;
-  payload?: any[];
-  label?: string;
-  variant: "ibja" | "shops";
+  label: string;
+  rows: { name: string; value: number; stroke: string }[];
 }) => {
-  if (!active || !payload?.length) return null;
-
-  const items = payload
-    .filter((p) => p?.value !== null && p?.value !== undefined)
-    .map((p) => ({
-      name: p.name,
-      value: p.value,
-      stroke: p.stroke || p.fill,
-    }));
-
   return (
-    <div className="oxy-tip">
-      <div className="oxy-tip-title">{label}</div>
-
-      <div className="oxy-tip-rows">
-        {items.map((it) => (
-          <div className="oxy-tip-row" key={it.name}>
-            <span className="oxy-tip-dot" style={{ background: it.stroke }} />
-            <span className="oxy-tip-k">{it.name}</span>
-            <span className="oxy-tip-v">₹{formatINR(it.value)}</span>
+    <div className="tip">
+      <div className="tipTitle">{label}</div>
+      <div className="tipRows">
+        {rows.map((r) => (
+          <div className="tipRow" key={r.name}>
+            <span className="dot" style={{ background: r.stroke }} />
+            <span className="k">{r.name}</span>
+            <span className="v">₹{formatINR(r.value)}</span>
           </div>
         ))}
       </div>
-
-      <div className="oxy-tip-foot">OXYGOLD.AI • Price Intelligence</div>
+      <div className="tipFoot">OXYGOLD.AI • Gold Intelligence</div>
     </div>
   );
 };
 
-function GoldRatesDashboardEmbedded() {
+function GoldToggle({
+  left,
+  right,
+  value,
+  onChange,
+}: {
+  left: string;
+  right: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="goldSeg">
+      <button
+        type="button"
+        className={value === left ? "on" : ""}
+        onClick={() => onChange(left)}
+      >
+        {left}
+      </button>
+      <button
+        type="button"
+        className={value === right ? "on" : ""}
+        onClick={() => onChange(right)}
+      >
+        {right}
+      </button>
+    </div>
+  );
+}
+
+export default function GoldRatesDashboard() {
   const [shops, setShops] = useState<ShopRate[]>([]);
   const [ibja, setIbja] = useState<IbjaRate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -228,52 +127,66 @@ function GoldRatesDashboardEmbedded() {
 
   useEffect(() => {
     let alive = true;
-    async function load() {
+
+    const getToken = () => {
+      // 1) sessionStorage (your app usually uses this)
+      const s = sessionStorage.getItem("accessToken");
+      if (s && s.trim()) return s.trim();
+
+      // 2) Vite env var (optional)
+      const envTok = (import.meta as any)?.env?.VITE_OXY_ACCESS_TOKEN;
+      if (typeof envTok === "string" && envTok.trim()) return envTok.trim();
+
+      // 3) hardcoded fallback (last)
+      if (HARDCODE_FALLBACK_TOKEN && HARDCODE_FALLBACK_TOKEN.trim())
+        return HARDCODE_FALLBACK_TOKEN.trim();
+
+      return "";
+    };
+
+    (async () => {
       try {
         setLoading(true);
         setErr(null);
 
-        const headers = {
-          Authorization: `Bearer ${ACCESS_TOKEN}`,
-          "Content-Type": "application/json",
+        const token = getToken();
+        const headers: Record<string, string> = {
+          Accept: "application/json",
         };
 
+        // Only attach Authorization if token exists
+        if (token) headers.Authorization = `Bearer ${token}`;
+
         const [shopsRes, ibjaRes] = await Promise.all([
-          fetch(API_SHOPS, { headers }).catch(
-            () => ({ ok: false, status: 0 } as Response)
-          ),
-          fetch(API_IBJA, { headers }).catch(
-            () => ({ ok: false, status: 0 } as Response)
-          ),
+          fetch(API_SHOPS, { headers }),
+          fetch(API_IBJA, { headers }),
         ]);
 
-        const shopsJson: ShopRate[] = shopsRes.ok
-          ? await shopsRes.json().catch(() => [])
-          : [];
-        const ibjaJson: IbjaRate[] = ibjaRes.ok
-          ? await ibjaRes.json().catch(() => [])
-          : [];
+        // If either failed, show proper status
+        if (!shopsRes.ok || !ibjaRes.ok) {
+          const sMsg = !shopsRes.ok
+            ? `Shops API failed (${shopsRes.status})`
+            : "";
+          const iMsg = !ibjaRes.ok ? `IBJA API failed (${ibjaRes.status})` : "";
+          throw new Error([sMsg, iMsg].filter(Boolean).join(" • "));
+        }
+
+        const shopsJson = await shopsRes.json().catch(() => []);
+        const ibjaJson = await ibjaRes.json().catch(() => []);
 
         if (!alive) return;
 
         setShops(Array.isArray(shopsJson) ? shopsJson : []);
         setIbja(Array.isArray(ibjaJson) ? ibjaJson : []);
-
-        if (
-          (!Array.isArray(shopsJson) || shopsJson.length === 0) &&
-          (!Array.isArray(ibjaJson) || ibjaJson.length === 0)
-        ) {
-          setErr("No data available from APIs");
-        }
       } catch (e: any) {
         if (!alive) return;
-        setErr(e?.message || "Failed to load data");
+        setErr(e?.message || "Something went wrong");
       } finally {
         if (!alive) return;
         setLoading(false);
       }
-    }
-    load();
+    })();
+
     return () => {
       alive = false;
     };
@@ -281,803 +194,521 @@ function GoldRatesDashboardEmbedded() {
 
   const ibjaChartData = useMemo(() => {
     const list = [...(ibja || [])].reverse();
-    return list.map((r) => {
-      const v999 = safeNum(r.purity999);
-      const v916 = safeNum(r.purity916);
-      return { label: formatDateLabel(r.fetchDate), v999, v916 };
-    });
+    return list.map((r) => ({
+      label: formatDateLabel(r.fetchDate),
+      v999: safeNum(r.purity999),
+      v916: safeNum(r.purity916),
+    }));
   }, [ibja]);
 
-  const ibjaLatest = useMemo(() => {
-    if (!ibjaChartData.length) return null;
-    const last = ibjaChartData[ibjaChartData.length - 1];
-    const current = ibjaMode === "24KT" ? last.v999 : last.v916;
-    return { ...last, current };
-  }, [ibjaChartData, ibjaMode]);
-
-  const ibjaMinMax = useMemo(() => {
+  const ibjaStats = useMemo(() => {
     const key = ibjaMode === "24KT" ? "v999" : "v916";
     const values = ibjaChartData
       .map((d: any) => d[key])
-      .filter((x: any) => typeof x === "number");
-    if (!values.length) return { min: null, max: null };
-    return { min: Math.min(...values), max: Math.max(...values) };
+      .filter((x: any) => typeof x === "number") as number[];
+    const last = ibjaChartData[ibjaChartData.length - 1] as any;
+    const current = last ? last[key] : null;
+    if (!values.length) return { current: null, min: null, max: null };
+    return { current, min: Math.min(...values), max: Math.max(...values) };
   }, [ibjaChartData, ibjaMode]);
 
   const shopsChartData = useMemo(() => {
     const key = shopsMode === "24KT" ? "rate24kt" : "rate22kt";
-    const mapped = (shops || [])
+    const rows = (shops || [])
       .map((s) => ({
-        name: shortName(s.companyName),
-        fullName: s.companyName,
-        v:
-          typeof (s as any)[key] === "number"
-            ? ((s as any)[key] as number)
-            : null,
-        rate24: s.rate24kt,
-        rate22: s.rate22kt,
-        updatedTime: s.updatedTime,
+        name: s.companyName,
+        v: safeNum((s as any)[key]),
       }))
-      .filter((x) => typeof x.v === "number");
+      .filter((x) => typeof x.v === "number") as { name: string; v: number }[];
 
-    mapped.sort((a, b) => (b.v! as number) - (a.v! as number));
-    return mapped;
+    rows.sort((a, b) => b.v - a.v);
+
+    return rows.map((r) => ({
+      name: r.name,
+      rate24: r.v,
+      rate22: r.v,
+    }));
   }, [shops, shopsMode]);
 
-  const shopsMinMax = useMemo(() => {
-    const values = shopsChartData
-      .map((d) => d.v)
-      .filter((x) => typeof x === "number") as number[];
-    if (!values.length) return { min: null, max: null };
-    return { min: Math.min(...values), max: Math.max(...values) };
-  }, [shopsChartData]);
-
-  const shopsLatestTime = useMemo(() => {
-    const times = (shops || [])
-      .map((s) => s.updatedTime || 0)
-      .filter((t) => t > 0);
-    if (!times.length) return "—";
-    return formatUpdatedTime(Math.max(...times));
-  }, [shops]);
-
-  const pageHasData = (shops?.length || 0) > 0 || (ibja?.length || 0) > 0;
+  const retry = () => window.location.reload();
 
   return (
-    <div className="oxyModelWrap">
-      {/* Top Title Row (like your model) */}
-      <div className="oxyModelTop">
-        <div>
-          <h2 className="oxyModelTitle">Smart Gold Rate Analytics</h2>
-          <p className="oxyModelSub">
-            Monitor, analyze, and compare gold prices with real-time shop rates
-            and IBJA trend intelligence.
-          </p>
+    <div className="grdRoot">
+      <div className="page">
+        <div className="panel">
+          <div className="topSpace" />
 
-          <div className="oxyModelPill">
-            <span className="oxyBolt">⚡</span>
-            <span>Fast And Responsive</span>
-          </div>
-        </div>
+          <div className="header">
+            <div>
+              <h1 className="title">Smart Gold Rate Analytics</h1>
+              <p className="subtitle">
+                Clean comparison of Shop rates vs IBJA trend intelligence.
+              </p>
+            </div>
 
-        <div className="oxyModelRightControls">
-          <div className="oxyModelSelect">
-            <span className="dot" />
-            <span>This Year</span>
-            <span className="caret">▾</span>
-          </div>
-          <button className="oxyModelMore" aria-label="More">
-            ⋯
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs row (Cash Flow like model) */}
-      <div className="oxyModelTabs">
-        <button className="oxyTab isActive">Cash Flow</button>
-
-        <div className="oxyLegendToggles">
-          <div className="oxyLegendItem">
-            <span className="sq sqIncome" />
-            <span>IBJA</span>
-            <div className="oxyMiniSwitch">
-              <button
-                className={ibjaMode === "24KT" ? "on" : ""}
-                onClick={() => setIbjaMode("24KT")}
-              >
-                24KT
-              </button>
-              <button
-                className={ibjaMode === "22KT" ? "on" : ""}
-                onClick={() => setIbjaMode("22KT")}
-              >
-                22KT
-              </button>
+            <div className="rightPill">
+              <span className="pillDot" />
+              <span>This Year</span>
             </div>
           </div>
 
-          <div className="oxyLegendItem">
-            <span className="sq sqExpense" />
-            <span>Shops</span>
-            <div className="oxyMiniSwitch">
-              <button
-                className={shopsMode === "24KT" ? "on" : ""}
-                onClick={() => setShopsMode("24KT")}
-              >
-                24KT
-              </button>
-              <button
-                className={shopsMode === "22KT" ? "on" : ""}
-                onClick={() => setShopsMode("22KT")}
-              >
-                22KT
-              </button>
+          <div className="controls">
+            <div className="controlGroup">
+              <div className="controlLabel">IBJA</div>
+              <GoldToggle
+                left="24KT"
+                right="22KT"
+                value={ibjaMode}
+                onChange={(v) => setIbjaMode(v as any)}
+              />
+            </div>
+
+            <div className="controlGroup">
+              <div className="controlLabel">Shops</div>
+              <GoldToggle
+                left="24KT"
+                right="22KT"
+                value={shopsMode}
+                onChange={(v) => setShopsMode(v as any)}
+              />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Body */}
-      {loading ? (
-        <div className="oxyModelState">
-          <div className="oxySpinner" />
-          <div>Loading gold rates…</div>
-        </div>
-      ) : err && !pageHasData ? (
-        <div className="oxyModelState oxyModelError">
-          <div className="t">Unable to load data</div>
-          <div className="m">{err}</div>
-          <button className="oxyRetry" onClick={() => window.location.reload()}>
-            RETRY
-          </button>
-        </div>
-      ) : !pageHasData ? (
-        <div className="oxyModelState">
-          <div className="t">No Data Available</div>
-          <div className="m">Rates will appear once APIs return data.</div>
-        </div>
-      ) : (
-        <div className="oxyModelGrid">
-          {/* LEFT: IBJA (line style like model) */}
-          <div className="oxyModelCard">
-            <div className="oxyCardHead">
-              <div>
-                <div className="k">IBJA Trend</div>
-                <div className="v">
-                  ₹{formatINR(ibjaLatest?.current ?? null)}
-                  <span className="chip">
-                    High ₹{formatINR(ibjaMinMax.max)} • Low ₹{formatINR(ibjaMinMax.min)}
-                  </span>
-                </div>
+          {loading && (
+            <div className="state">
+              <div className="spinner" />
+              <div className="meta">Fetching latest rates…</div>
+            </div>
+          )}
+
+          {!loading && err && (
+            <div className="state">
+              <div className="error">⚠ {err}</div>
+              <div className="meta">
+                If token is missing, set <b>sessionStorage.accessToken</b> or
+                add <b>VITE_OXY_ACCESS_TOKEN</b> in your Vite env.
               </div>
-              <div className="meta">Updated by feed</div>
+              <button className="retry" onClick={retry} type="button">
+                Retry
+              </button>
             </div>
+          )}
 
-            <div className="oxyChartShell2">
-              <div className="oxyChartGlow" />
-              <div className="oxyChartGrid" />
-              <ResponsiveContainer width="100%" height={260}>
-                <AreaChart
-                  data={ibjaChartData}
-                  margin={{ top: 10, right: 12, left: 0, bottom: 6 }}
-                >
-                  <defs>
-                    <linearGradient id="oxyLineFillGold" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="rgba(212,175,55,0.30)" />
-                      <stop offset="100%" stopColor="rgba(212,175,55,0.00)" />
-                    </linearGradient>
-                    <linearGradient id="oxyLineFillPurple" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="rgba(138,91,255,0.22)" />
-                      <stop offset="100%" stopColor="rgba(138,91,255,0.00)" />
-                    </linearGradient>
-                  </defs>
-
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="label" tick={{ fill: "rgba(255,255,255,0.60)", fontSize: 11 }} />
-                  <YAxis tick={{ fill: "rgba(255,255,255,0.60)", fontSize: 11 }} width={44} />
-                  <Tooltip
-                    content={(p) => <CustomTooltip {...(p as any)} variant="ibja" />}
-                    cursor={{ stroke: "rgba(255,255,255,0.10)" }}
-                  />
-
-                  <Area
-                    type="monotone"
-                    dataKey="v999"
-                    name="999 (24KT)"
-                    stroke="rgba(212,175,55,0.95)"
-                    strokeWidth={3}
-                    fill="url(#oxyLineFillGold)"
-                    dot={false}
-                    activeDot={{ r: 5 }}
-                    hide={ibjaMode !== "24KT"}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="v916"
-                    name="916 (22KT)"
-                    stroke="rgba(138,91,255,0.95)"
-                    strokeWidth={3}
-                    fill="url(#oxyLineFillPurple)"
-                    dot={false}
-                    activeDot={{ r: 5 }}
-                    hide={ibjaMode !== "22KT"}
-                  />
-
-                  {/* faint context line */}
-                  <Line
-                    type="monotone"
-                    dataKey={ibjaMode === "24KT" ? "v916" : "v999"}
-                    name="Context"
-                    stroke="rgba(255,255,255,0.14)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* RIGHT: Shops (comparison) */}
-          <div className="oxyModelCard">
-            <div className="oxyCardHead">
-              <div>
-                <div className="k">Shops Comparison</div>
-                <div className="v">
-                  Updated: {shopsLatestTime}
-                  <span className="chip">
-                    High ₹{formatINR(shopsMinMax.max)} • Low ₹{formatINR(shopsMinMax.min)}
-                  </span>
+          {!loading && !err && (
+            <div className="grid">
+              <div className="card">
+                <div className="cardHead">
+                  <div>
+                    <div className="st">IBJA Trend</div>
+                    <div className="big">
+                      {ibjaStats.current !== null
+                        ? `₹${formatINR(ibjaStats.current)}`
+                        : "--"}
+                    </div>
+                    <div className="meta">
+                      Min:{" "}
+                      {ibjaStats.min !== null
+                        ? `₹${formatINR(ibjaStats.min)}`
+                        : "--"}{" "}
+                      • Max:{" "}
+                      {ibjaStats.max !== null
+                        ? `₹${formatINR(ibjaStats.max)}`
+                        : "--"}
+                    </div>
+                  </div>
+                  <div className="chip">
+                    {ibjaMode === "24KT" ? "24KT (999)" : "22KT (916)"}
+                  </div>
                 </div>
-              </div>
-              <div className="meta">Snapshot view</div>
-            </div>
 
-            <div className="oxyChartShell2">
-              <div className="oxyChartGlow" />
-              <div className="oxyChartGrid" />
-
-              <div className="oxyScrollX">
-                <div className="oxyMinW">
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart
-                      data={shopsChartData}
-                      margin={{ top: 10, right: 12, left: 0, bottom: 10 }}
-                    >
+                <div className="chart">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={ibjaChartData}>
                       <defs>
-                        <linearGradient id="oxyBarGold" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="rgba(212,175,55,0.95)" />
-                          <stop offset="100%" stopColor="rgba(245,211,108,0.40)" />
+                        <linearGradient id="gPurple" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="0%"
+                            stopColor="rgba(91,46,255,0.55)"
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="rgba(91,46,255,0.06)"
+                          />
                         </linearGradient>
-                        <linearGradient id="oxyBarPurple" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="rgba(138,91,255,0.95)" />
-                          <stop offset="100%" stopColor="rgba(91,46,255,0.35)" />
+                        <linearGradient id="gGold" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="0%"
+                            stopColor="rgba(212,175,55,0.50)"
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="rgba(212,175,55,0.06)"
+                          />
                         </linearGradient>
                       </defs>
 
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                      <CartesianGrid
+                        stroke="rgba(255,255,255,0.08)"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="label"
+                        tick={{
+                          fill: "rgba(255,255,255,0.55)",
+                          fontSize: 12,
+                        }}
+                        axisLine={false}
+                        tickLine={false}
+                        minTickGap={18}
+                      />
+                      <YAxis
+                        tick={{
+                          fill: "rgba(255,255,255,0.55)",
+                          fontSize: 12,
+                        }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={56}
+                      />
+                      <Tooltip
+                        content={({ active, label, payload }: any) => {
+                          if (!active || !payload?.length) return null;
+                          const rows = payload
+                            .filter((p: any) => typeof p.value === "number")
+                            .map((p: any) => ({
+                              name: p.name,
+                              value: p.value,
+                              stroke: p.stroke || p.color || "#fff",
+                            }));
+                          return <Tip label={label} rows={rows} />;
+                        }}
+                      />
+                      <Legend
+                        wrapperStyle={{
+                          color: "rgba(255,255,255,0.75)",
+                          fontWeight: 700,
+                        }}
+                      />
+
+                      <Area
+                        type="monotone"
+                        dataKey={ibjaMode === "24KT" ? "v999" : "v916"}
+                        name={ibjaMode === "24KT" ? "IBJA 999" : "IBJA 916"}
+                        stroke={ibjaMode === "24KT" ? "#D4AF37" : "#5B2EFF"}
+                        fill={ibjaMode === "24KT" ? "url(#gGold)" : "url(#gPurple)"}
+                        strokeWidth={3}
+                        dot={false}
+                        activeDot={{ r: 5 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="cardHead">
+                  <div>
+                    <div className="st">Shop Comparison</div>
+                    <div className="meta">
+                      Highest to lowest across selected shops.
+                    </div>
+                  </div>
+                  <div className="chip">{shopsMode}</div>
+                </div>
+
+                <div className="chart">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={shopsChartData}>
+                      <defs>
+                        <linearGradient id="barGold" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="0%"
+                            stopColor="rgba(212,175,55,0.95)"
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="rgba(212,175,55,0.20)"
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="barPurple"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="rgba(91,46,255,0.95)"
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="rgba(91,46,255,0.22)"
+                          />
+                        </linearGradient>
+                      </defs>
+
+                      <CartesianGrid
+                        stroke="rgba(255,255,255,0.08)"
+                        vertical={false}
+                      />
                       <XAxis
                         dataKey="name"
-                        tick={{ fill: "rgba(255,255,255,0.60)", fontSize: 11 }}
+                        tick={{
+                          fill: "rgba(255,255,255,0.55)",
+                          fontSize: 12,
+                        }}
+                        axisLine={false}
+                        tickLine={false}
                         interval={0}
-                        angle={-18}
-                        height={52}
+                        angle={-15}
+                        textAnchor="end"
+                        height={58}
                       />
-                      <YAxis tick={{ fill: "rgba(255,255,255,0.60)", fontSize: 11 }} width={44} />
+                      <YAxis
+                        tick={{
+                          fill: "rgba(255,255,255,0.55)",
+                          fontSize: 12,
+                        }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={56}
+                      />
                       <Tooltip
-                        content={(p) => <CustomTooltip {...(p as any)} variant="shops" />}
-                        cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                        content={({ active, label, payload }: any) => {
+                          if (!active || !payload?.length) return null;
+                          const rows = payload
+                            .filter((p: any) => typeof p.value === "number")
+                            .map((p: any) => ({
+                              name: p.name,
+                              value: p.value,
+                              stroke: p.fill || p.color || "#fff",
+                            }));
+                          return <Tip label={label} rows={rows} />;
+                        }}
                       />
-                      <Legend wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }} />
+                      <Legend
+                        wrapperStyle={{
+                          color: "rgba(255,255,255,0.75)",
+                          fontWeight: 700,
+                        }}
+                      />
 
-                      <Bar dataKey="rate24" name="24KT" fill="url(#oxyBarGold)" radius={[10, 10, 0, 0]} />
-                      <Bar dataKey="rate22" name="22KT" fill="url(#oxyBarPurple)" radius={[10, 10, 0, 0]} />
+                      <Bar
+                        dataKey="rate24"
+                        name={shopsMode === "24KT" ? "24KT" : "Selected"}
+                        fill="url(#barGold)"
+                        radius={[10, 10, 0, 0]}
+                        maxBarSize={34}
+                      />
+                      <Bar
+                        dataKey="rate22"
+                        name="22KT"
+                        fill="url(#barPurple)"
+                        radius={[10, 10, 0, 0]}
+                        maxBarSize={34}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      <style>{dashCss}</style>
+          <div className="bottomSpace" />
+        </div>
+
+        <style>{styles}</style>
+      </div>
     </div>
   );
 }
 
-/* =========================
-   ✅ LANDING PAGE (UNCHANGED SECTIONS)
-   ========================= */
+const styles = `
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
-export default function OxyGoldLandingPage({ assets }: Props) {
-  const A = { ...DEFAULT_ASSETS, ...(assets || {}) };
+.grdRoot .page{ padding: 18px 0; }
 
-  return (
-        <section id="rates" className="py-12">
-          <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/5 p-6 sm:p-10">
-            <GoldFrameLines />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 opacity-35" />
-            <GoldRatesDashboardEmbedded />
-          </div>
-        </section>
-  );
-}
-
-/* =========================
-   Helpers (unchanged)
-   ========================= */
-
-function GoldFrameLines() {
-  return (
-    <>
-      <svg className="pointer-events-none absolute left-0 top-0 opacity-55" width="520" height="260" viewBox="0 0 520 260" fill="none">
-        <path d="M30 200 C 120 60, 260 40, 500 110" stroke="rgba(212,175,55,0.45)" strokeWidth="2" strokeLinecap="round" />
-        <path d="M40 225 C 140 85, 270 70, 500 140" stroke="rgba(245,211,108,0.22)" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="40" cy="225" r="4" fill="rgba(212,175,55,0.35)" />
-        <circle cx="500" cy="140" r="4" fill="rgba(245,211,108,0.28)" />
-      </svg>
-
-      <svg className="pointer-events-none absolute bottom-0 right-0 opacity-55" width="520" height="260" viewBox="0 0 520 260" fill="none">
-        <path d="M20 120 C 240 200, 360 210, 490 40" stroke="rgba(212,175,55,0.40)" strokeWidth="2" strokeLinecap="round" />
-        <path d="M20 150 C 250 220, 380 230, 500 70" stroke="rgba(245,211,108,0.20)" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="20" cy="150" r="4" fill="rgba(212,175,55,0.35)" />
-        <circle cx="500" cy="70" r="4" fill="rgba(245,211,108,0.28)" />
-      </svg>
-
-      <div
-        className="pointer-events-none absolute inset-0 rounded-[28px] opacity-40"
-        style={{
-          boxShadow: `inset 0 0 0 1px rgba(212,175,55,0.10), 0 0 0 1px rgba(255,255,255,0.03)`,
-        }}
-      />
-    </>
-  );
-}
-
-const dashCss = `
-.oxyModelWrap{
-  position: relative;
-  padding: 22px 18px;
-  border-radius: 26px;
+.grdRoot .panel{
+  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  border-radius: 24px;
   border: 1px solid rgba(255,255,255,0.10);
   background:
     radial-gradient(900px 420px at 20% 0%, rgba(91,46,255,0.22), transparent 55%),
     radial-gradient(700px 360px at 90% 20%, rgba(212,175,55,0.16), transparent 60%),
-    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-  box-shadow:
-    0 26px 90px rgba(0,0,0,0.45),
-    inset 0 0 0 1px rgba(255,255,255,0.06);
-  backdrop-filter: blur(18px);
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  padding: 18px 16px;
   overflow: hidden;
 }
 
-/* border glow like model */
-.oxyModelWrap:before{
-  content:"";
-  position:absolute;
-  inset:-1px;
-  border-radius: 26px;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(138,91,255,0.55), rgba(255,255,255,0.08), rgba(245,211,108,0.35));
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events:none;
-  opacity: 0.75;
+.grdRoot .topSpace{ height: 4px; }
+.grdRoot .bottomSpace{ height: 6px; }
+
+.grdRoot .header{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap: 14px; margin-bottom: 14px;
 }
 
-.oxyModelTop{
-  display:flex;
-  align-items:flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  position: relative;
-  z-index: 2;
-}
-.oxyModelTitle{
-  font-family: "Playfair Display", serif;
-  font-weight: 800;
-  font-size: clamp(20px, 2.2vw, 28px);
-  line-height: 1.15;
-  color: rgba(255,255,255,0.95);
-  margin: 0;
-}
-.oxyModelSub{
-  margin-top: 8px;
-  max-width: 62ch;
-  font-size: 13px;
-  line-height: 1.6;
-  color: rgba(255,255,255,0.65);
-}
-.oxyModelPill{
-  margin-top: 12px;
-  display:inline-flex;
-  align-items:center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.10);
-  color: rgba(255,255,255,0.75);
-  font-size: 12px;
-  font-weight: 700;
-}
-.oxyBolt{
-  width: 22px;
-  height: 22px;
-  display:grid;
-  place-items:center;
-  border-radius: 10px;
-  background: rgba(212,175,55,0.18);
-  border: 1px solid rgba(212,175,55,0.25);
-  color: rgba(245,211,108,0.95);
+.grdRoot .title{
+  margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 0.2px;
+  color: rgba(255,255,255,0.94);
 }
 
-.oxyModelRightControls{
-  display:flex;
-  align-items:center;
-  gap: 10px;
+.grdRoot .subtitle{
+  margin: 6px 0 0 0; font-size: 13px; font-weight: 700;
+  color: rgba(255,255,255,0.62);
 }
-.oxyModelSelect{
-  display:flex;
-  align-items:center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.06);
+
+.grdRoot .rightPill{
+  display:flex; align-items:center; gap: 10px;
   border: 1px solid rgba(255,255,255,0.10);
+  padding: 10px 12px; border-radius: 999px;
+  background: rgba(0,0,0,0.12);
+  color: rgba(255,255,255,0.82);
+  font-weight: 800; font-size: 12px; white-space: nowrap;
+}
+
+.grdRoot .pillDot{
+  width: 10px; height: 10px; border-radius: 999px;
+  background: rgba(212,175,55,0.95);
+  box-shadow: 0 0 0 4px rgba(212,175,55,0.14);
+}
+
+.grdRoot .controls{
+  display:flex; align-items:center; justify-content:space-between;
+  gap: 12px; padding: 12px 0 10px 0;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+
+.grdRoot .controlGroup{ display:flex; align-items:center; gap: 10px; }
+.grdRoot .controlLabel{
+  font-size: 12px; font-weight: 900; letter-spacing: 0.5px;
   color: rgba(255,255,255,0.70);
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
 }
-.oxyModelSelect .dot{
-  width: 8px; height: 8px;
+
+.grdRoot .goldSeg{
+  display:flex;
+  border: 1px solid rgba(255,255,255,0.10);
   border-radius: 999px;
-  background: rgba(138,91,255,0.9);
-  box-shadow: 0 0 0 4px rgba(138,91,255,0.15);
-}
-.oxyModelSelect .caret{ opacity: 0.75; }
-
-.oxyModelMore{
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.75);
-  cursor: pointer;
+  overflow:hidden;
+  background: rgba(0,0,0,0.18);
 }
 
-.oxyModelTabs{
-  margin-top: 16px;
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 12px;
-  position: relative;
-  z-index: 2;
+.grdRoot .goldSeg button{
+  appearance:none; border:0; background: transparent;
+  color: rgba(255,255,255,0.74);
+  font-weight: 900; font-size: 12px;
+  padding: 10px 12px; cursor:pointer;
+  transition: all .15s ease;
 }
-.oxyTab{
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.05);
-  color: rgba(255,255,255,0.70);
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
+
+.grdRoot .goldSeg button.on{
+  background: linear-gradient(180deg, rgba(212,175,55,0.95), rgba(212,175,55,0.72));
+  color: rgba(43,10,89,0.98);
 }
-.oxyTab.isActive{
-  background: rgba(255,255,255,0.08);
+
+.grdRoot .state{
+  display:flex; align-items:center; justify-content:center;
+  flex-direction: column; gap: 10px; padding: 26px 0;
+}
+
+.grdRoot .spinner{
+  width: 34px; height: 34px; border-radius: 999px;
+  border: 3px solid rgba(255,255,255,0.15);
+  border-top-color: rgba(212,175,55,0.95);
+  animation: grdSpin 1s linear infinite;
+}
+
+@keyframes grdSpin{ to{ transform: rotate(360deg); } }
+
+.grdRoot .error{ color: rgba(255,255,255,0.90); font-weight: 900; }
+.grdRoot .retry{
+  border: 0; cursor: pointer; border-radius: 12px;
+  padding: 10px 14px; font-weight: 900;
+  background: linear-gradient(180deg, rgba(91,46,255,0.95), rgba(61,11,122,0.85));
   color: rgba(255,255,255,0.92);
-  box-shadow: 0 16px 50px rgba(0,0,0,0.25);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.28);
 }
 
-.oxyLegendToggles{
-  display:flex;
-  align-items:center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-.oxyLegendItem{
-  display:flex;
-  align-items:center;
-  gap: 8px;
-  color: rgba(255,255,255,0.70);
-  font-size: 12px;
-  font-weight: 800;
-}
-.sq{
-  width: 10px; height: 10px;
-  border-radius: 3px;
-  display:inline-block;
-}
-.sqIncome{ background: rgba(138,91,255,0.95); }
-.sqExpense{ background: rgba(212,175,55,0.95); }
+.grdRoot .grid{ display:grid; grid-template-columns: 1fr; gap: 14px; }
 
-.oxyMiniSwitch{
-  display:flex;
-  align-items:center;
-  gap: 6px;
-  padding: 4px;
-  border-radius: 999px;
+.grdRoot .card{
+  border-radius: 20px;
   border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.04);
-}
-.oxyMiniSwitch button{
-  padding: 6px 9px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: rgba(255,255,255,0.65);
-  font-size: 11px;
-  font-weight: 900;
-  cursor: pointer;
-}
-.oxyMiniSwitch button.on{
-  background: linear-gradient(135deg, rgba(91,46,255,0.95), rgba(138,91,255,0.95));
-  color: #fff;
-  box-shadow: 0 12px 30px rgba(91,46,255,0.25);
-}
-
-/* grid */
-.oxyModelGrid{
-  margin-top: 14px;
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-@media (max-width: 980px){
-  .oxyModelGrid{ grid-template-columns: 1fr; }
-  .oxyModelRightControls{ display:none; } /* like mobile simplification */
-}
-
-.oxyModelCard{
-  border-radius: 22px;
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(0,0,0,0.22);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
-  overflow: hidden;
-  position: relative;
-}
-.oxyModelCard:before{
-  content:"";
-  position:absolute;
-  inset:-2px;
   background:
-    radial-gradient(520px 240px at 20% 0%, rgba(138,91,255,0.20), transparent 55%),
-    radial-gradient(520px 240px at 90% 20%, rgba(212,175,55,0.14), transparent 60%);
-  pointer-events:none;
-  opacity: 0.7;
+    radial-gradient(700px 360px at 20% 10%, rgba(91,46,255,0.20), transparent 55%),
+    radial-gradient(650px 300px at 90% 10%, rgba(212,175,55,0.12), transparent 60%),
+    linear-gradient(180deg, rgba(0,0,0,0.18), rgba(255,255,255,0.03));
+  padding: 14px 14px 12px 14px;
+  overflow:hidden;
 }
 
-.oxyCardHead{
-  padding: 14px 14px 0;
-  position: relative;
-  z-index: 2;
-  display:flex;
-  align-items:flex-start;
-  justify-content: space-between;
-  gap: 10px;
+.grdRoot .cardHead{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap: 12px; margin-bottom: 10px;
 }
-.oxyCardHead .k{
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+
+.grdRoot .st{
+  font-size: 12px; font-weight: 900;
+  color: rgba(255,255,255,0.70);
+  letter-spacing: 0.4px;
+}
+
+.grdRoot .big{
+  font-size: 22px; font-weight: 900;
+  color: rgba(255,255,255,0.94);
+  margin-top: 6px;
+}
+
+.grdRoot .meta{
+  margin-top: 6px; font-size: 12px; font-weight: 800;
   color: rgba(255,255,255,0.60);
 }
-.oxyCardHead .v{
-  margin-top: 6px;
-  font-size: 14px;
-  font-weight: 900;
-  color: rgba(255,255,255,0.92);
-}
-.oxyCardHead .chip{
-  margin-left: 10px;
-  display:inline-flex;
-  align-items:center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 999px;
+
+.grdRoot .chip{
   border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.05);
-  font-size: 11px;
-  font-weight: 800;
-  color: rgba(255,255,255,0.65);
-}
-.oxyCardHead .meta{
-  font-size: 11px;
-  font-weight: 800;
-  color: rgba(255,255,255,0.55);
+  background: rgba(0,0,0,0.16);
+  padding: 8px 10px; border-radius: 999px;
+  color: rgba(255,255,255,0.82);
+  font-weight: 900; font-size: 12px;
   white-space: nowrap;
 }
 
-.oxyChartShell2{
-  position: relative;
-  padding: 10px 10px 12px;
-  z-index: 2;
-}
-.oxyChartGlow{
-  position:absolute;
-  inset:-80px -80px auto auto;
-  width: 260px; height: 260px;
-  background: radial-gradient(circle at 30% 30%, rgba(212,175,55,0.18), transparent 62%);
-  filter: blur(1px);
-  pointer-events:none;
-}
-.oxyChartGrid{
-  position:absolute;
-  inset: 52px 12px 16px 12px;
-  background:
-    linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
-  background-size: 54px 54px;
-  mask-image: radial-gradient(700px 320px at 50% 10%, rgba(0,0,0,0.75), transparent 70%);
-  pointer-events:none;
-  border-radius: 16px;
-  opacity: 0.45;
-}
+.grdRoot .chart{ height: 280px; }
 
-/* horizontal scroll for many brands (shops) */
-.oxyScrollX{ overflow-x: auto; }
-.oxyMinW{ min-width: 720px; }
-@media (max-width: 720px){
-  .oxyMinW{ min-width: 760px; }
-}
-
-/* states */
-.oxyModelState{
-  margin-top: 18px;
-  padding: 26px 14px;
-  border-radius: 18px;
-  border: 1px dashed rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.05);
-  text-align: center;
-  color: rgba(255,255,255,0.75);
-}
-.oxyModelState .t{
-  font-weight: 900;
-  color: rgba(255,255,255,0.90);
-}
-.oxyModelState .m{
-  margin-top: 6px;
-  font-size: 13px;
-  color: rgba(255,255,255,0.70);
-}
-.oxySpinner{
-  width: 40px; height: 40px;
-  margin: 0 auto 10px;
-  border-radius: 999px;
-  border: 4px solid rgba(138,91,255,0.45);
-  border-top-color: transparent;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin{ to{ transform: rotate(360deg); } }
-
-.oxyModelError{
-  border-color: rgba(255,0,0,0.25);
-  background: rgba(255,0,0,0.06);
-}
-.oxyRetry{
-  margin-top: 12px;
-  padding: 10px 14px;
+.grdRoot .tip{
   border-radius: 14px;
-  border: 1px solid rgba(212,175,55,0.35);
-  background: linear-gradient(135deg, rgba(212,175,55,0.95), rgba(245,211,108,0.95));
-  color: rgba(43,10,89,0.95);
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-/* tooltips */
-.oxy-tip{
-  border-radius: 14px;
-  padding: 12px 12px 10px;
-  background: rgba(16,10,36,0.96);
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(10,8,22,0.92);
+  backdrop-filter: blur(10px);
+  padding: 10px 10px;
+  min-width: 210px;
+  color: #fff;
   box-shadow: 0 18px 50px rgba(0,0,0,0.35);
-  min-width: 220px;
-  color: #fff;
 }
-.oxy-tip-title{
-  font-weight: 900;
-  color: rgba(255,255,255,0.92);
-  font-size: 13px;
-  margin-bottom: 8px;
+
+.grdRoot .tipTitle{
+  font-weight: 900; font-size: 12px;
+  margin-bottom: 8px; color: rgba(255,255,255,0.92);
 }
-.oxy-tip-rows{ display:flex; flex-direction: column; gap: 6px; }
-.oxy-tip-row{ display:flex; align-items:center; gap: 8px; }
-.oxy-tip-dot{
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  box-shadow: 0 8px 18px rgba(0,0,0,0.20);
-}
-.oxy-tip-k{
-  flex: 1;
-  font-weight: 800;
-  font-size: 12px;
-  color: rgba(255,255,255,0.70);
-}
-.oxy-tip-v{
-  font-weight: 900;
-  font-size: 12px;
-  color: rgba(255,255,255,0.92);
-}
-.oxy-tip-foot{
-  margin-top: 8px;
-  padding-top: 8px;
+
+.grdRoot .tipRows{ display:flex; flex-direction: column; gap: 6px; }
+.grdRoot .tipRow{ display:flex; align-items:center; gap: 8px; }
+.grdRoot .tipRow .dot{ width: 10px; height: 10px; border-radius: 999px; }
+.grdRoot .tipRow .k{ flex: 1; font-weight: 800; font-size: 12px; color: rgba(255,255,255,0.70); }
+.grdRoot .tipRow .v{ font-weight: 900; font-size: 12px; color: rgba(255,255,255,0.92); }
+
+.grdRoot .tipFoot{
+  margin-top: 8px; padding-top: 8px;
   border-top: 1px solid rgba(255,255,255,0.10);
-  font-size: 11px;
-  font-weight: 800;
-  color: rgba(255,255,255,0.60);
+  font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.60);
 }
 
-/* Loading / error / empty */
-.oxy-loading{
-  padding: 36px 18px;
-  border-radius: 18px;
-  border: 1px dashed rgba(255,255,255,0.20);
-  background: rgba(255,255,255,0.05);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap: 12px;
+@media (min-width: 900px){
+  .grdRoot .panel{ padding: 18px 18px; }
+  .grdRoot .grid{ grid-template-columns: 1.1fr 1fr; }
+  .grdRoot .chart{ height: 320px; }
 }
-.oxy-spinner{
-  width: 42px; height: 42px;
-  border-radius: 999px;
-  border: 4px solid rgba(91,46,255,0.55);
-  border-top-color: transparent;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin{ to{ transform: rotate(360deg); } }
-.oxy-loadingText{
-  font-weight: 800;
-  color: rgba(255,255,255,0.85);
-}
-
-.oxy-error{
-  padding: 34px 18px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,0,0,0.22);
-  background: rgba(255,0,0,0.06);
-  text-align: center;
-  color: #fff;
-}
-.oxy-errorIcon{ font-size: 42px; margin-bottom: 10px; }
-.oxy-errorTitle{ font-weight: 900; font-size: 18px; margin-bottom: 8px; }
-.oxy-errorMsg{ margin: 6px 0 16px; font-size: 14px; opacity: 0.85; }
-
-.oxy-empty{
-  padding: 44px 18px;
-  border-radius: 18px;
-  border: 1px dashed rgba(255,255,255,0.22);
-  background: rgba(212,175,55,0.08);
-  text-align: center;
-  color: #fff;
-}
-.oxy-emptyIcon{ font-size: 54px; margin-bottom: 10px; }
-.oxy-emptyTitle{ font-weight: 900; font-size: 18px; margin-bottom: 8px; }
-.oxy-emptyMsg{ font-size: 14px; opacity: 0.85; }
-
-@media (max-width: 720px){
-  .oxy-panelHead{
-    flex-direction: column;
-    align-items:flex-start;
-  }
-  .oxy-switch{ width: 100%; justify-content: space-between; }
-  .oxy-switchBtn{ flex: 1; text-align:center; }
-  .oxy-callout{
-    right: 12px;
-    top: 12px;
-    transform: scale(0.95);
-    transform-origin: top right;
-  }
-}
-`; 
+`;

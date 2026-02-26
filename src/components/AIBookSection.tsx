@@ -1,51 +1,98 @@
 import React from "react";
-import { ShoppingCart } from "lucide-react";
-import aiImage from "../assets/gt.png";
-
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faAmazon } from "@fortawesome/free-brands-svg-icons";
+import bookImage from "../assets/book.png";
 
 export default function AIBookSection() {
   const openAmazon = () => {
-    window.open("https://www.amazon.in/dp/YOUR_BOOK_ID", "_blank");
+    // ✅ Replace YOUR_BOOK_ID with your real Amazon ASIN
+    window.open(
+      "https://www.amazon.in/dp/YOUR_BOOK_ID",
+      "_blank",
+      "noopener,noreferrer",
+    );
   };
 
   return (
-    <section style={styles.section} className="ai-book-section">
+    <section >
       <div style={styles.container}>
-        <div style={styles.card} className="ai-book-card">
-          <div style={styles.gradient} />
-          
+        {/* ✅ use SAME div (no new div) + make it the rounded card */}
+        <div
+          style={{ ...styles.card, ...styles.inner }}
+          className="ai-book-inner ai-book-card"
+        >
+
           <div style={styles.grid} className="ai-book-grid">
-            {/* Image */}
-            <div style={styles.imageWrapper}>
-              <img src={aiImage} alt="AI Book" style={styles.image} />
+            {/* LEFT: Image */}
+            <div style={styles.left} className="ai-book-left">
+              <div style={styles.imageWrap}>
+                <img
+                  src={bookImage}
+                  alt="Enter the AI & GenAI Universe book cover"
+                  style={styles.image}
+                />
+              </div>
             </div>
 
-            {/* Content */}
-            <div style={styles.content}>
-              <div style={styles.badge}>
-                AI Book • First Copy Winner Benefit
+            {/* RIGHT: Content */}
+            <div style={styles.content} className="ai-book-content">
+              <div style={styles.badgeRow}>
+                <div style={styles.badge}>
+                  <span style={styles.badgeDot} />
+                  AI Book • Winner Benefit
+                </div>
+
+                <div style={styles.pill}>
+                  <span style={styles.pillText}>65 Practical Chapters</span>
+                </div>
               </div>
+
+              {/* ✅ next title (white) */}
+              <h2 style={styles.title}>Enter the <span style={styles.goldText}>AI & GenAI Universe</span></h2>
+              <p style={styles.subtitle}>Build the Future with Agentic AI</p>
 
               <p style={styles.description}>
-                Enter the AI & GenAI Universe is a beginner-friendly yet powerful guide for anyone who wants to understand and use Artificial Intelligence in real life. With 65 practical, easy-to-follow chapters, the book simplifies AI, Generative AI, Prompt Engineering, Large Language Models (LLMs), how to build the future with agentic AI, and future AI careers.
+                A beginner-friendly yet powerful guide to understand and use
+                Artificial Intelligence in real life. With 65 practical,
+                easy-to-follow chapters, it simplifies AI, Generative AI, Prompt
+                Engineering, Large Language Models (LLMs), Agentic AI, and future
+                AI careers.
               </p>
 
-              <div style={styles.benefitCard}>
-                <p style={styles.benefitTitle}>Special First Copy Winner Benefit</p>
-                <p style={styles.benefitText}>
-                  Permanent training until placement • Direct interaction with Team & CEO • Daily interview & project guidance • Continuous support until you get the job
-                </p>
+              <div style={styles.ctaRow}>
+                <button
+                  onClick={openAmazon}
+                  style={styles.amazonBtn}
+                  className="amazon-btn"
+                  type="button"
+                >
+                  <span style={styles.amazonIconChip}>
+                    <FontAwesomeIcon
+                      icon={faAmazon}
+                      style={{ fontSize: 18, color: "#2B0A59" }}
+                    />
+                  </span>
+                  <span>Buy on Amazon</span>
+                </button>
               </div>
-
-              <button onClick={openAmazon} style={styles.amazonBtn} className="amazon-btn">
-                <ShoppingCart size={20} color="#2B0A59" />
-                <span>Buy on Amazon</span>
-              </button>
             </div>
           </div>
         </div>
       </div>
-      <style>{responsiveStyles}</style>
+
+      {/* Tiny responsive help without Tailwind */}
+      <style>
+        {`
+          @media (min-width: 900px){
+            .ai-book-grid{ grid-template-columns: 0.95fr 1.05fr !important; }
+          }
+          @media (max-width: 520px){
+            .ai-book-card{ border-radius: 22px !important; padding: 22px !important; }
+          }
+          .amazon-btn:hover{ transform: translateY(-1px); filter: brightness(1.03); }
+          .amazon-btn:active{ transform: translateY(0px) scale(0.99); }
+        `}
+      </style>
     </section>
   );
 }
@@ -53,101 +100,170 @@ export default function AIBookSection() {
 const styles: Record<string, React.CSSProperties> = {
   section: {
     width: "100%",
-    background: "#2B0A59",
-    padding: "60px 20px",
-    position: "relative" as const,
+    padding: "76px 20px",
+    position: "relative",
     overflow: "hidden",
+    background:
+      "radial-gradient(1200px 700px at 20% 10%, rgba(138,91,255,0.22) 0%, rgba(43,10,89,1) 60%), linear-gradient(180deg, #2B0A59 0%, #160537 100%)",
   },
+
   container: {
     maxWidth: "1400px",
     margin: "0 auto",
   },
+
+  // ✅ Rounded corners focus (simple + premium)
   card: {
-    position: "relative",
-    overflow: "hidden",
-    borderRadius: "24px",
-    border: "1px solid rgba(138, 91, 255, 0.3)",
-    background: "#EDE7FF",
-    boxShadow: "0 20px 60px rgba(91, 46, 255, 0.15)",
+    borderRadius: "28px",
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.06)",
+    boxShadow: "0 28px 80px rgba(0,0,0,0.35)",
+    backdropFilter: "blur(12px)",
   },
-  gradient: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: "radial-gradient(1200px 700px at 10% 10%, rgba(91,46,255,0.14) 0%, transparent 62%)",
-    pointerEvents: "none" as const,
+
+  inner: {
+    padding: "38px",
   },
+
+  // ✅ Top title (gold)
+  topTitle: {
+    margin: 0,
+    fontSize: "14px",
+    fontWeight: 900,
+    letterSpacing: "2px",
+    textTransform: "uppercase",
+    background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+  },
+
+  topSubTitle: {
+    margin: "10px 0 22px 0",
+    color: "rgba(255,255,255,0.72)",
+    fontSize: "14px",
+    fontWeight: 700,
+  },
+
   grid: {
-    position: "relative",
     display: "grid",
     gridTemplateColumns: "1fr",
-    gap: "40px",
-    padding: "40px",
+    gap: "32px",
+    alignItems: "center",
   },
-  imageWrapper: {
+
+  left: {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
   },
+
+  imageWrap: {
+    width: "100%",
+    maxWidth: "520px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "4px",
+  },
+
   image: {
     width: "100%",
-    maxWidth: "500px",
     height: "auto",
     objectFit: "contain",
+    display: "block",
+    filter: "drop-shadow(0 18px 30px rgba(0,0,0,0.35))",
   },
+
   content: {
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
   },
+
+  badgeRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "10px",
+    alignItems: "center",
+    marginBottom: "14px",
+  },
+
   badge: {
     display: "inline-flex",
     alignItems: "center",
-    gap: "8px",
-    alignSelf: "flex-start",
+    gap: "10px",
     borderRadius: "999px",
-    background: "#8A5BFF",
-    border: "1px solid #5B2EFF",
-    padding: "8px 16px",
-    fontSize: "14px",
-    fontWeight: 600,
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.16)",
+    padding: "10px 16px",
+    fontSize: "13px",
+    fontWeight: 800,
     color: "#FFFFFF",
+    letterSpacing: "0.2px",
   },
-  description: {
-    marginTop: "20px",
-    color: "#2B0A59",
-    textAlign: "justify",
-    lineHeight: 1.7,
-    fontSize: "15px",
+
+  badgeDot: {
+    width: "8px",
+    height: "8px",
+    borderRadius: "999px",
+    background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
+    boxShadow: "0 0 0 3px rgba(212,175,55,0.16)",
   },
-  benefitCard: {
-    marginTop: "20px",
-    borderRadius: "16px",
-    border: "1px solid #D4AF37",
-    background: "#FFF6D8",
-    padding: "20px",
+
+  pill: {
+    display: "inline-flex",
+    alignItems: "center",
+    borderRadius: "999px",
+    padding: "9px 14px",
+    border: "1px solid rgba(212,175,55,0.35)",
+    background: "rgba(212,175,55,0.10)",
   },
-  benefitTitle: {
-    color: "#D4AF37",
-    fontWeight: 700,
-    fontSize: "16px",
-    marginBottom: "8px",
+
+  pillText: {
+    color: "#F5D36C",
+    fontWeight: 900,
+    fontSize: "13px",
+    letterSpacing: "0.2px",
   },
-  benefitText: {
-    color: "#2B0A59",
-    lineHeight: 1.6,
-    fontSize: "14px",
+
+  title: {
     margin: 0,
+    fontSize: "34px",
+    lineHeight: 1.15,
+    color: "#FFFFFF",
+    fontWeight: 900,
+    letterSpacing: "0.2px",
   },
+  goldText: { color: "#D4AF37" },
+  subtitle: {
+    margin: "10px 0 0 0",
+    color: "rgba(255,255,255,0.82)",
+    fontSize: "16px",
+    fontWeight: 700,
+  },
+
+  description: {
+    marginTop: "16px",
+    color: "rgba(255,255,255,0.88)",
+    lineHeight: 1.75,
+    fontSize: "15px",
+    textAlign: "left",
+  },
+
+  ctaRow: {
+    marginTop: "18px",
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+    flexWrap: "wrap",
+  },
+
   amazonBtn: {
-    marginTop: "24px",
-    padding: "14px 28px",
+    padding: "14px 22px",
     borderRadius: "16px",
     background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
     color: "#2B0A59",
-    fontWeight: 700,
+    fontWeight: 900,
     fontSize: "16px",
     border: "none",
     cursor: "pointer",
@@ -155,46 +271,17 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     gap: "10px",
-    transition: "all 0.3s",
-    alignSelf: "flex-start",
+    transition: "all 0.25s",
+  },
+
+  amazonIconChip: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    background: "rgba(255,255,255,0.72)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 10px 22px rgba(0,0,0,0.18)",
   },
 };
-
-const responsiveStyles = `
-  .amazon-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
-  }
-
-  .amazon-btn:active {
-    transform: scale(0.98);
-  }
-
-  @media (min-width: 768px) {
-    .ai-book-grid {
-      grid-template-columns: 1fr 1fr !important;
-      gap: 40px !important;
-    }
-  }
-
-  @media (max-width: 767px) {
-    .ai-book-section {
-      padding: 40px 16px !important;
-    }
-    .ai-book-card {
-      padding: 24px !important;
-    }
-    .ai-book-grid {
-      gap: 24px !important;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .ai-book-card {
-      padding: 20px !important;
-    }
-    .amazon-btn {
-      width: 100%;
-    }
-  }
-`;

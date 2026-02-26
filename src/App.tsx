@@ -20,7 +20,10 @@ import BankAccount from './pages/BankAccount';
 import TermsConditions from './pages/TermsConditions';
 import Portfolio from './pages/Portfolio';
 import FAQ from './pages/FAQ';
-import OxyGoldAI from './pages/OxyGoldAI';
+import OxyGoldAI from './components/OxyGoldAI';
+import VideoCreationPage from './AIVideosImages/VideoCreation';
+import ImageCreation from './AIVideosImages/imagecreation';
+import RealtimeVoice from './RealtimeVoice/components/RealTimeMainscreen';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -44,10 +47,27 @@ function AppContent() {
             <SellProcessing sellData={transactionData} />
           </div>
         } />
+
+        <Route
+                path="/voiceAssistant"
+                element={<Navigate to="/voiceAssistant/welcome" replace />}
+              />
+              <Route
+                path="/voiceAssistant/:screen"
+                element={<RealtimeVoice/>}
+              />
+              <Route
+                path="imageCreation"
+                element={<ImageCreation/>}
+              />
+                            <Route
+                path="videoCreation"
+                element={<VideoCreationPage/>}
+              />
         
         <Route path="/*" element={
           <>
-            <Header />
+            {/* <Header /> */}
             <div className="page-container">
               <Routes>
                 <Route path="/" element={<OxyGoldAI />} />
