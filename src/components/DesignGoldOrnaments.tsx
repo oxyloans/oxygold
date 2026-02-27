@@ -168,17 +168,15 @@ const OxyGoldAIPage: React.FC = () => {
   const [modalRoute, setModalRoute] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleCardClick = (card: (typeof cards)[0]) => {
-    if (card.route.startsWith("http")) {
-      window.open(card.route, "_blank");
-    } else if (card.showModal) {
-      const existing = sessionStorage.getItem("userJewelryContext");
-      if (existing) navigate(card.route);
-      else setModalRoute(card.route);
-    } else {
-      navigate(card.route);
-    }
-  };
+const handleCardClick = (card: (typeof cards)[0]) => {
+  if (card.route.startsWith("http")) {
+    window.open(card.route, "_blank");
+  } else if (card.showModal) {
+    setModalRoute(card.route);  
+  } else {
+    navigate(card.route);
+  }
+};
 
   return (
     <section>
@@ -281,13 +279,12 @@ export default OxyGoldAIPage;
 // ── Styles ──
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    maxWidth: "1400px",
+    maxWidth: "1200px",
     margin: "0 auto",
-  
   },
 
   card: {
-    borderRadius: "20px",
+    borderRadius: "28px",
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(255,255,255,0.06)",
     boxShadow: "0 28px 80px rgba(0,0,0,0.35)",
@@ -296,7 +293,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   inner: {
-    padding: "36px",
+    padding: "42px",
   },
 
   heroRow: {
@@ -327,20 +324,20 @@ const styles: Record<string, React.CSSProperties> = {
   badgeRow: {
     display: "flex",
     flexWrap: "wrap" as const,
-    gap: "8px",
+    gap: "10px",
     alignItems: "center",
-    marginBottom: "12px",
+    marginBottom: "14px",
   },
 
   badge: {
     display: "inline-flex",
     alignItems: "center",
-    gap: "8px",
+    gap: "10px",
     borderRadius: "999px",
     background: "rgba(255,255,255,0.10)",
     border: "1px solid rgba(255,255,255,0.18)",
-    padding: "8px 14px",
-    fontSize: "12px",
+    padding: "10px 16px",
+    fontSize: "13px",
     fontWeight: 900,
     color: "#FFFFFF",
     letterSpacing: "0.2px",
@@ -359,7 +356,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "inline-flex",
     alignItems: "center",
     borderRadius: "999px",
-    padding: "8px 12px",
+    padding: "9px 14px",
     border: "1px solid rgba(212,175,55,0.35)",
     background: "rgba(212,175,55,0.10)",
   },
@@ -367,20 +364,20 @@ const styles: Record<string, React.CSSProperties> = {
   pillText: {
     color: "#F5D36C",
     fontWeight: 900,
-    fontSize: "12px",
+    fontSize: "13px",
     letterSpacing: "0.2px",
   },
 
   header: {
     textAlign: "left" as const,
-    marginBottom: "14px",
+    marginBottom: "16px",
   },
 
   title: {
-    fontSize: "clamp(24px, 4vw, 44px)",
+    fontSize: "clamp(28px, 4vw, 44px)",
     fontWeight: 900,
     margin: 0,
-    marginBottom: "6px",
+    marginBottom: "8px",
     color: "#fff",
     lineHeight: 1.15,
     letterSpacing: "0.2px",
@@ -389,10 +386,10 @@ const styles: Record<string, React.CSSProperties> = {
   goldText: { color: "#D4AF37" },
 
   subtitle: {
-    fontSize: "14px",
+    fontSize: "15px",
     color: "rgba(255,255,255,0.82)",
     margin: 0,
-    lineHeight: 1.5,
+    lineHeight: 1.6,
     maxWidth: "640px",
   },
 
@@ -412,9 +409,9 @@ const styles: Record<string, React.CSSProperties> = {
     backdropFilter: "blur(10px)",
     border: "1px solid rgba(212,175,55,0.22)",
     borderRadius: "14px",
-    padding: "14px 16px",
+    padding: "12px 14px",
     transition: "all 0.25s ease",
-    minHeight: "80px",
+    minHeight: "84px",
     cursor: "pointer",
   },
 
@@ -534,59 +531,35 @@ const modalStyles: Record<string, React.CSSProperties> = {
 };
 
 const responsiveStyles = `
-  @media (hover: hover) {
-    .feature-card:hover {
-      transform: translateY(-3px);
-      border-color: rgba(212,175,55,0.45) !important;
-      background: rgba(255,255,255,0.12) !important;
-    }
-  }
-
-  .feature-card:active {
-    transform: scale(0.98);
+  .feature-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(212,175,55,0.45) !important;
+    background: rgba(255,255,255,0.12) !important;
   }
 
   /* Tablet */
   @media (max-width: 980px) {
     .oxygold-hero {
       grid-template-columns: 1fr !important;
-      gap: 20px !important;
+      gap: 22px !important;
     }
     .oxygold-right {
-      justify-content: center !important;
-      order: -1;
+      justify-content: flex-start !important;
     }
     .oxygold-banner-img {
-      max-width: 420px !important;
+      max-width: 520px !important;
       width: 100% !important;
-    }
-    .oxygold-card > div {
-      padding: 28px !important;
     }
   }
 
   /* Mobile */
   @media (max-width: 640px) {
     .oxygold-card > div {
-      padding: 18px !important;
+      padding: 22px !important;
     }
     .oxygold-grid {
       grid-template-columns: 1fr !important;
-      gap: 10px !important;
-    }
-    .oxygold-banner-img {
-      max-width: 100% !important;
-      border-radius: 14px !important;
-    }
-    .feature-card {
-      min-height: 72px !important;
-      padding: 12px 14px !important;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .oxygold-card > div {
-      padding: 16px !important;
+      gap: 12px !important;
     }
   }
 `;
