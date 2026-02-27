@@ -2,8 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-route
 import { useState } from 'react';
 // import './styles/App.css';
 // import './index.css';
-import Header from './components/Header';
-import Footer from './components/Footer';
+
 import Landing from './pages/Landing';
 import HowItWorks from './pages/HowItWorks';
 import BuyGold from './pages/BuyGold';

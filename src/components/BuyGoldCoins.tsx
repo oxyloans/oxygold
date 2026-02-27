@@ -198,18 +198,18 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     background:
       "radial-gradient(1200px 700px at 20% 10%, rgba(138,91,255,0.22) 0%, rgba(43,10,89,1) 60%), linear-gradient(180deg, #2B0A59 0%, #160537 100%)",
-    padding: "70px 20px",
+    padding: "50px 20px",
     position: "relative",
     overflow: "hidden",
   },
 
   container: {
-    maxWidth: "1200px",
+    maxWidth: "1400px",
     margin: "0 auto",
   },
 
   card: {
-    borderRadius: "28px",
+    borderRadius: "20px",
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(255,255,255,0.06)",
     boxShadow: "0 28px 80px rgba(0,0,0,0.35)",
@@ -218,7 +218,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   inner: {
-    padding: "42px",
+    padding: "36px",
   },
 
   heroRow: {
@@ -250,19 +250,19 @@ const styles: Record<string, React.CSSProperties> = {
   badgeRow: {
     display: "flex",
     flexWrap: "wrap",
-    gap: "10px",
+    gap: "8px",
     alignItems: "center",
-    marginBottom: "14px",
+    marginBottom: "16px",
   },
 
   badge: {
     display: "inline-flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "8px",
     borderRadius: "999px",
     background: "rgba(255,255,255,0.10)",
     border: "1px solid rgba(255,255,255,0.18)",
-    padding: "10px 16px",
+    padding: "8px 14px",
     fontSize: "13px",
     fontWeight: 900,
     color: "#FFFFFF",
@@ -281,7 +281,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "inline-flex",
     alignItems: "center",
     borderRadius: "999px",
-    padding: "9px 14px",
+    padding: "8px 14px",
     border: "1px solid rgba(212,175,55,0.35)",
     background: "rgba(212,175,55,0.10)",
   },
@@ -295,16 +295,16 @@ const styles: Record<string, React.CSSProperties> = {
 
   header: {
     textAlign: "left",
-    marginBottom: "16px",
+    marginBottom: "20px",
   },
 
   title: {
-    fontSize: "clamp(28px, 4vw, 44px)",
+    fontSize: "clamp(26px, 4vw, 44px)",
     fontWeight: 900,
     margin: 0,
-    marginBottom: "8px",
+    marginBottom: "10px",
     color: "#fff",
-    lineHeight: 1.15,
+    lineHeight: 1.2,
     letterSpacing: "0.2px",
   },
 
@@ -314,7 +314,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "15px",
     color: "rgba(255,255,255,0.82)",
     margin: 0,
-    lineHeight: 1.6,
+    lineHeight: 1.5,
     maxWidth: "640px",
   },
 
@@ -322,8 +322,8 @@ const styles: Record<string, React.CSSProperties> = {
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
-    gap: "12px",
-    marginBottom: "20px",
+    gap: "10px",
+    marginBottom: "24px",
   },
 
   feature: {
@@ -363,7 +363,7 @@ const styles: Record<string, React.CSSProperties> = {
   ctaWrapper: { textAlign: "left" },
 
   button: {
-    padding: "14px 34px",
+    padding: "15px 34px",
     fontSize: "16px",
     fontWeight: 900,
     background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
@@ -376,9 +376,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   storeRow: {
-    marginTop: "14px",
+    marginTop: "16px",
     display: "flex",
-    gap: "12px",
+    gap: "10px",
     flexWrap: "wrap",
     alignItems: "center",
   },
@@ -388,12 +388,13 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(255,255,255,0.18)",
     background: "rgba(255,255,255,0.08)",
     color: "#FFFFFF",
-    padding: "10px 14px",
+    padding: "11px 16px",
     cursor: "pointer",
     display: "inline-flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "8px",
     transition: "all 0.25s ease",
+    minHeight: "44px",
   },
 
   storeIcon: { color: "#F5D36C" },
@@ -413,41 +414,49 @@ const styles: Record<string, React.CSSProperties> = {
 };
 
 const responsiveStyles = `
-  .feature-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(212,175,55,0.45);
-    background: rgba(255,255,255,0.12);
+  @media (hover: hover) {
+    .feature-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(212,175,55,0.45);
+      background: rgba(255,255,255,0.12);
+    }
+
+    .buy-gold-cta:hover {
+      filter: brightness(1.02);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(212,175,55,0.45) !important;
+    }
+
+    .store-btn:hover{
+      transform: translateY(-2px);
+      border-color: rgba(245,211,108,0.55);
+      background: rgba(255,255,255,0.12);
+    }
   }
 
-  .buy-gold-cta:hover {
-    filter: brightness(1.02);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(212,175,55,0.45) !important;
+  .buy-gold-cta:active {
+    transform: scale(0.98);
   }
 
-  .store-btn:hover{
-    transform: translateY(-2px);
-    border-color: rgba(245,211,108,0.55);
-    background: rgba(255,255,255,0.12);
-  }
   .store-btn:active{
-    transform: translateY(0px) scale(0.99);
+    transform: scale(0.97);
   }
 
   /* Tablet: stack, image below */
   @media (max-width: 980px) {
     .buy-gold-hero{
       grid-template-columns: 1fr !important;
-      gap: 22px !important;
+      gap: 24px !important;
     }
     .buy-gold-right{
       justify-content: flex-start !important;
     }
     .buy-gold-grid{
       grid-template-columns: 1fr 1fr !important;
+      gap: 10px !important;
     }
     .gold-banner-img{
-      max-width: 760px !important;
+      max-width: 600px !important;
       width: 100% !important;
     }
   }
@@ -455,26 +464,47 @@ const responsiveStyles = `
   /* Mobile */
   @media (max-width: 640px) {
     section {
-      padding: 54px 16px !important;
+      padding: 32px 16px !important;
+    }
+    .buy-gold-card {
+      border-radius: 20px !important;
     }
     .buy-gold-card > div{
-      padding: 22px !important;
+      padding: 20px !important;
     }
     .buy-gold-grid{
       grid-template-columns: 1fr !important;
-      gap: 12px !important;
+      gap: 10px !important;
+      margin-bottom: 20px !important;
     }
     section button.buy-gold-cta{
       width: 100%;
       justify-content: center;
-      padding: 14px 18px !important;
+      padding: 16px 20px !important;
+      font-size: 15px !important;
+      min-height: 50px;
     }
     .store-row{
       width: 100%;
+      gap: 8px !important;
     }
     .store-row button{
-      width: 100%;
+      flex: 1;
       justify-content: center;
+      font-size: 13px !important;
+    }
+    .gold-banner-img{
+      max-width: 100% !important;
+    }
+  }
+
+  /* Extra small mobile */
+  @media (max-width: 400px) {
+    section {
+      padding: 24px 12px !important;
+    }
+    .buy-gold-card > div{
+      padding: 16px !important;
     }
   }
 `;

@@ -90,9 +90,9 @@ export default function OxyGoldFooter({
         </div>
 
         {/* Bottom row */}
-        <div className="mt-8 pt-6 border-t border-white/10 flex flex-wrap justify-between items-center gap-4">
-          <p className="text-xs text-gray-400/80 m-0">
-            © {year}-{year + 1} OXYGOLD.AI. All rights reserved.
+        <div className="mt-8 pt-6 border-t border-white/10 flex flex-wrap justify-between  text-center items-center gap-4">
+          <p className="text-xs text-center  text-gray-400/80 m-0">
+            © {year}-{year+1 } OXYGOLD.AI. All rights reserved.
           </p>
         </div>
       </div>

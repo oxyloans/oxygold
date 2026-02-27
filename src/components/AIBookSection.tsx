@@ -7,7 +7,7 @@ export default function AIBookSection() {
   const openAmazon = () => {
     // ✅ Replace YOUR_BOOK_ID with your real Amazon ASIN
     window.open(
-      "https://www.amazon.in/dp/YOUR_BOOK_ID",
+      "https://amzn.in/d/2Ie3hEg",
       "_blank",
       "noopener,noreferrer",
     );
@@ -86,8 +86,12 @@ export default function AIBookSection() {
           @media (min-width: 900px){
             .ai-book-grid{ grid-template-columns: 0.95fr 1.05fr !important; }
           }
-          @media (max-width: 520px){
-            .ai-book-card{ border-radius: 22px !important; padding: 22px !important; }
+          @media (max-width: 640px){
+            .ai-book-card{ border-radius: 16px !important; padding: 20px !important; }
+            .ai-book-left{ padding: 0 10px; }
+          }
+          @media (min-width: 641px) and (max-width: 899px){
+            .ai-book-card{ padding: 24px !important; }
           }
           .amazon-btn:hover{ transform: translateY(-1px); filter: brightness(1.03); }
           .amazon-btn:active{ transform: translateY(0px) scale(0.99); }
@@ -100,7 +104,7 @@ export default function AIBookSection() {
 const styles: Record<string, React.CSSProperties> = {
   section: {
     width: "100%",
-    padding: "76px 20px",
+    padding: "40px 20px",
     position: "relative",
     overflow: "hidden",
     background:
@@ -110,19 +114,21 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     maxWidth: "1400px",
     margin: "0 auto",
+    padding: "0 0px",
   },
 
   // ✅ Rounded corners focus (simple + premium)
   card: {
-    borderRadius: "28px",
+    borderRadius: "20px",
+    padding: "0px",
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(255,255,255,0.06)",
-    boxShadow: "0 28px 80px rgba(0,0,0,0.35)",
+    boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
     backdropFilter: "blur(12px)",
   },
 
   inner: {
-    padding: "38px",
+    padding: "0px",
   },
 
   // ✅ Top title (gold)
@@ -147,7 +153,7 @@ const styles: Record<string, React.CSSProperties> = {
   grid: {
     display: "grid",
     gridTemplateColumns: "1fr",
-    gap: "32px",
+    gap: "20px",
     alignItems: "center",
   },
 
@@ -183,38 +189,38 @@ const styles: Record<string, React.CSSProperties> = {
   badgeRow: {
     display: "flex",
     flexWrap: "wrap",
-    gap: "10px",
+    gap: "8px",
     alignItems: "center",
-    marginBottom: "14px",
+    marginBottom: "10px",
   },
 
   badge: {
     display: "inline-flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "8px",
     borderRadius: "999px",
     background: "rgba(255,255,255,0.08)",
     border: "1px solid rgba(255,255,255,0.16)",
-    padding: "10px 16px",
-    fontSize: "13px",
+    padding: "8px 12px",
+    fontSize: "11px",
     fontWeight: 800,
     color: "#FFFFFF",
     letterSpacing: "0.2px",
   },
 
   badgeDot: {
-    width: "8px",
-    height: "8px",
+    width: "7px",
+    height: "7px",
     borderRadius: "999px",
     background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
-    boxShadow: "0 0 0 3px rgba(212,175,55,0.16)",
+    boxShadow: "0 0 0 2px rgba(212,175,55,0.16)",
   },
 
   pill: {
     display: "inline-flex",
     alignItems: "center",
     borderRadius: "999px",
-    padding: "9px 14px",
+    padding: "7px 12px",
     border: "1px solid rgba(212,175,55,0.35)",
     background: "rgba(212,175,55,0.10)",
   },
@@ -222,13 +228,13 @@ const styles: Record<string, React.CSSProperties> = {
   pillText: {
     color: "#F5D36C",
     fontWeight: 900,
-    fontSize: "13px",
+    fontSize: "11px",
     letterSpacing: "0.2px",
   },
 
   title: {
     margin: 0,
-    fontSize: "34px",
+    fontSize: "26px",
     lineHeight: 1.15,
     color: "#FFFFFF",
     fontWeight: 900,
@@ -236,52 +242,52 @@ const styles: Record<string, React.CSSProperties> = {
   },
   goldText: { color: "#D4AF37" },
   subtitle: {
-    margin: "10px 0 0 0",
+    margin: "8px 0 0 0",
     color: "rgba(255,255,255,0.82)",
-    fontSize: "16px",
+    fontSize: "14px",
     fontWeight: 700,
   },
 
   description: {
-    marginTop: "16px",
+    marginTop: "12px",
     color: "rgba(255,255,255,0.88)",
-    lineHeight: 1.75,
-    fontSize: "15px",
+    lineHeight: 1.7,
+    fontSize: "13px",
     textAlign: "left",
   },
 
   ctaRow: {
-    marginTop: "18px",
+    marginTop: "14px",
     display: "flex",
     alignItems: "center",
-    gap: "14px",
+    gap: "12px",
     flexWrap: "wrap",
   },
 
   amazonBtn: {
-    padding: "14px 22px",
-    borderRadius: "16px",
+    padding: "12px 18px",
+    borderRadius: "14px",
     background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
     color: "#2B0A59",
     fontWeight: 900,
-    fontSize: "16px",
+    fontSize: "14px",
     border: "none",
     cursor: "pointer",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: "10px",
+    gap: "8px",
     transition: "all 0.25s",
   },
 
   amazonIconChip: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     background: "rgba(255,255,255,0.72)",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 10px 22px rgba(0,0,0,0.18)",
+    boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
   },
 };

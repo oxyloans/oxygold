@@ -3,8 +3,8 @@ import ibjaPartner from "../assets/IBJApartner.png";
 
 export default function IBJAPartnerSection() {
   return (
-    <section >
-      <div style={styles.container} className="pt-20">
+    <section>
+      <div style={styles.container} className="ibja-container">
         <div style={styles.card} className="ibja-card">
           <div style={styles.inner} className="ibja-inner">
             <div style={styles.grid} className="ibja-grid">
@@ -59,22 +59,14 @@ export default function IBJAPartnerSection() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  section: {
-    width: "100%",
-    padding: "76px 20px",
-    position: "relative",
-    overflow: "hidden",
-    background:
-      "radial-gradient(1200px 700px at 20% 10%, rgba(138,91,255,0.22) 0%, rgba(43,10,89,1) 60%), linear-gradient(180deg, #2B0A59 0%, #160537 100%)",
-  },
-
   container: {
-    maxWidth: "1200px",
+    maxWidth: "1400px",
     margin: "0 auto",
+    // padding: "60px 20px",
   },
 
   card: {
-    borderRadius: "28px",
+    borderRadius: "20px",
     overflow: "hidden",
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(255,255,255,0.06)",
@@ -83,13 +75,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   inner: {
-    padding: "44px",
+    padding: "32px",
   },
 
   grid: {
     display: "grid",
     gridTemplateColumns: "0.95fr 1.05fr",
-    gap: "32px",
+    gap: "48px",
     alignItems: "center",
   },
 
@@ -164,8 +156,8 @@ const styles: Record<string, React.CSSProperties> = {
 
   title: {
     margin: 0,
-    fontSize: "clamp(28px, 3.2vw, 42px)",
-    lineHeight: 1.12,
+    fontSize: "clamp(24px, 3.2vw, 42px)",
+    lineHeight: 1.2,
     color: "#FFFFFF",
     fontWeight: 900,
     letterSpacing: "0.2px",
@@ -178,7 +170,7 @@ const styles: Record<string, React.CSSProperties> = {
   subtitle: {
     margin: "10px 0 0 0",
     color: "rgba(255,255,255,0.82)",
-    fontSize: "16px",
+    fontSize: "clamp(14px, 2vw, 16px)",
     fontWeight: 750,
     lineHeight: 1.5,
   },
@@ -187,7 +179,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: "14px",
     color: "rgba(255,255,255,0.88)",
     lineHeight: 1.75,
-    fontSize: "15px",
+    fontSize: "clamp(14px, 1.8vw, 15px)",
   },
 
   listCard: {
@@ -251,21 +243,24 @@ const responsiveStyles = `
   .ibja-cta:active{ transform: translateY(0px) scale(0.99); }
 
   @media (max-width: 980px){
+    .ibja-container{ padding: 40px 16px !important; }
     .ibja-grid{
       grid-template-columns: 1fr !important;
-      gap: 22px !important;
+      gap: 28px !important;
     }
+    .ibja-inner{ padding: 40px !important; }
     .ibja-left{
-      justify-content: flex-start !important;
+      justify-content: center !important;
     }
     .ibja-image{
-      max-width: 680px !important;
-      width: 100% !important;
+      max-width: 100% !important;
     }
   }
 
   @media (max-width: 640px){
-    .ibja-inner{ padding: 22px !important; }
-    .ibja-card{ border-radius: 22px !important; }
+    .ibja-container{ padding: 34px 2px !important; }
+    .ibja-inner{ padding: 28px !important; }
+    .ibja-card{ border-radius: 20px !important; }
+    .ibja-grid{ gap: 24px !important; }
   }
 `;

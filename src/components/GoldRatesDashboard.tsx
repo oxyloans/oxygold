@@ -58,7 +58,7 @@ const formatINR = (v: number | null) => {
 const formatDateLabel = (s: string) => {
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) return s;
-  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 };
 
 const Tip = ({
@@ -355,20 +355,23 @@ export default function GoldRatesDashboard() {
                         dataKey="label"
                         tick={{
                           fill: "rgba(255,255,255,0.55)",
-                          fontSize: 12,
+                          fontSize: 10,
                         }}
                         axisLine={false}
                         tickLine={false}
-                        minTickGap={18}
+                        minTickGap={10}
+                        angle={-20}
+                        textAnchor="end"
+                        height={40}
                       />
                       <YAxis
                         tick={{
                           fill: "rgba(255,255,255,0.55)",
-                          fontSize: 12,
+                          fontSize: 10,
                         }}
                         axisLine={false}
                         tickLine={false}
-                        width={56}
+                        width={50}
                       />
                       <Tooltip
                         content={({ active, label, payload }: any) => {
@@ -456,23 +459,23 @@ export default function GoldRatesDashboard() {
                         dataKey="name"
                         tick={{
                           fill: "rgba(255,255,255,0.55)",
-                          fontSize: 12,
+                          fontSize: 9,
                         }}
                         axisLine={false}
                         tickLine={false}
                         interval={0}
-                        angle={-15}
+                        angle={-30}
                         textAnchor="end"
-                        height={58}
+                        height={65}
                       />
                       <YAxis
                         tick={{
                           fill: "rgba(255,255,255,0.55)",
-                          fontSize: 12,
+                          fontSize: 10,
                         }}
                         axisLine={false}
                         tickLine={false}
-                        width={56}
+                        width={50}
                       />
                       <Tooltip
                         content={({ active, label, payload }: any) => {
@@ -527,64 +530,64 @@ export default function GoldRatesDashboard() {
 const styles = `
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
-.grdRoot .page{ padding: 18px 0; }
+.grdRoot .page{ padding: 0px; }
 
 .grdRoot .panel{
   font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  border-radius: 24px;
+  border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.10);
   background:
     radial-gradient(900px 420px at 20% 0%, rgba(91,46,255,0.22), transparent 55%),
     radial-gradient(700px 360px at 90% 20%, rgba(212,175,55,0.16), transparent 60%),
     linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  padding: 18px 16px;
+  padding: 12px;
   overflow: hidden;
 }
 
-.grdRoot .topSpace{ height: 4px; }
-.grdRoot .bottomSpace{ height: 6px; }
+.grdRoot .topSpace{ height: 0; }
+.grdRoot .bottomSpace{ height: 0; }
 
 .grdRoot .header{
   display:flex; align-items:flex-start; justify-content:space-between;
-  gap: 14px; margin-bottom: 14px;
+  gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
 }
 
 .grdRoot .title{
-  margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 0.2px;
+  margin: 0; font-size: 16px; font-weight: 900; letter-spacing: 0.2px;
   color: rgba(255,255,255,0.94);
 }
 
 .grdRoot .subtitle{
-  margin: 6px 0 0 0; font-size: 13px; font-weight: 700;
+  margin: 3px 0 0 0; font-size: 11px; font-weight: 700;
   color: rgba(255,255,255,0.62);
 }
 
 .grdRoot .rightPill{
-  display:flex; align-items:center; gap: 10px;
+  display:flex; align-items:center; gap: 6px;
   border: 1px solid rgba(255,255,255,0.10);
-  padding: 10px 12px; border-radius: 999px;
+  padding: 6px 10px; border-radius: 999px;
   background: rgba(0,0,0,0.12);
   color: rgba(255,255,255,0.82);
-  font-weight: 800; font-size: 12px; white-space: nowrap;
+  font-weight: 800; font-size: 10px; white-space: nowrap;
 }
 
 .grdRoot .pillDot{
-  width: 10px; height: 10px; border-radius: 999px;
+  width: 8px; height: 8px; border-radius: 999px;
   background: rgba(212,175,55,0.95);
-  box-shadow: 0 0 0 4px rgba(212,175,55,0.14);
+  box-shadow: 0 0 0 3px rgba(83, 82, 78, 0.14);
 }
 
 .grdRoot .controls{
   display:flex; align-items:center; justify-content:space-between;
-  gap: 12px; padding: 12px 0 10px 0;
+  gap: 8px; padding: 8px 0;
   border-top: 1px solid rgba(255,255,255,0.08);
   border-bottom: 1px solid rgba(255,255,255,0.08);
-  margin-bottom: 14px; flex-wrap: wrap;
+  margin-bottom: 10px; flex-wrap: wrap;
 }
 
-.grdRoot .controlGroup{ display:flex; align-items:center; gap: 10px; }
+.grdRoot .controlGroup{ display:flex; align-items:center; gap: 8px; }
 .grdRoot .controlLabel{
-  font-size: 12px; font-weight: 900; letter-spacing: 0.5px;
+  font-size: 10px; font-weight: 900; letter-spacing: 0.5px;
   color: rgba(255,255,255,0.70);
 }
 
@@ -599,8 +602,8 @@ const styles = `
 .grdRoot .goldSeg button{
   appearance:none; border:0; background: transparent;
   color: rgba(255,255,255,0.74);
-  font-weight: 900; font-size: 12px;
-  padding: 10px 12px; cursor:pointer;
+  font-weight: 900; font-size: 10px;
+  padding: 7px 10px; cursor:pointer;
   transition: all .15s ease;
 }
 
@@ -611,7 +614,7 @@ const styles = `
 
 .grdRoot .state{
   display:flex; align-items:center; justify-content:center;
-  flex-direction: column; gap: 10px; padding: 26px 0;
+  flex-direction: column; gap: 8px; padding: 16px 0;
 }
 
 .grdRoot .spinner{
@@ -632,51 +635,51 @@ const styles = `
   box-shadow: 0 14px 34px rgba(0,0,0,0.28);
 }
 
-.grdRoot .grid{ display:grid; grid-template-columns: 1fr; gap: 14px; }
+.grdRoot .grid{ display:grid; grid-template-columns: 1fr; gap: 10px; }
 
 .grdRoot .card{
-  border-radius: 20px;
+  border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.10);
   background:
     radial-gradient(700px 360px at 20% 10%, rgba(91,46,255,0.20), transparent 55%),
     radial-gradient(650px 300px at 90% 10%, rgba(212,175,55,0.12), transparent 60%),
     linear-gradient(180deg, rgba(0,0,0,0.18), rgba(255,255,255,0.03));
-  padding: 14px 14px 12px 14px;
+  padding: 10px;
   overflow:hidden;
 }
 
 .grdRoot .cardHead{
   display:flex; align-items:flex-start; justify-content:space-between;
-  gap: 12px; margin-bottom: 10px;
+  gap: 8px; margin-bottom: 8px; flex-wrap: wrap;
 }
 
 .grdRoot .st{
-  font-size: 12px; font-weight: 900;
+  font-size: 10px; font-weight: 900;
   color: rgba(255,255,255,0.70);
   letter-spacing: 0.4px;
 }
 
 .grdRoot .big{
-  font-size: 22px; font-weight: 900;
+  font-size: 16px; font-weight: 900;
   color: rgba(255,255,255,0.94);
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .grdRoot .meta{
-  margin-top: 6px; font-size: 12px; font-weight: 800;
+  margin-top: 4px; font-size: 10px; font-weight: 800;
   color: rgba(255,255,255,0.60);
 }
 
 .grdRoot .chip{
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(0,0,0,0.16);
-  padding: 8px 10px; border-radius: 999px;
+  padding: 6px 8px; border-radius: 999px;
   color: rgba(255,255,255,0.82);
-  font-weight: 900; font-size: 12px;
+  font-weight: 900; font-size: 10px;
   white-space: nowrap;
 }
 
-.grdRoot .chart{ height: 280px; }
+.grdRoot .chart{ height: 220px; }
 
 .grdRoot .tip{
   border-radius: 14px;
@@ -706,9 +709,26 @@ const styles = `
   font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.60);
 }
 
-@media (min-width: 900px){
-  .grdRoot .panel{ padding: 18px 18px; }
+@media (min-width: 640px){
+  .grdRoot .panel{ padding: 14px; border-radius: 18px; }
+  .grdRoot .title{ font-size: 18px; }
+  .grdRoot .subtitle{ font-size: 12px; }
+  .grdRoot .big{ font-size: 18px; }
+  .grdRoot .chart{ height: 250px; }
+  .grdRoot .rightPill{ font-size: 11px; padding: 7px 11px; }
+  .grdRoot .controlLabel{ font-size: 11px; }
+  .grdRoot .goldSeg button{ font-size: 11px; padding: 8px 11px; }
+}
+
+@media (min-width: 1024px){
+  .grdRoot .panel{ padding: 16px; border-radius: 20px; }
+  .grdRoot .title{ font-size: 20px; }
+  .grdRoot .subtitle{ font-size: 13px; }
+  .grdRoot .big{ font-size: 20px; }
   .grdRoot .grid{ grid-template-columns: 1.1fr 1fr; }
-  .grdRoot .chart{ height: 320px; }
+  .grdRoot .chart{ height: 280px; }
+  .grdRoot .rightPill{ font-size: 12px; padding: 8px 12px; }
+  .grdRoot .controlLabel{ font-size: 12px; }
+  .grdRoot .goldSeg button{ font-size: 12px; padding: 9px 12px; }
 }
 `;
