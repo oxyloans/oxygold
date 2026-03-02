@@ -11,6 +11,8 @@ import {
   Landmark,
   Scale,
 } from "lucide-react";
+import { ArrowUp } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import heroImage from "../assets/hero.png";
 import BuyGoldCoins from "./BuyGoldCoins";
@@ -142,6 +144,23 @@ const modules8 = [
 export default function OxyGoldLandingPage({ assets }: Props) {
   const A = { ...DEFAULT_ASSETS, ...(assets || {}) };
 
+  const [showScroll, setShowScroll] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScroll(window.scrollY > 300); // show after scrolling 300px
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
   return (
     <div
       className="min-h-screen text-white font-poppins overflow-x-hidden"
@@ -158,64 +177,69 @@ export default function OxyGoldLandingPage({ assets }: Props) {
           <HeroLocalPattern />
 
           {/* LEFT */}
-          <div className="text-center lg:text-left px-2 pt-10 sm:px-0">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold leading-tight font-playfair">
-              Namaste{" "}
-              <span
-                className="relative inline-block bg-clip-text text-transparent"
-                style={{
-                  backgroundImage: `linear-gradient(90deg, ${BRAND.gold.bright} 0%, ${BRAND.gold.primary} 28%, ${BRAND.purple.soft} 62%, #ffffff 100%)`,
-                  filter: "drop-shadow(0 10px 28px rgba(212,175,55,0.22))",
-                }}
-              >
-                Mumbai
+          <div className="text-center lg:text-left px-2 pt-12 sm:pt-14 lg:pt-0 sm:px-0">
+            {/* Heading */}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold leading-[1.15] sm:leading-tight font-playfair">
+              Powering the Future of{" "}
+              <span className="inline-block">
+                Gold Intell
                 <span
-                  className="pointer-events-none absolute -inset-x-2 -bottom-1 h-[8px] sm:h-[10px] rounded-full opacity-70"
+                  className="bg-clip-text text-transparent"
                   style={{
-                    background: `linear-gradient(90deg, ${BRAND.gold.primary}40, ${BRAND.gold.bright}55, ${BRAND.purple.soft}35)`,
-                    filter: "blur(8px)",
+                    backgroundImage: `linear-gradient(90deg, ${BRAND.gold.bright}, ${BRAND.gold.primary})`,
                   }}
-                />
+                >
+                  AI
+                </span>
+                gence
               </span>
             </h1>
 
-            <p className="mt-3 sm:mt-4 mx-auto lg:mx-0 max-w-xl text-sm sm:text-base lg:text-lg leading-relaxed text-white/90 p-2 rounded-lg">
-              Our{" "}
-              <span className="font-extrabold text-yellow-400 bg-yellow-400/10 px-1 rounded">
-                Co-Founders
-              </span>{" "}
-              Are Attending the{" "}
-              <span className="font-extrabold text-white bg-white/10 px-1 rounded">
-                11th India International Bullion Summit
-              </span>{" "}
-              <span className="font-bold text-yellow-300 bg-yellow-300/10 px-1 rounded">
-                (IIBS 11)
-              </span>
-              <br className="hidden sm:block" />
-              <span className="inline sm:inline"> </span>
-              <span className="font-bold text-white/80">Join Us</span> & Be Part
-              of the Experience.
+            {/* Description */}
+            <p className="mt-5 mx-auto lg:mx-0 max-w-xl text-sm sm:text-base lg:text-lg leading-relaxed text-white/85">
+              OXYGOLD.AI is engineering a next-generation gold ecosystem where
+              benchmark pricing, compliance frameworks, and AI intelligence
+              converge to modernize how gold is owned, validated, and scaled.
             </p>
 
-            <div className="mt-4 sm:mt-5 rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4">
-              <p className="text-xs font-semibold tracking-widest text-white/60">
-                CO-FOUNDERS
-              </p>
-              <div className="mt-2 sm:mt-3 flex flex-wrap justify-center lg:justify-start gap-2 sm:gap-3">
-                <BadgePill text="RADHAKRISHNA T • CO-FOUNDER" />
-                <BadgePill text="RAMADEVI T • CO-FOUNDER" />
-              </div>
-            </div>
+            <p className="mt-3 mx-auto lg:mx-0 max-w-xl text-sm sm:text-base leading-relaxed text-white/65">
+              We are building the foundational infrastructure layer powering
+              trust in the modern gold economy.
+            </p>
 
-            <div className="mt-3 sm:mt-4 grid gap-2 grid-cols-1 sm:grid-cols-2">
-              <InfoChip
-                icon={<CalendarDays className="h-4 w-4" />}
-                label="27–28 Feb 2025"
-              />
-              <InfoChip
-                icon={<MapPin className="h-4 w-4" />}
-                label="The Westin Mumbai Powai Lake"
-              />
+            {/* Leadership Section */}
+            <div className="mt-10 max-w-xl mx-auto lg:mx-0">
+              {/* Elegant Divider */}
+              <div className="flex items-center gap-4 mb-5">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                <p className="text-sm sm:text-base font-medium tracking-widest text-white/60">
+                  CO-FOUNDERS
+                </p>
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              </div>
+
+              {/* Founders – 2 Columns (Mobile + Web Full Text) */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="flex items-center justify-center lg:justify-start gap-2 rounded-xl border border-white/15 bg-white/5 px-3 sm:px-4 py-3 text-xs sm:text-sm lg:text-base text-white/90 text-center lg:text-left">
+                  <span className="h-2 w-2 rounded-full bg-yellow-400 shrink-0" />
+                  <div className="leading-snug">
+                    <p className="font-medium">Radhakrishna Thatavarti</p>
+                    <p className="text-white/60 text-[11px] sm:text-xs lg:text-sm">
+                      Co-Founder & CEO
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center lg:justify-start gap-2 rounded-xl border border-white/15 bg-white/5 px-3 sm:px-4 py-3 text-xs sm:text-sm lg:text-base text-white/90 text-center lg:text-left">
+                  <span className="h-2 w-2 rounded-full bg-yellow-400 shrink-0" />
+                  <div className="leading-snug">
+                    <p className="font-medium">Ramadevi Thatavarti</p>
+                    <p className="text-white/60 text-[11px] sm:text-xs lg:text-sm">
+                      Co-Founder & CTO
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -240,12 +264,50 @@ export default function OxyGoldLandingPage({ assets }: Props) {
         <div className="py-4 sm:py-8 lg:py-12">
           <BuyGoldCoins />
         </div>
+
+        <div className="py-4 sm:py-8 lg:py-12">
+          <IBJAPartnerSection />
+        </div>
         <div className="py-4 sm:py-8 lg:py-12">
           <DesignGoldOrnaments />
         </div>
 
         {/* MAIN CONTENT SECTIONS */}
         <div className="space-y-4 sm:space-y-6">
+          {/* 3) WHAT WE PROVIDE (Colorful + Safe Version) */}
+          <section id="provide" className="py-6 sm:py-10">
+            <SectionHeader
+              kicker=""
+              title="What We Provide"
+              subtitle="Digital gold + AI-driven trust layer for multiple sectors — designed like a premium bank-grade platform."
+            />
+
+            <div className="mt-6 sm:mt-8 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+              {provideCards.map((c) => (
+                <div
+                  key={c.title}
+                  className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 sm:p-5 transition hover:bg-white/10"
+                >
+                  <div className="relative flex items-start gap-3 sm:gap-4">
+                    {/* Icon Box */}
+                    <div className="grid h-10 w-10 sm:h-12 sm:w-12 place-items-center rounded-xl border border-yellow-400/40 bg-gradient-to-br from-yellow-300/30 via-white/10 to-purple-500/20 text-yellow-400">
+                      <div className="scale-95 sm:scale-100">{c.icon}</div>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm sm:text-base font-semibold text-white">
+                        {c.title}
+                      </h3>
+                      <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/70">
+                        {c.desc}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
           {/* 4) MODULES (premium gold-line glossy) */}
           <section id="modules" className="py-4 sm:py-6">
             <div className="relative overflow-hidden rounded-xl sm:rounded-2xl lg:rounded-[20px] border border-white/10 bg-white/5">
@@ -262,11 +324,20 @@ export default function OxyGoldLandingPage({ assets }: Props) {
               <div className="pointer-events-none absolute inset-x-0 top-0 h-12 sm:h-20 lg:h-24 bg-gradient-to-b from-white/10 to-transparent opacity-40" />
 
               <div className="relative px-3 py-4 sm:p-6 lg:p-10">
-                <div className="text-center sm:text-left">
+                <div className="text-center">
                   <h2 className="text-lg sm:text-2xl lg:text-3xl font-semibold leading-tight">
-                    OXYGOLD.AI Modules
+                    <span
+                      className="bg-clip-text text-transparent"
+                      style={{
+                        backgroundImage: `linear-gradient(90deg, ${BRAND.gold.bright}, ${BRAND.gold.primary})`,
+                      }}
+                    >
+                      OXYGOLD.AI
+                    </span>{" "}
+                    Modules
                   </h2>
-                  <p className="mt-2 sm:mt-3 mx-auto sm:mx-0 max-w-2xl text-xs sm:text-sm lg:text-base leading-relaxed text-white/70">
+
+                  <p className="mt-2 sm:mt-3 mx-auto max-w-2xl text-xs sm:text-sm lg:text-base leading-relaxed text-white/70">
                     A premium ecosystem for bullion and allied sectors — built
                     like a{" "}
                     <span className="text-white/90 font-semibold">
@@ -281,63 +352,33 @@ export default function OxyGoldLandingPage({ assets }: Props) {
                     <ModuleCard key={m.title} {...m} />
                   ))}
                 </div>
-
-                <div className="mt-5 sm:mt-8 lg:mt-10 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
               </div>
             </div>
           </section>
-
-          {/* 3) WHAT WE PROVIDE (glossy modern) */}
-          <section id="provide" className="py-4 sm:py-6">
-            <SectionHeader
-              kicker=""
-              title="What We Provide"
-              subtitle="Digital gold + AI-driven trust layer for multiple sectors — designed like a premium bank-grade platform."
-            />
-
-            <div className="mt-5 sm:mt-6 lg:mt-8 grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-              {provideCards.map((c) => (
-                <GlassCard key={c.title}>
-                  <div className="flex items-start gap-3 sm:gap-4">
-                    <div
-                      className="grid h-10 w-10 sm:h-12 sm:w-12 shrink-0 place-items-center rounded-lg sm:rounded-xl border"
-                      style={{
-                        borderColor: `${BRAND.gold.primary}55`,
-                        background: `linear-gradient(135deg, rgba(255,246,216,0.9), rgba(255,255,255,0.9))`,
-                        color: BRAND.purple.luxuryDark,
-                      }}
-                    >
-                      <div className="scale-90 sm:scale-100">{c.icon}</div>
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-xs sm:text-sm font-semibold tracking-wide text-white/95">
-                        {c.title}
-                      </h3>
-                      <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm leading-relaxed text-white/65">
-                        {c.desc}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="pointer-events-none absolute -bottom-10 -right-10 opacity-35">
-                    <MiniCircuit />
-                  </div>
-                </GlassCard>
-              ))}
-            </div>
-          </section>
         </div>
 
-        <div className="py-4 sm:py-8 lg:py-12">
-          <IBJAPartnerSection />
-        </div>
         <div className="py-4 sm:py-8 lg:py-12">
           <OxyEcosystem />
         </div>
       </div>
 
       <OxyGoldFooter />
+      {/* Scroll To Top Button */}
+      {showScroll && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 group"
+        >
+          <div
+            className="h-12 w-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-110"
+            style={{
+              background: `linear-gradient(135deg, ${BRAND.purple.primary}, ${BRAND.gold.primary})`,
+            }}
+          >
+            <ArrowUp className="text-white h-5 w-5" />
+          </div>
+        </button>
+      )}
     </div>
   );
 }

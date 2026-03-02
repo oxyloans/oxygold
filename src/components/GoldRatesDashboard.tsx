@@ -238,18 +238,53 @@ export default function GoldRatesDashboard() {
         <div className="panel">
           <div className="topSpace" />
 
-          <div className="header">
-            <div>
-              <h1 className="title">Smart Gold Rate Analytics</h1>
-              <p className="subtitle">
-                Clean comparison of Shop rates vs IBJA trend intelligence.
-              </p>
-            </div>
+          <div
+            className="header"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textAlign: "center",
+              gap: "14px",
+              marginBottom: "28px",
+            }}
+          >
+            {/* TITLE */}
+            <h1
+              style={{
+                margin: 0,
+                fontSize: "32px",
+                fontWeight: 700,
+                lineHeight: 1.25,
+                letterSpacing: "0.2px",
+                color: "#ffffff",
+              }}
+            >
+              Smart{" "}
+              <span
+                style={{
+                  background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Gold Rate Analytics
+              </span>
+            </h1>
 
-            <div className="rightPill">
-              <span className="pillDot" />
-              <span>This Year</span>
-            </div>
+            {/* SUBTITLE */}
+            <p
+              style={{
+                margin: 0,
+                fontSize: "15px",
+                fontWeight: 500,
+                color: "rgba(255,255,255,0.75)",
+                maxWidth: "600px",
+              }}
+            >
+              Clean comparison of Shop rates vs IBJA trend intelligence.
+            </p>
+
           </div>
 
           <div className="controls">
@@ -325,21 +360,21 @@ export default function GoldRatesDashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={ibjaChartData}>
                       <defs>
-                        <linearGradient id="gPurple" x1="0" y1="0" x2="0" y2="1">
-                          <stop
-                            offset="0%"
-                            stopColor="rgba(91,46,255,0.55)"
-                          />
+                        <linearGradient
+                          id="gPurple"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop offset="0%" stopColor="rgba(91,46,255,0.55)" />
                           <stop
                             offset="100%"
                             stopColor="rgba(91,46,255,0.06)"
                           />
                         </linearGradient>
                         <linearGradient id="gGold" x1="0" y1="0" x2="0" y2="1">
-                          <stop
-                            offset="0%"
-                            stopColor="rgba(212,175,55,0.50)"
-                          />
+                          <stop offset="0%" stopColor="rgba(212,175,55,0.50)" />
                           <stop
                             offset="100%"
                             stopColor="rgba(212,175,55,0.06)"
@@ -398,7 +433,9 @@ export default function GoldRatesDashboard() {
                         dataKey={ibjaMode === "24KT" ? "v999" : "v916"}
                         name={ibjaMode === "24KT" ? "IBJA 999" : "IBJA 916"}
                         stroke={ibjaMode === "24KT" ? "#D4AF37" : "#5B2EFF"}
-                        fill={ibjaMode === "24KT" ? "url(#gGold)" : "url(#gPurple)"}
+                        fill={
+                          ibjaMode === "24KT" ? "url(#gGold)" : "url(#gPurple)"
+                        }
                         strokeWidth={3}
                         dot={false}
                         activeDot={{ r: 5 }}
@@ -423,11 +460,14 @@ export default function GoldRatesDashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={shopsChartData}>
                       <defs>
-                        <linearGradient id="barGold" x1="0" y1="0" x2="0" y2="1">
-                          <stop
-                            offset="0%"
-                            stopColor="rgba(212,175,55,0.95)"
-                          />
+                        <linearGradient
+                          id="barGold"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop offset="0%" stopColor="rgba(212,175,55,0.95)" />
                           <stop
                             offset="100%"
                             stopColor="rgba(212,175,55,0.20)"
@@ -440,10 +480,7 @@ export default function GoldRatesDashboard() {
                           x2="0"
                           y2="1"
                         >
-                          <stop
-                            offset="0%"
-                            stopColor="rgba(91,46,255,0.95)"
-                          />
+                          <stop offset="0%" stopColor="rgba(91,46,255,0.95)" />
                           <stop
                             offset="100%"
                             stopColor="rgba(91,46,255,0.22)"

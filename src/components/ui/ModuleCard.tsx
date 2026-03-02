@@ -12,9 +12,15 @@ type Props = {
   tag: string;
 };
 
-export default function ModuleCard({ title, subtitle, icon: Icon, tag }: Props) {
+export default function ModuleCard({
+  title,
+  subtitle,
+  icon: Icon,
+  tag,
+}: Props) {
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 transition-all duration-300 hover:-translate-y-1 hover:bg-white/7">
+      {/* Top Premium Gold Line */}
       <div
         className="pointer-events-none absolute left-0 top-0 h-[2px] w-full opacity-70"
         style={{
@@ -22,13 +28,16 @@ export default function ModuleCard({ title, subtitle, icon: Icon, tag }: Props) 
         }}
       />
 
+      {/* Hover Glow */}
       <div
         className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full blur-3xl opacity-0 transition-opacity duration-300 group-hover:opacity-35"
         style={{ backgroundColor: `${BRAND.gold.primary}55` }}
       />
 
+      {/* Soft Overlay */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 opacity-25" />
 
+      {/* Content */}
       <div className="relative flex items-start gap-4">
         <div
           className="grid h-12 w-12 place-items-center rounded-xl border"
@@ -46,6 +55,7 @@ export default function ModuleCard({ title, subtitle, icon: Icon, tag }: Props) 
             <p className="text-sm font-semibold tracking-wide text-white/95">
               {title}
             </p>
+
             <span
               className="rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-widest"
               style={{
@@ -56,16 +66,22 @@ export default function ModuleCard({ title, subtitle, icon: Icon, tag }: Props) 
               {tag}
             </span>
           </div>
+
           <p className="mt-1 text-xs text-white/60">{subtitle}</p>
         </div>
       </div>
 
-      <div
-        className="pointer-events-none absolute bottom-0 left-0 h-[1px] w-full opacity-40"
-        style={{
-          background: `linear-gradient(90deg, transparent, ${BRAND.gold.primary}, transparent)`,
-        }}
-      />
+      {/* ✅ Coming Soon Footer */}
+      <div className="relative mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+        <span className="text-[10px] font-semibold tracking-[0.18em] text-white/50">
+          COMING SOON
+        </span>
+
+        <span
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: BRAND.gold.primary }}
+        />
+      </div>
     </div>
   );
 }

@@ -6,22 +6,17 @@ import bookImage from "../assets/book.png";
 export default function AIBookSection() {
   const openAmazon = () => {
     // ✅ Replace YOUR_BOOK_ID with your real Amazon ASIN
-    window.open(
-      "https://amzn.in/d/2Ie3hEg",
-      "_blank",
-      "noopener,noreferrer",
-    );
+    window.open("https://amzn.in/d/2Ie3hEg", "_blank", "noopener,noreferrer");
   };
 
   return (
-    <section >
+    <section>
       <div style={styles.container}>
         {/* ✅ use SAME div (no new div) + make it the rounded card */}
         <div
           style={{ ...styles.card, ...styles.inner }}
           className="ai-book-inner ai-book-card"
         >
-
           <div style={styles.grid} className="ai-book-grid">
             {/* LEFT: Image */}
             <div style={styles.left} className="ai-book-left">
@@ -36,7 +31,8 @@ export default function AIBookSection() {
 
             {/* RIGHT: Content */}
             <div style={styles.content} className="ai-book-content">
-              <div style={styles.badgeRow}>
+              {/* Badge Row */}
+              <div style={{ ...styles.badgeRow, marginBottom: "6px" }}>
                 <div style={styles.badge}>
                   <span style={styles.badgeDot} />
                   AI Book • Winner Benefit
@@ -47,18 +43,76 @@ export default function AIBookSection() {
                 </div>
               </div>
 
-              {/* ✅ next title (white) */}
-              <h2 style={styles.title}>Enter the <span style={styles.goldText}>AI & GenAI Universe</span></h2>
-              <p style={styles.subtitle}>Build the Future with Agentic AI</p>
+              <p
+                style={{
+                  margin: "4px 0",
+                  fontSize: "13px",
+                  fontWeight: 800,
+                  letterSpacing: "1px",
+                  textTransform: "uppercase",
+                  background: "linear-gradient(90deg, #ffffff, #D4AF37)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  textShadow: `
+      0 0 6px rgba(212,175,55,0.4),
+      0 0 14px rgba(212,175,55,0.2)
+    `,
+                }}
+              >
+                Our Co-Founders are Authors of a Prestigious Book
+              </p>
+              {/* BIG BOOK NAME */}
+              <h2
+                style={{
+                  margin: "8px 0 6px 0",
+                  fontSize: "34px",
+                  lineHeight: 1.15,
+                  fontWeight: 900,
+                  letterSpacing: "0.2px",
+                }}
+              >
+                Enter the{" "}
+                <span
+                  style={{
+                    background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  AI & GenAI Universe
+                </span>
+              </h2>
 
-              <p style={styles.description}>
+              {/* Tagline */}
+              <p
+                style={{
+                  margin: "4px 0 8px 0",
+                  fontSize: "16px",
+                  fontWeight: 700,
+                  color: "rgba(255,255,255,0.85)",
+                }}
+              >
+                Build the Future with Agentic AI
+              </p>
+
+              {/* Description */}
+              <p
+                style={{
+                  margin: "0 0 12px 0",
+                  fontSize: "15px",
+                  lineHeight: 1.6,
+                  color: "rgba(255,255,255,0.75)",
+                  maxWidth: "540px",
+                }}
+              >
                 A beginner-friendly yet powerful guide to understand and use
                 Artificial Intelligence in real life. With 65 practical,
                 easy-to-follow chapters, it simplifies AI, Generative AI, Prompt
-                Engineering, Large Language Models (LLMs), Agentic AI, and future
-                AI careers.
+                Engineering, Large Language Models (LLMs), Agentic AI, and
+                future AI careers.
               </p>
 
+              {/* CTA */}
               <div style={styles.ctaRow}>
                 <button
                   onClick={openAmazon}
