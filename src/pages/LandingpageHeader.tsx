@@ -4,18 +4,18 @@ import Logo from "../assets/oxygoldlogo.png";
 
 type LinkItem = { label: string; targetId: string };
 
-const HEADER_OFFSET = 84;
+type Props = {
+  /** header+strip offset for scrollTo */
+  offsetPx?: number; // default 106
+};
 
-const LandingHeader: React.FC = () => {
+const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
   const [scrolled, setScrolled] = useState(false);
-
-  // Mobile hamburger
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ ONLY 5 links (no dropdown)
   const navLinks: LinkItem[] = useMemo(
     () => [
       { label: "Live gold rate", targetId: "live-rate" },
@@ -33,7 +33,6 @@ const LandingHeader: React.FC = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close mobile menu on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const t = e.target as HTMLElement;
@@ -46,14 +45,13 @@ const LandingHeader: React.FC = () => {
   const scrollToId = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET;
+    const top = el.getBoundingClientRect().top + window.scrollY - offsetPx;
     window.scrollTo({ top, behavior: "smooth" });
   };
 
   const goTo = (targetId: string) => {
     setMobileOpen(false);
 
-    // If you use /oxygold route, keep it. Otherwise remove it.
     const onLanding = location.pathname === "/" || location.pathname === "/oxygold";
     if (onLanding) {
       scrollToId(targetId);
@@ -70,12 +68,10 @@ const LandingHeader: React.FC = () => {
 
       <div style={styles.container}>
         <div style={styles.content}>
-          {/* Logo */}
           <button onClick={() => goTo("top")} style={styles.logoBtn} aria-label="Go to top">
             <img src={Logo} alt="OxyGold Logo" style={styles.logoImg} />
           </button>
 
-          {/* Desktop Nav */}
           <nav className="og-desktop-nav" style={styles.desktopNav} aria-label="Primary navigation">
             {navLinks.map((item) => (
               <button
@@ -89,8 +85,7 @@ const LandingHeader: React.FC = () => {
             ))}
           </nav>
 
-          {/* Mobile Hamburger */}
-          <div className="og-mobile-wrap og-mobile-wrap" style={styles.mobileWrap}>
+          <div className="og-mobile-wrap" style={styles.mobileWrap}>
             <button
               style={styles.hamburger}
               aria-label="Open menu"
@@ -127,8 +122,9 @@ const styles: Record<string, React.CSSProperties> = {
   header: {
     position: "fixed",
     top: 0,
-    zIndex: 50,
+    zIndex: 60,
     width: "100%",
+    height: "72px",
     background: "linear-gradient(180deg, #2B0A59 0%, #2B0A59 100%)",
     borderBottom: "3px solid rgba(212, 175, 55, 0.96)",
     transition: "all 0.2s ease",
@@ -170,7 +166,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "10px 14px",
     borderRadius: "12px",
     fontSize: "14px",
-    fontWeight: 800,
+    fontWeight: 700,
     border: "1px solid rgba(255,255,255,0.12)",
     cursor: "pointer",
     transition: "all 0.2s ease",
@@ -222,7 +218,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     color: "rgba(255,255,255,0.92)",
     fontSize: "14px",
-    fontWeight: 800,
+    fontWeight: 700,
     marginBottom: "10px",
   },
 };
@@ -234,12 +230,10 @@ const responsiveStyles = `
     transform: translateY(-1px);
     box-shadow: 0 10px 28px rgba(212, 175, 55, 0.15);
   }
-
   @media (max-width: 980px) {
     .og-desktop-nav { display: none !important; }
     .og-mobile-wrap { display: block !important; }
   }
-
   @media (max-width: 420px) {
     header img { width: 150px !important; }
   }

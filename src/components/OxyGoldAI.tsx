@@ -32,6 +32,7 @@ import GlassCard from "./ui/GlassCard";
 import InfoChip from "./ui/InfoChip";
 import BadgePill from "./ui/BadgePill";
 import ModuleCard from "./ui/ModuleCard";
+import GoldRatesTickerStrip from "./ui/GoldRatesTickerStrip";
 
 type AssetMap = {
   logo: string;
@@ -169,19 +170,29 @@ export default function OxyGoldLandingPage({ assets }: Props) {
         background: `linear-gradient(180deg, ${BRAND.purple.deepBg} 0%, #07061A 70%, #050412 100%)`,
       }}
     >
-      <BackgroundSystem />
-      <LandingHeader />
+<BackgroundSystem />
+
+<LandingHeader offsetPx={106} />
+<GoldRatesTickerStrip fixed top={72} height={34} />
+
+{/* ✅ Single real spacing (no extra blank container) */}
+<div
+  className="mx-auto max-w-7xl px-4 sm:px-7 lg:px-8"
+  style={{ paddingTop: 106 }}
+>
+        {/* HERO SECTION */}
+      </div>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-7 lg:px-8">
         {/* HERO */}
         <section
           id="hero"
-          className="relative grid items-center gap-6 sm:gap-10 lg:gap-16 pb-8 sm:pb-10 pt-16 sm:pt-20 lg:pt-24 lg:grid-cols-2"
+          className="relative grid items-center gap-6 sm:gap-10 lg:gap-16 pb-8 sm:pb-10 pt-6 sm:pt-10 lg:pt-14 lg:grid-cols-2"
         >
           <HeroLocalPattern />
 
           {/* LEFT */}
-          <div className="text-center lg:text-left px-2 pt-12 sm:pt-14 lg:pt-0 sm:px-0">
+          <div className="text-center lg:text-left px-2 pt-6 sm:pt-8 lg:pt-0 sm:px-0">
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold leading-[1.15] sm:leading-tight font-playfair">
               Powering the Future of{" "}
               <span className="inline-block">
