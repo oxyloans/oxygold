@@ -253,7 +253,7 @@ export default function GoldRatesDashboard() {
             <h1
               style={{
                 margin: 0,
-                fontSize: "32px",
+               fontSize: "clamp(22px, 3.4vw, 44px)",
                 fontWeight: 700,
                 lineHeight: 1.25,
                 letterSpacing: "0.2px",

@@ -1,149 +1,248 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import '../styles/FAQ.css';
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import Logo from "../assets/oxygoldlogo.png";
 
-const FAQ = () => {
+type LinkItem = { label: string; targetId: string };
+
+const HEADER_OFFSET = 84;
+
+const LandingHeader: React.FC = () => {
+  const [scrolled, setScrolled] = useState(false);
+
+  // Mobile hamburger
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   const navigate = useNavigate();
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const location = useLocation();
 
-  const faqs = [
-  {
-    question: 'What is Digital Gold?',
-    answer:
-      'Digital Gold allows you to buy gold online. Every gram you purchase is backed by physical gold stored securely with a trusted partner.'
-  },
-  {
-    question: 'Who is the gold partner?',
-    answer:
-      'The physical gold is stored with an authorized and trusted gold partner in insured vaults, as per their terms and conditions.'
-  },
-  {
-    question: 'Is Digital Gold regulated by RBI or SEBI?',
-    answer:
-      'No. Digital Gold is not regulated by RBI or SEBI. It is backed by physical gold stored with a partner, but it is not a regulated investment product.'
-  },
-  {
-    question: 'How can I buy Digital Gold?',
-    answer:
-      'You can buy Digital Gold instantly using Indian Rupees (₹) or by selecting the quantity in grams. Just confirm the live price and complete the payment.'
-  },
-  {
-    question: 'What is the minimum amount required to buy Digital Gold?',
-    answer:
-      'You can start buying Digital Gold with a very small amount, making it accessible even for first-time investors.'
-  },
-  {
-    question: 'At what price is Digital Gold bought?',
-    answer:
-      'Digital Gold is bought at the live market price at the time of purchase, which may include partner charges.'
-  },
-  {
-    question: 'Where is my Digital Gold stored?',
-    answer:
-      'Your gold is stored safely in insured vaults managed by the gold partner. You don’t need to worry about storage or security.'
-  },
-  {
-    question: 'Can I track my Digital Gold value?',
-    answer:
-      'Yes. The value of your Digital Gold updates in real time based on current gold market prices.'
-  },
-  {
-    question: 'Can I sell Digital Gold anytime?',
-    answer:
-      'Yes. You can sell your Digital Gold anytime through the app, subject to partner availability and terms.'
-  },
-  {
-    question: 'At what price is Digital Gold sold?',
-    answer:
-      'Digital Gold is sold at the live market price at the time of selling.'
-  },
-  {
-    question: 'How will I receive money after selling Digital Gold?',
-    answer:
-      'The sale amount is credited to your linked bank account or wallet as per the app’s payout flow.'
-  },
-  {
-    question: 'Are there any charges for buying or selling?',
-    answer:
-      'Partner charges such as spread, GST, or minting charges (for physical conversion) may apply. These are shown during the transaction.'
-  },
-  {
-    question: 'Is my Digital Gold insured?',
-    answer:
-      'Yes. The physical gold stored with the partner is insured as per their storage policy.'
-  },
-  {
-    question: 'Can I convert Digital Gold into physical gold?',
-    answer:
-      'Depending on the partner’s terms, you may be able to convert Digital Gold into physical gold coins or jewellery. Additional charges may apply.'
-  },
-  {
-    question: 'What are the risks of Digital Gold?',
-    answer:
-      'The value of Digital Gold depends on market prices and may fluctuate. Since it is not regulated by RBI or SEBI, users should understand the risks before investing.'
-  }
+  // ✅ ONLY 5 links (no dropdown)
+  const navLinks: LinkItem[] = useMemo(
+    () => [
+      { label: "Live gold rate", targetId: "live-rate" },
+      { label: "AI book", targetId: "ai-book" },
+      { label: "Buy gold coins", targetId: "buy-coins" },
+      { label: "Design Own Jewellery", targetId: "design-jewellery" },
+      { label: "About Us", targetId: "about" },
+    ],
+    []
+  );
 
-  ];
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Close mobile menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (!t.closest?.(".og-mobile-wrap")) setMobileOpen(false);
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, []);
+
+  const scrollToId = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET;
+    window.scrollTo({ top, behavior: "smooth" });
+  };
+
+  const goTo = (targetId: string) => {
+    setMobileOpen(false);
+
+    // If you use /oxygold route, keep it. Otherwise remove it.
+    const onLanding = location.pathname === "/" || location.pathname === "/oxygold";
+    if (onLanding) {
+      scrollToId(targetId);
+      return;
+    }
+
+    navigate("/");
+    requestAnimationFrame(() => setTimeout(() => scrollToId(targetId), 80));
+  };
 
   return (
-    <div className="faq-page">
-      <section className="faq-header">
-        <div className="faq-header-content">
-          <h1>Frequently Asked Questions</h1>
-          <p>Everything you need to know about Digital Gold</p>
-        </div>
-      </section>
+    <header style={{ ...styles.header, ...(scrolled ? styles.headerScrolled : {}) }}>
+      <div style={styles.headerGlow} />
 
-      <main className="faq-content">
-        <div className="faq-list">
-          {faqs.map((faq, index) => (
-            <div key={index} className="faq-item">
+      <div style={styles.container}>
+        <div style={styles.content}>
+          {/* Logo */}
+          <button onClick={() => goTo("top")} style={styles.logoBtn} aria-label="Go to top">
+            <img src={Logo} alt="OxyGold Logo" style={styles.logoImg} />
+          </button>
+
+          {/* Desktop Nav */}
+          <nav className="og-desktop-nav" style={styles.desktopNav} aria-label="Primary navigation">
+            {navLinks.map((item) => (
               <button
-                className="faq-question"
-                onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                key={item.targetId}
+                style={styles.navBtn}
+                className="og-nav-btn"
+                onClick={() => goTo(item.targetId)}
               >
-                <span>{faq.question}</span>
-                <span className="faq-icon">{openIndex === index ? '−' : '+'}</span>
+                {item.label}
               </button>
-              {openIndex === index && (
-                <div className="faq-answer">{faq.answer}</div>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </nav>
 
-        <div className="trust-section">
-          <h2>Security & Trust</h2>
-          <div className="trust-grid">
-            <div className="trust-card">
-              <h3>Trusted Vault Partners</h3>
-              <p>Your gold is stored in certified, insured vaults with regular audits</p>
-            </div>
-            <div className="trust-card">
-              <h3>Advanced Security</h3>
-              <p>Bank-grade encryption and multi-factor authentication for account safety</p>
-            </div>
-            <div className="trust-card">
-              <h3>Compliance</h3>
-              <p>Designed in line with Indian regulatory and RBI guidelines</p>
-            </div>
-            <div className="trust-card">
-              <h3>Complete Transparency</h3>
-              <p>Real-time pricing, detailed transaction history, and instant confirmations</p>
-            </div>
+          {/* Mobile Hamburger */}
+          <div className="og-mobile-wrap og-mobile-wrap" style={styles.mobileWrap}>
+            <button
+              style={styles.hamburger}
+              aria-label="Open menu"
+              onClick={() => setMobileOpen((v) => !v)}
+            >
+              <span style={styles.hamLine} />
+              <span style={styles.hamLine} />
+              <span style={styles.hamLine} />
+            </button>
+
+            {mobileOpen && (
+              <div style={styles.mobileMenu}>
+                {navLinks.map((item) => (
+                  <button
+                    key={item.targetId}
+                    onClick={() => goTo(item.targetId)}
+                    style={styles.mobileItem}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
+      </div>
 
-        <div className="cta-section-faq">
-          <h2>Still have questions?</h2>
-          <p>Start your Gold journey today</p>
-          <button className="cta-button" onClick={() => navigate('/buy-gold')}>
-            Start Your Gold Journey
-          </button>
-        </div>
-      </main>
-    </div>
+      <style>{responsiveStyles}</style>
+    </header>
   );
 };
 
-export default FAQ;
+const styles: Record<string, React.CSSProperties> = {
+  header: {
+    position: "fixed",
+    top: 0,
+    zIndex: 50,
+    width: "100%",
+    background: "linear-gradient(180deg, #2B0A59 0%, #2B0A59 100%)",
+    borderBottom: "3px solid rgba(212, 175, 55, 0.96)",
+    transition: "all 0.2s ease",
+  },
+  headerScrolled: {
+    boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+    backdropFilter: "blur(10px)",
+  },
+  headerGlow: {
+    position: "absolute",
+    inset: 0,
+    zIndex: -1,
+    pointerEvents: "none",
+    background:
+      "radial-gradient(1200px 700px at 10% 10%, rgba(91, 46, 255, 0.14) 0%, transparent 62%), radial-gradient(900px 520px at 90% 18%, rgba(212, 175, 55, 0.08) 0%, transparent 62%)",
+  },
+  container: { maxWidth: "1400px", margin: "0 auto", padding: "0 18px" },
+  content: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: "72px",
+    gap: "12px",
+  },
+
+  logoBtn: {
+    display: "flex",
+    alignItems: "center",
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    padding: 0,
+  },
+  logoImg: { height: "72px", width: "170px", objectFit: "contain" },
+
+  desktopNav: { display: "flex", alignItems: "center", gap: "10px" },
+
+  navBtn: {
+    padding: "10px 14px",
+    borderRadius: "12px",
+    fontSize: "14px",
+    fontWeight: 800,
+    border: "1px solid rgba(255,255,255,0.12)",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    background: "rgba(255, 255, 255, 0.06)",
+    color: "rgba(255, 255, 255, 0.92)",
+    whiteSpace: "nowrap",
+  },
+
+  mobileWrap: { display: "none", position: "relative" },
+  hamburger: {
+    width: "44px",
+    height: "44px",
+    borderRadius: "12px",
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.06)",
+    cursor: "pointer",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "5px",
+  },
+  hamLine: {
+    width: "18px",
+    height: "2px",
+    background: "rgba(255,255,255,0.92)",
+    borderRadius: "2px",
+  },
+
+  mobileMenu: {
+    position: "absolute",
+    right: 0,
+    top: "54px",
+    width: "min(92vw, 360px)",
+    background: "rgba(29, 9, 62, 0.98)",
+    border: "1px solid rgba(212, 175, 55, 0.25)",
+    boxShadow: "0 18px 50px rgba(0,0,0,0.35)",
+    borderRadius: "16px",
+    padding: "10px",
+  },
+
+  mobileItem: {
+    width: "100%",
+    textAlign: "left",
+    padding: "12px 12px",
+    borderRadius: "12px",
+    background: "rgba(245, 211, 108, 0.06)",
+    border: "1px solid rgba(245, 211, 108, 0.18)",
+    cursor: "pointer",
+    color: "rgba(255,255,255,0.92)",
+    fontSize: "14px",
+    fontWeight: 800,
+    marginBottom: "10px",
+  },
+};
+
+const responsiveStyles = `
+  .og-nav-btn:hover {
+    background: rgba(245, 211, 108, 0.16) !important;
+    border-color: rgba(245, 211, 108, 0.55) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 28px rgba(212, 175, 55, 0.15);
+  }
+
+  @media (max-width: 980px) {
+    .og-desktop-nav { display: none !important; }
+    .og-mobile-wrap { display: block !important; }
+  }
+
+  @media (max-width: 420px) {
+    header img { width: 150px !important; }
+  }
+`;
+
+export default LandingHeader;

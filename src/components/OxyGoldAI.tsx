@@ -163,6 +163,7 @@ export default function OxyGoldLandingPage({ assets }: Props) {
   };
   return (
     <div
+      id="top"
       className="min-h-screen text-white font-poppins overflow-x-hidden"
       style={{
         background: `linear-gradient(180deg, ${BRAND.purple.deepBg} 0%, #07061A 70%, #050412 100%)`,
@@ -171,14 +172,16 @@ export default function OxyGoldLandingPage({ assets }: Props) {
       <BackgroundSystem />
       <LandingHeader />
 
-      <div className="mx-auto  max-w-7xl px-4 sm:px-7 lg:px-8">
-        {/* HERO (CLEAN IMAGE + PROPER SPACING) */}
-        <section className="relative grid items-center gap-6 sm:gap-10 lg:gap-16 pb-8 sm:pb-10 pt-16 sm:pt-20 lg:pt-24 lg:grid-cols-2">
+      <div className="mx-auto max-w-7xl px-4 sm:px-7 lg:px-8">
+        {/* HERO */}
+        <section
+          id="hero"
+          className="relative grid items-center gap-6 sm:gap-10 lg:gap-16 pb-8 sm:pb-10 pt-16 sm:pt-20 lg:pt-24 lg:grid-cols-2"
+        >
           <HeroLocalPattern />
 
           {/* LEFT */}
           <div className="text-center lg:text-left px-2 pt-12 sm:pt-14 lg:pt-0 sm:px-0">
-            {/* Heading */}
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold leading-[1.15] sm:leading-tight font-playfair">
               Powering the Future of{" "}
               <span className="inline-block">
@@ -195,7 +198,6 @@ export default function OxyGoldLandingPage({ assets }: Props) {
               </span>
             </h1>
 
-            {/* Description */}
             <p className="mt-5 mx-auto lg:mx-0 max-w-xl text-sm sm:text-base lg:text-lg leading-relaxed text-white/85">
               OXYGOLD.AI is engineering a next-generation gold ecosystem where
               benchmark pricing, compliance frameworks, and AI intelligence
@@ -209,7 +211,6 @@ export default function OxyGoldLandingPage({ assets }: Props) {
 
             {/* Leadership Section */}
             <div className="mt-10 max-w-xl mx-auto lg:mx-0">
-              {/* Elegant Divider */}
               <div className="flex items-center gap-4 mb-5">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                 <p className="text-sm sm:text-base font-medium tracking-widest text-white/60">
@@ -218,7 +219,6 @@ export default function OxyGoldLandingPage({ assets }: Props) {
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
               </div>
 
-              {/* Founders – 2 Columns (Mobile + Web Full Text) */}
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div className="flex items-center justify-center lg:justify-start gap-2 rounded-xl border border-white/15 bg-white/5 px-3 sm:px-4 py-3 text-xs sm:text-sm lg:text-base text-white/90 text-center lg:text-left">
                   <span className="h-2 w-2 rounded-full bg-yellow-400 shrink-0" />
@@ -243,7 +243,7 @@ export default function OxyGoldLandingPage({ assets }: Props) {
             </div>
           </div>
 
-          {/* RIGHT — PLAIN IMAGE */}
+          {/* RIGHT */}
           <div className="flex justify-center lg:justify-end pt-6 lg:mt-0">
             <img
               src={A.heroPoster}
@@ -254,27 +254,34 @@ export default function OxyGoldLandingPage({ assets }: Props) {
           </div>
         </section>
 
-        <div className="py-4 sm:py-8 lg:py-16">
+        {/* ✅ Live Gold Rate */}
+        <section id="live-rate" className="py-4 sm:py-8 lg:py-16">
           <GoldRatesDashboard />
-        </div>
+        </section>
 
-        <div className="  py-4 sm:py-8 lg:py-12">
+        {/* ✅ AI Book */}
+        <section id="ai-book" className="py-4 sm:py-8 lg:py-12">
           <AIBookSection />
-        </div>
-        <div className="py-4 sm:py-8 lg:py-12">
-          <BuyGoldCoins />
-        </div>
+        </section>
 
-        <div className="py-4 sm:py-8 lg:py-12">
+        {/* ✅ Buy Gold Coins */}
+        <section id="buy-coins" className="py-4 sm:py-8 lg:py-12">
+          <BuyGoldCoins />
+        </section>
+
+        {/* ✅ IBJA */}
+        <section id="ibja-partner" className="py-4 sm:py-8 lg:py-12">
           <IBJAPartnerSection />
-        </div>
-        <div className="py-4 sm:py-8 lg:py-12">
+        </section>
+
+        {/* ✅ Design Jewellery */}
+        <section id="design-jewellery" className="py-4 sm:py-8 lg:py-12">
           <DesignGoldOrnaments />
-        </div>
+        </section>
 
         {/* MAIN CONTENT SECTIONS */}
         <div className="space-y-4 sm:space-y-6">
-          {/* 3) WHAT WE PROVIDE (Colorful + Safe Version) */}
+          {/* ✅ What We Provide */}
           <section id="provide" className="py-6 sm:py-10">
             <SectionHeader
               kicker=""
@@ -289,7 +296,6 @@ export default function OxyGoldLandingPage({ assets }: Props) {
                   className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 sm:p-5 transition hover:bg-white/10"
                 >
                   <div className="relative flex items-start gap-3 sm:gap-4">
-                    {/* Icon Box */}
                     <div className="grid h-10 w-10 sm:h-12 sm:w-12 place-items-center rounded-xl border border-yellow-400/40 bg-gradient-to-br from-yellow-300/30 via-white/10 to-purple-500/20 text-yellow-400">
                       <div className="scale-95 sm:scale-100">{c.icon}</div>
                     </div>
@@ -308,7 +314,7 @@ export default function OxyGoldLandingPage({ assets }: Props) {
             </div>
           </section>
 
-          {/* 4) MODULES (premium gold-line glossy) */}
+          {/* ✅ Modules */}
           <section id="modules" className="py-4 sm:py-6">
             <div className="relative overflow-hidden rounded-xl sm:rounded-2xl lg:rounded-[20px] border border-white/10 bg-white/5">
               <div
@@ -357,12 +363,25 @@ export default function OxyGoldLandingPage({ assets }: Props) {
           </section>
         </div>
 
-        <div className="py-4 sm:py-8 lg:py-12">
+        {/* ✅ Platforms */}
+        <section id="platforms" className="py-4 sm:py-8 lg:py-12">
           <OxyEcosystem />
-        </div>
+
+          {/* OPTIONAL: If you want dropdown sub-links to scroll inside this section,
+          add these anchors near each platform card inside OxyEcosystem component:
+          <div id="platform-oxygold" />
+          <div id="platform-askoxy" />
+          <div id="platform-oxyloans" />
+          <div id="platform-oxybricks" />
+      */}
+        </section>
       </div>
 
-      <OxyGoldFooter />
+      {/* ✅ About/Footer */}
+      <section id="about">
+        <OxyGoldFooter />
+      </section>
+
       {/* Scroll To Top Button */}
       {showScroll && (
         <button

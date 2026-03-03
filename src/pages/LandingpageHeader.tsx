@@ -1,56 +1,120 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Logo from "../assets/oxygoldlogo.png";
 
-type NavItem = { label: string; path: string; primary?: boolean };
+type LinkItem = { label: string; targetId: string };
+
+const HEADER_OFFSET = 84;
 
 const LandingHeader: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
 
+  // Mobile hamburger
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
 
-  const navItems: NavItem[] = [
-    { label: "DIGITAL GOLD", path: "/buy-gold", primary: true },
-  ];
+  // ✅ ONLY 5 links (no dropdown)
+  const navLinks: LinkItem[] = useMemo(
+    () => [
+      { label: "Live gold rate", targetId: "live-rate" },
+      { label: "AI book", targetId: "ai-book" },
+      { label: "Buy gold coins", targetId: "buy-coins" },
+      { label: "Design Own Jewellery", targetId: "design-jewellery" },
+      { label: "About Us", targetId: "about" },
+    ],
+    []
+  );
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const handleNavigate = (path: string) => {
-    navigate(path);
-    window.scrollTo(0, 0);
+  // Close mobile menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (!t.closest?.(".og-mobile-wrap")) setMobileOpen(false);
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, []);
+
+  const scrollToId = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET;
+    window.scrollTo({ top, behavior: "smooth" });
+  };
+
+  const goTo = (targetId: string) => {
+    setMobileOpen(false);
+
+    // If you use /oxygold route, keep it. Otherwise remove it.
+    const onLanding = location.pathname === "/" || location.pathname === "/oxygold";
+    if (onLanding) {
+      scrollToId(targetId);
+      return;
+    }
+
+    navigate("/");
+    requestAnimationFrame(() => setTimeout(() => scrollToId(targetId), 80));
   };
 
   return (
-    <header style={styles.header}>
+    <header style={{ ...styles.header, ...(scrolled ? styles.headerScrolled : {}) }}>
       <div style={styles.headerGlow} />
 
       <div style={styles.container}>
         <div style={styles.content}>
           {/* Logo */}
-          <div style={styles.logo}>
+          <button onClick={() => goTo("top")} style={styles.logoBtn} aria-label="Go to top">
             <img src={Logo} alt="OxyGold Logo" style={styles.logoImg} />
-          </div>
+          </button>
 
-          {/* Nav */}
-          {/* <nav style={styles.nav}>
-            {navItems.map((item) => (
+          {/* Desktop Nav */}
+          <nav className="og-desktop-nav" style={styles.desktopNav} aria-label="Primary navigation">
+            {navLinks.map((item) => (
               <button
-                key={item.path}
-                onClick={() => handleNavigate(item.path)}
-                style={item.primary ? styles.btnPrimary : styles.btn}
-                className="nav-btn"
+                key={item.targetId}
+                style={styles.navBtn}
+                className="og-nav-btn"
+                onClick={() => goTo(item.targetId)}
               >
                 {item.label}
               </button>
             ))}
-          </nav> */}
+          </nav>
+
+          {/* Mobile Hamburger */}
+          <div className="og-mobile-wrap og-mobile-wrap" style={styles.mobileWrap}>
+            <button
+              style={styles.hamburger}
+              aria-label="Open menu"
+              onClick={() => setMobileOpen((v) => !v)}
+            >
+              <span style={styles.hamLine} />
+              <span style={styles.hamLine} />
+              <span style={styles.hamLine} />
+            </button>
+
+            {mobileOpen && (
+              <div style={styles.mobileMenu}>
+                {navLinks.map((item) => (
+                  <button
+                    key={item.targetId}
+                    onClick={() => goTo(item.targetId)}
+                    style={styles.mobileItem}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -65,10 +129,13 @@ const styles: Record<string, React.CSSProperties> = {
     top: 0,
     zIndex: 50,
     width: "100%",
-    background:
-      "linear-gradient(180deg, #2B0A59 0%, #2B0A59 0%, #2B0A59 100%)",
-    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+    background: "linear-gradient(180deg, #2B0A59 0%, #2B0A59 100%)",
     borderBottom: "3px solid rgba(212, 175, 55, 0.96)",
+    transition: "all 0.2s ease",
+  },
+  headerScrolled: {
+    boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+    backdropFilter: "blur(10px)",
   },
   headerGlow: {
     position: "absolute",
@@ -78,77 +145,103 @@ const styles: Record<string, React.CSSProperties> = {
     background:
       "radial-gradient(1200px 700px at 10% 10%, rgba(91, 46, 255, 0.14) 0%, transparent 62%), radial-gradient(900px 520px at 90% 18%, rgba(212, 175, 55, 0.08) 0%, transparent 62%)",
   },
-  container: {
-    maxWidth: "1400px",
-    margin: "0 auto",
-   
-  },
+  container: { maxWidth: "1400px", margin: "0 auto", padding: "0 18px" },
   content: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    height: "64px",
-  },
-  logo: {
-    display: "flex",
-    alignItems: "center",
-  },
-  logoImg: {
-    height: "220px",
-    width: "200px",
-    objectFit: "contain",
-  },
-  nav: {
-    display: "flex",
-    alignItems: "center",
+    height: "72px",
     gap: "12px",
   },
-  btn: {
-    padding: "10px 20px",
-    borderRadius: "10px",
-    fontSize: "15px",
-    fontWeight: 600,
-    border: "1px solid transparent",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    background: "rgba(255, 255, 255, 0.05)",
-    color: "rgba(255, 255, 255, 0.8)",
-  },
-  btnPrimary: {
-    padding: "10px 20px",
-    borderRadius: "10px",
-    fontSize: "15px",
-    fontWeight: 700,
+
+  logoBtn: {
+    display: "flex",
+    alignItems: "center",
+    background: "transparent",
     border: "none",
     cursor: "pointer",
+    padding: 0,
+  },
+  logoImg: { height: "72px", width: "170px", objectFit: "contain" },
+
+  desktopNav: { display: "flex", alignItems: "center", gap: "10px" },
+
+  navBtn: {
+    padding: "10px 14px",
+    borderRadius: "12px",
+    fontSize: "14px",
+    fontWeight: 800,
+    border: "1px solid rgba(255,255,255,0.12)",
+    cursor: "pointer",
     transition: "all 0.2s ease",
-    background: "#D4AF37",
-    color: "#2B0A59",
+    background: "rgba(255, 255, 255, 0.06)",
+    color: "rgba(255, 255, 255, 0.92)",
+    whiteSpace: "nowrap",
+  },
+
+  mobileWrap: { display: "none", position: "relative" },
+  hamburger: {
+    width: "44px",
+    height: "44px",
+    borderRadius: "12px",
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.06)",
+    cursor: "pointer",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "5px",
+  },
+  hamLine: {
+    width: "18px",
+    height: "2px",
+    background: "rgba(255,255,255,0.92)",
+    borderRadius: "2px",
+  },
+
+  mobileMenu: {
+    position: "absolute",
+    right: 0,
+    top: "54px",
+    width: "min(92vw, 360px)",
+    background: "rgba(29, 9, 62, 0.98)",
+    border: "1px solid rgba(212, 175, 55, 0.25)",
+    boxShadow: "0 18px 50px rgba(0,0,0,0.35)",
+    borderRadius: "16px",
+    padding: "10px",
+  },
+
+  mobileItem: {
+    width: "100%",
+    textAlign: "left",
+    padding: "12px 12px",
+    borderRadius: "12px",
+    background: "rgba(245, 211, 108, 0.06)",
+    border: "1px solid rgba(245, 211, 108, 0.18)",
+    cursor: "pointer",
+    color: "rgba(255,255,255,0.92)",
+    fontSize: "14px",
+    fontWeight: 800,
+    marginBottom: "10px",
   },
 };
 
 const responsiveStyles = `
-  .nav-btn:hover {
-    background: #F5D36C !important;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4);
+  .og-nav-btn:hover {
+    background: rgba(245, 211, 108, 0.16) !important;
+    border-color: rgba(245, 211, 108, 0.55) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 28px rgba(212, 175, 55, 0.15);
   }
 
-  @media (max-width: 640px) {
-    header > div {
-      padding: 0 16px !important;
-    }
-    header > div > div {
-      height: 56px !important;
-    }
-    header img {
-      height: 160px !important;
-      width: 200px !important;
-    }
-    .nav-btn {
-      padding: 8px 16px !important;
-      font-size: 13px !important;
-    }
+  @media (max-width: 980px) {
+    .og-desktop-nav { display: none !important; }
+    .og-mobile-wrap { display: block !important; }
+  }
+
+  @media (max-width: 420px) {
+    header img { width: 150px !important; }
   }
 `;
 

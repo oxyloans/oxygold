@@ -31,18 +31,6 @@ export default function AIBookSection() {
 
             {/* RIGHT: Content */}
             <div style={styles.content} className="ai-book-content">
-              {/* Badge Row */}
-              <div style={{ ...styles.badgeRow, marginBottom: "6px" }}>
-                <div style={styles.badge}>
-                  <span style={styles.badgeDot} />
-                  AI Book • Winner Benefit
-                </div>
-
-                <div style={styles.pill}>
-                  <span style={styles.pillText}>65 Practical Chapters</span>
-                </div>
-              </div>
-
               <p
                 style={{
                   margin: "4px 0",
@@ -65,7 +53,7 @@ export default function AIBookSection() {
               <h2
                 style={{
                   margin: "8px 0 6px 0",
-                  fontSize: "34px",
+                  fontSize: "clamp(24px, 4vw, 44px)",
                   lineHeight: 1.15,
                   fontWeight: 900,
                   letterSpacing: "0.2px",
@@ -288,7 +276,7 @@ const styles: Record<string, React.CSSProperties> = {
 
   title: {
     margin: 0,
-    fontSize: "26px",
+    fontSize: "clamp(20px, 2.6vw, 30px)",
     lineHeight: 1.15,
     color: "#FFFFFF",
     fontWeight: 900,
