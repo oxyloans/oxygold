@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import OxyBricksLogo from "../assets/oxybrickslogo.png";
 import OxyLoansLogo from "../assets/oxyloanslogo.png";
 import AskOxyLogo from "../assets/askoxylogo.png";
-
+import globallogo from "../assets/global logo.png"
 const ecosystemCards = [
   {
     id: "oxybricks",
@@ -21,6 +21,12 @@ const ecosystemCards = [
     name: "AskOxy.ai",
     logo: AskOxyLogo,
     url: "https://www.askoxy.ai/",
+  },
+  {
+    id: "oxyglobal",
+    name: "Oxyglobal.tech",
+    logo: globallogo,
+    url: "https://www.oxyglobal.tech/",
   },
 ];
 
@@ -234,7 +240,7 @@ const OxyEcosystem: React.FC = () => {
                     className="oxy-img-btn"
                     onClick={() => handleCardClick(card.url)}
                     style={{ 
-                      flex: viewMode === 'desktop' ? "0 0 33.333%" : "0 0 50%", 
+                      flex: viewMode === 'desktop' ? "0 0 25%" : "0 0 50%", 
                       padding: "24px 12px" 
                     }}
                     aria-label={`Visit ${card.name}`}
