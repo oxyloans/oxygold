@@ -23,6 +23,7 @@ import DesignGoldOrnaments from "./DesignGoldOrnaments";
 import LandingHeader from "../pages/LandingpageHeader";
 import IBJAPartnerSection from "./Ibjapage";
 import OxyEcosystem from "./OxyPlatforms";
+import TrackTrace from "./TracknTrace";
 
 import BackgroundSystem from "./backgrounds/BackgroundSystem";
 import HeroLocalPattern from "./backgrounds/HeroLocalPattern";
@@ -170,29 +171,34 @@ export default function OxyGoldLandingPage({ assets }: Props) {
         background: `linear-gradient(180deg, ${BRAND.purple.deepBg} 0%, #07061A 70%, #050412 100%)`,
       }}
     >
-<BackgroundSystem />
+      <BackgroundSystem />
 
-<LandingHeader offsetPx={106} />
-<GoldRatesTickerStrip fixed top={72} height={34} />
+      <LandingHeader offsetPx={106} />
 
-{/* ✅ Single real spacing (no extra blank container) */}
-<div
-  className="mx-auto max-w-7xl px-4 sm:px-7 lg:px-8"
-  style={{ paddingTop: 106 }}
->
+      <GoldRatesTickerStrip fixed top={72} height={34} />
+
+      {/* ✅ Single real spacing (no extra blank container) */}
+      <div
+        className="mx-auto max-w-7xl px-4 sm:px-7 lg:px-8"
+        style={{ paddingTop: 80 }}
+      >
         {/* HERO SECTION */}
       </div>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-7 lg:px-8">
         {/* HERO */}
+
+        <section className="py-10 sm:py-12 lg:py-20">
+          <TrackTrace />
+        </section>
         <section
           id="hero"
-          className="relative grid items-center gap-6 sm:gap-10 lg:gap-16 pb-8 sm:pb-10 pt-6 sm:pt-10 lg:pt-14 lg:grid-cols-2"
+          className="relative grid items-center gap-6 sm:gap-8 lg:gap-12 pb-6 sm:pb-8 lg:pb-10 pt-4 sm:pt-6 lg:pt-8 lg:grid-cols-2"
         >
           <HeroLocalPattern />
 
           {/* LEFT */}
-          <div className="text-center lg:text-left px-2 pt-6 sm:pt-8 lg:pt-0 sm:px-0">
+          <div className="text-center lg:text-left px-2 pt-0 sm:px-0">
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold leading-[1.15] sm:leading-tight font-playfair">
               Powering the Future of{" "}
               <span className="inline-block">
@@ -209,7 +215,7 @@ export default function OxyGoldLandingPage({ assets }: Props) {
               </span>
             </h1>
 
-            <p className="mt-5 mx-auto lg:mx-0 max-w-xl text-sm sm:text-base lg:text-lg leading-relaxed text-white/85">
+            <p className="mt-4 mx-auto lg:mx-0 max-w-xl text-sm sm:text-base lg:text-lg leading-relaxed text-white/85">
               OXYGOLD.AI is engineering a next-generation gold ecosystem where
               benchmark pricing, compliance frameworks, and AI intelligence
               converge to modernize how gold is owned, validated, and scaled.
@@ -221,8 +227,8 @@ export default function OxyGoldLandingPage({ assets }: Props) {
             </p>
 
             {/* Leadership Section */}
-            <div className="mt-10 max-w-xl mx-auto lg:mx-0">
-              <div className="flex items-center gap-4 mb-5">
+            <div className="mt-6 sm:mt-8 max-w-xl mx-auto lg:mx-0">
+              <div className="flex items-center gap-4 mb-4">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                 <p className="text-sm sm:text-base font-medium tracking-widest text-white/60">
                   CO-FOUNDERS
@@ -255,7 +261,7 @@ export default function OxyGoldLandingPage({ assets }: Props) {
           </div>
 
           {/* RIGHT */}
-          <div className="flex justify-center lg:justify-end pt-6 lg:mt-0">
+          <div className="flex justify-center lg:justify-end pt-0">
             <img
               src={A.heroPoster}
               alt="Hero Poster"
@@ -396,6 +402,7 @@ export default function OxyGoldLandingPage({ assets }: Props) {
       {/* Scroll To Top Button */}
       {showScroll && (
         <button
+        aria-label="scrollarrow"
           onClick={scrollToTop}
           className="fixed bottom-6 right-6 z-50 group"
         >
