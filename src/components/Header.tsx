@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/Header.css';
+import Logo from "../assets/oxygoldlogo.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -13,15 +14,32 @@ const Header = () => {
     window.scrollTo(0, 0);
   };
 
-  const isActive = (path: string) => location.pathname === path;
+    const goTo = (targetId: string) => {
+    if (targetId === "login") {
+      navigate("/login");
+      return;
+    }
+
+    const onLanding = location.pathname === "/" || location.pathname === "/oxygold";
+    if (onLanding) {
+      return;
+    }
+
+    navigate("/");
+  };
+
+  const isActive = (path: string) => location.pathname === location.pathname;
 
   return (
     <header className="app-header">
       <div className="header-container">
-        <h1 className="logo">
+        {/* <h1 className="logo">
           <span className="logo-oxy">OXY</span>
           <span className="logo-gold">GOLD</span>
-        </h1>
+        </h1> */}
+         <button onClick={() => goTo("top")} style={styles.logoBtn} aria-label="Go to top">
+            <img src={Logo} alt="OxyGold Logo" style={styles.logoImg} />
+          </button>
         
         <button 
           className="hamburger-menu" 
@@ -33,8 +51,8 @@ const Header = () => {
           <span></span>
         </button>
 
-        {/* <nav className={`nav-menu ${isMenuOpen ? 'open' : ''}`}>
-          <button 
+        <nav className={`nav-menu ${isMenuOpen ? 'open' : ''}`}>
+          {/* <button 
             className={isActive('/') ? 'active' : ''} 
             onClick={() => handleNavigate('/')}
           >
@@ -63,17 +81,30 @@ const Header = () => {
             onClick={() => handleNavigate('/faq')}
           >
             FAQ
-          </button>
+          </button> */}
           <button 
             className={`ai-button ${isActive('/oxygold-ai') ? 'active' : ''}`}
-            onClick={() => handleNavigate('/oxygold-ai')}
+            onClick={() => handleNavigate('/physical-gold')}
           >
-            OXYGOLD.AI
+            Physical Gold
           </button>
-        </nav> */}
+        </nav>
       </div>
     </header>
   );
 };
+
+const styles: Record<string, React.CSSProperties> = {
+  
+  logoBtn: {
+    display: "flex",
+    alignItems: "center",
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    padding: 0,
+  },
+  logoImg: { height: "65px", width: "170px", objectFit: "contain" },
+}
 
 export default Header;

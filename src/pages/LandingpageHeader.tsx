@@ -23,6 +23,7 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
       { label: "Buy gold coins", targetId: "buy-coins" },
       { label: "Design Own Jewellery", targetId: "design-jewellery" },
       { label: "About Us", targetId: "about" },
+      { label: "Login", targetId: "login" }
     ],
     []
   );
@@ -51,6 +52,10 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
 
   const goTo = (targetId: string) => {
     setMobileOpen(false);
+    if (targetId === "login") {
+      navigate("/login");
+      return;
+    }
 
     const onLanding = location.pathname === "/" || location.pathname === "/oxygold";
     if (onLanding) {

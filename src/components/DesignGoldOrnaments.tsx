@@ -6,6 +6,7 @@ import {
   AudioOutlined,
   PictureOutlined,
   VideoCameraOutlined,
+  ShoppingCartOutlined,
 } from "@ant-design/icons";
 import GoldJewelleryImage from "../assets/goldbanner1.png";
 
@@ -134,6 +135,15 @@ const cards = [
     showModal: false,
   },
   {
+    id: "physical-gold",
+    Icon: ShoppingCartOutlined,
+    label: "Physical Gold Store",
+    sub: "Coins, bars & jewellery checkout",
+    route: "/physical-gold",
+    accent: "#F5D36C",
+    showModal: false,
+  },
+  {
     id: "voice",
     Icon: AudioOutlined,
     label: "Speak with Vedika",
@@ -168,15 +178,15 @@ const OxyGoldAIPage: React.FC = () => {
   const [modalRoute, setModalRoute] = useState<string | null>(null);
   const navigate = useNavigate();
 
-const handleCardClick = (card: (typeof cards)[0]) => {
-  if (card.route.startsWith("http")) {
-    window.open(card.route, "_blank");
-  } else if (card.showModal) {
-    setModalRoute(card.route);  
-  } else {
-    navigate(card.route);
-  }
-};
+  const handleCardClick = (card: (typeof cards)[0]) => {
+    if (card.route.startsWith("http")) {
+      window.open(card.route, "_blank");
+    } else if (card.showModal) {
+      setModalRoute(card.route);
+    } else {
+      navigate(card.route);
+    }
+  };
 
   return (
     <section>
@@ -225,7 +235,7 @@ const handleCardClick = (card: (typeof cards)[0]) => {
                             transform: "translateY(-3px)",
                           } : {}),
                         }}
-                        className="feature-card"
+                        className="feature-card flex items-center"
                         onClick={() => handleCardClick(card)}
                         onMouseEnter={() => setHovered(card.id)}
                         onMouseLeave={() => setHovered(null)}
@@ -234,6 +244,7 @@ const handleCardClick = (card: (typeof cards)[0]) => {
                           style={{
                             ...styles.icon,
                             color: isHov ? card.accent : "#D4AF37",
+                            marginRight: "8px",
                           }}
                         />
                         <div>

@@ -1,0 +1,489 @@
+import { Category, SubCategory, PhysicalGoldProduct, ProductVariant, Order } from "./physicalGoldData";
+
+const BASE_URL = "https://meta.oxyloans.com";
+
+/**
+ * Get current access token from localStorage
+ */
+const getAuthToken = (): string => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+        const userData = JSON.parse(stored);
+        return userData.data?.accessToken || "";
+    }
+    return "";
+};
+
+/**
+ * Get current refresh token from localStorage
+ */
+const getRefreshToken = (): string => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+        const userData = JSON.parse(stored);
+        return userData.data?.refreshToken || "";
+    }
+    return "";
+};
+
+/**
+ * Update tokens in localStorage
+ */
+const updateStoredTokens = (accessToken: string, refreshToken: string) => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+        const userData = JSON.parse(stored);
+        userData.data.accessToken = accessToken;
+        userData.data.refreshToken = refreshToken;
+        localStorage.setItem("user", JSON.stringify(userData));
+    }
+};
+
+/**
+ * API to refresh access token using refresh token
+ */
+export const refreshAccessToken = async () => {
+    const rt = getRefreshToken();
+    if (!rt) throw new Error("No refresh token available");
+
+    console.log("Got the rt token", rt);
+
+    const response = await fetch(`${BASE_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken: rt }) // or in the body, adding both to be safe as per usual patterns
+    });
+
+    console.log(response);
+
+    const data = await response.json();
+    if (response.ok && data.success) {
+        updateStoredTokens(data.data.accessToken, data.data.refreshToken);
+        return data.data.accessToken;
+    } else {
+        // If refresh fails, clear storage or handle logout
+        // localStorage.removeItem("user");
+        throw new Error(data.message || "Failed to refresh token");
+    }
+};
+
+/**
+ * Wrapper around fetch that handles auth headers and token refresh
+ */
+const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+        'Authorization': `Bearer ${getAuthToken()}`
+    };
+
+    let response = await fetch(url, { ...options, headers });
+
+    if (response.status === 401) {
+        try {
+            const newToken = await refreshAccessToken();
+            // Retry with new token
+            headers['Authorization'] = `Bearer ${newToken}`;
+            response = await fetch(url, { ...options, headers });
+        } catch (error) {
+            console.error("Token refresh failed:", error);
+            // Optionally redirect to login here or handle globally
+            throw error;
+        }
+    }
+
+    return response;
+};
+
+export const fetchCategoryImageURL = async (categoryId: string): Promise<string> => {
+    try {
+        const response = await authenticatedFetch(`${BASE_URL}/admin/categories/getImageForProduct?categoryId=${categoryId}`);
+        if (!response.ok) return "";
+        const data = await response.json();
+        console.log(data);
+        return data.data.url || "";
+    } catch (error) {
+        console.error(`Failed to fetch image for category ${categoryId}:`, error);
+        return "";
+    }
+};
+
+export const fetchProductImageURLs = async (productId: string): Promise<string[]> => {
+    try {
+        const response = await authenticatedFetch(`${BASE_URL}/admin/categories/getImageForProduct?productId=${productId}`);
+        if (!response.ok) return [];
+        const data = await response.json();
+        if (Array.isArray(data?.urls)) return data.urls.filter(Boolean);
+        if (Array.isArray(data?.data?.urls)) return data.data.urls.filter(Boolean);
+        if (data?.url) return [data.url];
+        if (data?.data?.url) return [data.data.url];
+        return [];
+    } catch (error) {
+        console.error(`Failed to fetch images for product ${productId}:`, error);
+        return [];
+    }
+};
+
+export const fetchMainCategories = async (): Promise<Category[]> => {
+    const response = await authenticatedFetch(`${BASE_URL}/admin/categories/parents`);
+    if (!response.ok) {
+        throw new Error("Failed to fetch main categories");
+    }
+    const data = await response.json();
+
+    // Fetch images for all categories in parallel
+    const categoriesWithImages = await Promise.all(data.map(async (item: any) => {
+        const imageUrl = await fetchCategoryImageURL(item.id.toString());
+        return {
+            id: item.id.toString(),
+            name: item.name,
+            emoji: getEmojiForCategory(item.name || ""),
+            description: item.description,
+            imageUrl: imageUrl
+        };
+    }));
+
+    return categoriesWithImages;
+};
+
+export const fetchSubCategories = async (parentId: string): Promise<SubCategory[]> => {
+    const response = await authenticatedFetch(`${BASE_URL}/admin/categories/${parentId}/subcategories`);
+    if (!response.ok) {
+        throw new Error("Failed to fetch sub-categories");
+    }
+    const data = await response.json();
+
+    // Fetch images for all sub-categories in parallel
+    const subCategoriesWithImages = await Promise.all(data.map(async (item: any) => {
+        const imageUrl = await fetchCategoryImageURL(item.id.toString());
+        return {
+            id: item.id.toString(),
+            categoryId: item.parentId.toString(),
+            name: item.name,
+            description: item.description,
+            imageUrl: imageUrl
+        };
+    }));
+
+    return subCategoriesWithImages;
+};
+
+export const fetchProducts = async (subCategoryId: string): Promise<PhysicalGoldProduct[]> => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/products/getAllProduct?categoryId=${subCategoryId}`);
+    if (!response.ok) {
+        throw new Error("Failed to fetch products");
+    }
+    const data = await response.json();
+    return data.map((item: any) => ({
+        id: item.id.toString(),
+        productName: item.productName || item.name,
+        imageUrl: item.imageUrl,
+        priceRange: item.priceRange || "Price on request",
+        description: item.description,
+        subCategoryId: item.categoryId.toString(),
+        status: item.status,
+    }));
+};
+
+export const fetchProductVariants = async (productId: string): Promise<{ variants: ProductVariant[], product: PhysicalGoldProduct }> => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/productvariants/getVariantByProduct?productId=${productId}`, {
+        method: 'GET'
+    });
+
+    if (response.status === 404) {
+        return { variants: [], product: null as any };
+    }
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch variants");
+    }
+
+    const result = await response.json();
+    const variantsData = result.data;
+    console.log(variantsData);
+
+    const productImages = await fetchProductImageURLs(productId);
+    const variants = variantsData.listVariantResponse.map((item: any, idx: number) => ({
+        id: item.id.toString(),
+        price: item.price,
+        mrp: item.mrp,
+        imageUrl: item.imageUrl || productImages[idx] || productImages[0] || "",
+        purity: item.purity,
+        size: item.size,
+        sku: item.sku,
+        status: item.status,
+        stockQuantity: item.stockQuantity,
+        weight: item.weight,
+    }));
+
+    const productData = result.data.productResponse;
+    return {
+        variants,
+        product: productData ? {
+            id: productData.id.toString(),
+            productName: productData.name,
+            imageUrl: productData.imageUrl,
+            priceRange: productData.priceRange || "Price on request",
+            description: productData.description,
+            subCategoryId: productData.categoryId.toString(),
+            status: productData.status,
+            gstPercentage: productData.gstPercentage,
+            makingPercentage: productData.makingPercentage,
+        } : (null as any)
+    };
+}
+
+export const loginOrRegister = async (params: {
+    phoneNumber: string;
+    registrationType: string;
+    userType: string;
+    userRole: string;
+    whatsappNumber: string;
+    mobileOtpSessionId?: string;
+    mobileOtpValue?: string;
+}) => {
+    const response = await fetch(`${BASE_URL}/api/auth/userLoginOrRegister`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || data?.error || 'Authentication failed');
+    }
+    return data;
+};
+
+export const createRole = async (role: string) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/auth/createRole`, {
+        method: 'POST',
+        body: JSON.stringify({ role }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || data?.error || 'Failed to create role');
+    }
+    return data;
+};
+
+export const logout = async (refreshToken: string) => {
+    const response = await fetch(`${BASE_URL}/api/auth/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+    });
+    if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data?.message || 'Logout failed');
+    }
+    return true;
+};
+
+export const fetchWalletTransactions = async (userId: number) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/wallet/${userId}/transactions`);
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'Failed to fetch transactions');
+    }
+    return data;
+};
+
+export const fetchWalletBalance = async (userId: number) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/wallet/getWallet/${userId}`);
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'Failed to fetch wallet balance');
+    }
+    return data;
+};
+
+export const AddItemToCart = async (cartData: any) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/cart/AddItemToCart`, {
+        method: 'POST',
+        body: JSON.stringify(cartData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'Failed to add item to cart');
+    }
+    return data;
+};
+
+export const decrementCartItems = async (cartData: any) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/cart/decrementCartItems`, {
+        method: 'POST',
+        body: JSON.stringify(cartData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'Failed to decrement cart items');
+    }
+    return data;
+};
+
+export const fetchCustomerCartInfo = async (customerId: number) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/cart/customer-cart-info?customerId=${customerId}`);
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'Failed to fetch cart info');
+    }
+    return data;
+};
+
+export const removeCartItem = async (cartId: number, userId: number) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/cart/${cartId}?userId=${userId}`, {
+        method: 'DELETE'
+    })
+    if (!response.ok) {
+        throw new Error("Failed to remove cart item")
+    }
+    return response.json();
+}
+
+
+export const fetchAddresses = async (userId: number) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/auth/addresses/${userId}`);
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'Failed to fetch addresses');
+    }
+    return data;
+};
+
+export const addAddress = async (addressData: any) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/auth/addAddress`, {
+        method: 'PATCH',
+        body: JSON.stringify(addressData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'Failed to add address');
+    }
+    return data;
+};
+
+export const updateAddress = async (addressData: any) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/auth/addAddress`, {
+        method: 'PUT',
+        body: JSON.stringify(addressData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'Failed to update address');
+    }
+    return data;
+};
+
+export const saveUserProfile = async (profileData: any) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/auth/saveUserProfile`, {
+        method: 'POST',
+        body: JSON.stringify(profileData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'Failed to save profile');
+    }
+    return data;
+};
+
+export const getUserProfile = async (userId: number) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/auth/getUserBasedOnUserId?userId=${userId}`);
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'Failed to fetch user profile');
+    }
+    return data;
+};
+
+export const createOrder = async (orderData: {
+    userId: number;
+    addressId: number;
+    notes: string;
+    paymentMode: "WALLET" | "CASHFREE";
+    returnUrl?: string;
+}) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/order/createOrder`, {
+        method: "POST",
+        body: JSON.stringify(orderData),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || "Failed to create order");
+    }
+    return data;
+};
+
+export const fetchUserOrders = async (userId: number): Promise<Order[]> => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/order/user/${userId}`);
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'Failed to fetch user orders');
+    }
+    return data.data;
+};
+
+export const confirmOrder = async (orderId: string | number) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/order/${orderId}/confirmOrders`, {
+        method: "POST"
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || "Failed to confirm order");
+    }
+    return data;
+};
+
+export const paymentWebhook = async (order_id: string | number) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/digital-gold/payments/webhook?order_id=${order_id}`, {
+        method: "POST",
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || "Webhook call failed");
+    }
+    return data;
+};
+
+/**
+ * Generate invoice for an order
+ */
+export const generateInvoice = async (orderId: string | number) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/invoices/generate-from-order/${orderId}`, {
+        method: "POST",
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || "Failed to generate invoice");
+    }
+    return data;
+};
+
+/**
+ * Get PDF download URL for an invoice
+ */
+export const getInvoicePdfUrl = async (orderNumber: string) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/invoices/${orderNumber}/pdf`);
+    if (!response.ok) throw new Error("Failed to get invoice PDF");
+    return response; // or response.blob() if you need to download it
+};
+
+/**
+ * Get PDF preview URL for an invoice
+ */
+export const getInvoicePreviewUrl = async (orderNumber: string) => {
+    const response = await authenticatedFetch(`${BASE_URL}/api/invoices/${orderNumber}/pdf/preview`);
+    if (!response.ok) throw new Error("Failed to get invoice preview");
+    return response;
+};
+
+const getEmojiForCategory = (name: string): string => {
+
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes("gold")) return "💍";
+    if (lowerName.includes("silver")) return "🔘";
+    if (lowerName.includes("diamond")) return "💎";
+    if (lowerName.includes("digital")) return "📱";
+    return "✨";
+};
