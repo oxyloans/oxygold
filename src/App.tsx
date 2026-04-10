@@ -42,6 +42,7 @@ import Register from './pages/Register';
 import APITest from './pages/APITest';
 import ReviewOrder from './pages/ReviewOrder';
 import GoldSelection from './pages/GoldSelection';
+import BISCertificate from './pages/BISCertificate';
 
 
 function AppContent() {
@@ -65,7 +66,8 @@ function AppContent() {
       "/physical-gold/cart",
       "/physical-gold/profile",
       "/physical-gold/payment-status",
-      "/select-gold"
+      "/select-gold",
+      "/bis-certificate"
     ].includes(location.pathname);
   const handleDataPass = (data: any) => {
     setTransactionData(data);
@@ -81,6 +83,7 @@ function AppContent() {
           <Route path="/register" element={<Register />} />
           <Route path="/api-test" element={<APITest />} />
           <Route path="/select-gold" element={<GoldSelection />} />
+          <Route path="/bis-certificate" element={<BISCertificate />} />
 
           {/* Processing (full-page, no header) */}
           <Route path="/payment-processing" element={<PaymentProcessing />} />

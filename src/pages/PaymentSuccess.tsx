@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { apiCall } from '../utils/tokenManager';
 
-const WEBHOOK_API = 'https://meta.oxyloans.com/api/digital-gold/payments/webhook';
+const WEBHOOK_API = 'http://65.0.147.157:9900/api/digital-gold/payments/webhook';
 
 const PaymentSuccess = ({ transactionData: propData }: { transactionData?: any }) => {
   const navigate = useNavigate();

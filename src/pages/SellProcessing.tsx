@@ -20,8 +20,8 @@ const SellProcessing = () => {
   
   const { transactionId, beneficiaryId, status, amount, grams, sellRate, bankDetails, message, userId } = sellData;
   
-  const SELL_EXECUTE_API = 'https://meta.oxyloans.com/api/digital-gold/sell/execute';
-  const PAYOUT_STATUS_API = 'https://meta.oxyloans.com/api/digital-gold/payout/status';
+  const SELL_EXECUTE_API = 'http://65.0.147.157:9900/api/digital-gold/sell/execute';
+  const PAYOUT_STATUS_API = 'http://65.0.147.157:9900/api/digital-gold/payout/status';
   
   useEffect(() => {
     // Verify user authentication

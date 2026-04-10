@@ -46,8 +46,8 @@ const SellSummary = () => {
   const finalGrams = grams;
   const finalAmount = amount; // This is already the final amount after GST deduction from API
 
-  const BANK_DETAILS_API = 'https://meta.oxyloans.com/api/auth/getBankDetailsByuserId';
-  const SELL_INITIATE_API = 'https://meta.oxyloans.com/api/digital-gold/sell/initiate';
+  const BANK_DETAILS_API = 'http://65.0.147.157:9900/api/auth/getBankDetailsByuserId';
+  const SELL_INITIATE_API = 'http://65.0.147.157:9900/api/digital-gold/sell/initiate';
 
   useEffect(() => {
     if (timeLeft <= 0) return;

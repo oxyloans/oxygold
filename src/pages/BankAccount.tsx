@@ -11,7 +11,7 @@ const BankAccount = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const SAVE_BANK_API = 'https://meta.oxyloans.com/api/auth/saveBankDetails';
+  const SAVE_BANK_API = 'http://65.0.147.157:9900/api/auth/saveBankDetails';
 
   if (!sellData) { navigate('/sell-gold'); return null; }
 

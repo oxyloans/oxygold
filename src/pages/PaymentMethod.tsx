@@ -20,7 +20,7 @@ const PaymentMethod = ({ onDataPass }: { onDataPass: (data: any) => void }) => {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showError, setShowError] = useState(false);
 
-  const BUY_API = 'https://meta.oxyloans.com/api/digital-gold/buy';
+  const BUY_API = 'http://65.0.147.157:9900/api/digital-gold/buy';
 
   useEffect(() => {
     if (!paymentData || !Object.keys(paymentData).length) {

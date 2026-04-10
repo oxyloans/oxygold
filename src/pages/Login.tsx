@@ -35,7 +35,7 @@ window.showLocalStorage = () => {
   console.log('=== END LOCALSTORAGE ===');
 };
 
-const API = 'https://meta.oxyloans.com/api/auth/userLoginOrRegister';
+const API = 'http://65.0.147.157:9900/api/auth/userLoginOrRegister';
 
   const Login = () => {
     const navigate = useNavigate();

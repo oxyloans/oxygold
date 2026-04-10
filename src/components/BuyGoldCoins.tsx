@@ -1,12 +1,15 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   SafetyOutlined,
   ThunderboltOutlined,
   ShoppingOutlined,
+  SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import goldBanner from "../assets/goldbanner.png";
 
 export default function BuyGoldSection() {
+  const navigate = useNavigate();
   const handleBuyNow = () => {
     window.open(
       "https://www.askoxy.ai/main/dashboard/products?type=GOLD",
@@ -87,6 +90,24 @@ export default function BuyGoldSection() {
                     </div>
                   </div>
                 </div>
+                <div style={styles.bisCard} className="feature-card">
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
+                    <SafetyCertificateOutlined style={styles.bisIcon} />
+                    <div>
+                      <h3 style={styles.featureTitle}>BIS Hallmark Certified</h3>
+                      <p style={styles.featureText}>Trusted purity. Transparent pricing.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    style={styles.viewBtn}
+                    className="bis-view-btn"
+                    onClick={() => navigate("/bis-certificate")}
+                  >
+                    View Certificate →
+                  </button>
+                </div>
+                <div style={{ height: "12px" }} /> {/* small spacer */}
 
                 <div style={styles.ctaWrapper}>
                   <button
@@ -339,6 +360,7 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: "72px", // reduced height
   },
 
+
   icon: {
     fontSize: "26px",
     color: "#D4AF37",
@@ -411,6 +433,41 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "12.5px",
     fontWeight: 700,
   },
+
+  bisCard: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "16px",
+    background: "rgba(212,175,55,0.10)",
+    backdropFilter: "blur(10px)",
+    border: "1px solid rgba(212,175,55,0.40)",
+    borderRadius: "14px",
+    padding: "14px 18px",
+    marginBottom: "16px",
+    transition: "all 0.25s ease",
+  },
+
+  bisIcon: {
+    fontSize: "28px",
+    color: "#F5D36C",
+    flex: "0 0 auto",
+  },
+
+  viewBtn: {
+    padding: "9px 18px",
+    fontSize: "13px",
+    fontWeight: 900,
+    background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
+    color: "#2B0A59",
+    border: "none",
+    borderRadius: "10px",
+    cursor: "pointer",
+    whiteSpace: "nowrap" as const,
+    boxShadow: "0 4px 14px rgba(212,175,55,0.30)",
+    transition: "all 0.25s ease",
+    flexShrink: 0,
+  },
 };
 
 const responsiveStyles = `
@@ -425,6 +482,12 @@ const responsiveStyles = `
       filter: brightness(1.02);
       transform: translateY(-2px);
       box-shadow: 0 10px 30px rgba(212,175,55,0.45) !important;
+    }
+
+    .bis-view-btn:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(212,175,55,0.45);
     }
 
     .store-btn:hover{

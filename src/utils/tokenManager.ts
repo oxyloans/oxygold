@@ -156,7 +156,7 @@ class TokenManager {
   private async performTokenRefresh(): Promise<string> {
     try {
       console.log('[TokenManager] Refreshing access token...');
-      const response = await fetch('https://meta.oxyloans.com/api/auth/refresh', {
+      const response = await fetch('http://65.0.147.157:9900/api/auth/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: this.refreshToken }),

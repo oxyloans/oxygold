@@ -84,7 +84,7 @@ export const useMessages = ({
 }: UseMessagesProps) => {
   const location = useLocation();
   const navigate = useNavigate();
- const BASE_URL="https://meta.oxyloans.com/api"
+ const BASE_URL="http://65.0.147.157:9900/api"
   useEffect(() => {
     const isLogin = localStorage.getItem("userId");
     // Show modal when user tries to ask their 5th question
@@ -346,7 +346,7 @@ class VoiceSessionService {
   ): Promise<string> {
     try {
       const res = await fetch(
-        `https://meta.oxyloans.com/api/student-service/user/voicetoken?assistantId=${assistantId}&voicemode=${voicemode}`,
+        `http://65.0.147.157:9900/api/student-service/user/voicetoken?assistantId=${assistantId}&voicemode=${voicemode}`,
         {
           method: "POST",
           headers: {
@@ -367,7 +367,7 @@ class VoiceSessionService {
   private async handleGetMalabarGoldPrice(): Promise<any> {
     try {
       const res = await fetch(
-        `https://meta.oxyloans.com/api/product-service/all-different-gold-rates
+        `http://65.0.147.157:9900/api/product-service/all-different-gold-rates
 `,
         {
           method: "GET",

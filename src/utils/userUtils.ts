@@ -54,7 +54,7 @@ import { apiCall } from '../utils/tokenManager';
 // GET request
 const fetchWallet = async (userId: number) => {
   try {
-    const response = await apiCall(`https://meta.oxyloans.com/api/digital-gold/wallet/${userId}`);
+    const response = await apiCall(`http://65.0.147.157:9900/api/digital-gold/wallet/${userId}`);
     if (response.success) {
       return response.data;
     }
@@ -68,7 +68,7 @@ const fetchWallet = async (userId: number) => {
 // POST request
 const previewBuy = async (buyData: any) => {
   try {
-    const response = await apiCall('https://meta.oxyloans.com/api/digital-gold/preview-buy', {
+    const response = await apiCall('http://65.0.147.157:9900/api/digital-gold/preview-buy', {
       method: 'POST',
       body: JSON.stringify(buyData),
     });

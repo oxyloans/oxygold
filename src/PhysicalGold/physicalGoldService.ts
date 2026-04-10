@@ -1,6 +1,6 @@
 import { Category, SubCategory, PhysicalGoldProduct, ProductVariant, Order } from "./physicalGoldData";
 
-const BASE_URL = "https://meta.oxyloans.com";
+const BASE_URL = "http://65.0.147.157:9900";
 
 /**
  * Get current access token from localStorage

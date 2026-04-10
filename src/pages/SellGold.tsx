@@ -16,8 +16,8 @@ const SellGold = ({ onDataPass }: SellGoldProps) => {
   const goldRate = buyPrice;
   const sellRate = liveSellPrice;
   const MIN_SELL_AMOUNT = 100;
-  const PREVIEW_SELL_API = 'https://meta.oxyloans.com/api/digital-gold/preview-sell';
-  const WALLET_API = 'https://meta.oxyloans.com/api/digital-gold/wallet';
+  const PREVIEW_SELL_API = 'http://65.0.147.157:9900/api/digital-gold/preview-sell';
+  const WALLET_API = 'http://65.0.147.157:9900/api/digital-gold/wallet';
 
   // Authentication guard
   const userId = getCurrentUser();

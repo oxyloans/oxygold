@@ -45,8 +45,8 @@ const Portfolio = () => {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
 
   const TRANSACTIONS_API =
-    "https://meta.oxyloans.com/api/digital-gold/transactions";
-  const WALLET_API = "https://meta.oxyloans.com/api/digital-gold/wallet";
+    "http://65.0.147.157:9900/api/digital-gold/transactions";
+  const WALLET_API = "http://65.0.147.157:9900/api/digital-gold/wallet";
 
   const getUserId = () => {
     return getCurrentUser();
@@ -1108,7 +1108,7 @@ export default Portfolio;
 // // Constants
 // // ─────────────────────────────────────────────
 
-// const API_BASE = "https://meta.oxyloans.com/api/digital-gold";
+// const API_BASE = "http://65.0.147.157:9900/api/digital-gold";
 // const TRANSACTIONS_API = `${API_BASE}/transactions`;
 // const WALLET_API = `${API_BASE}/wallet`;
 

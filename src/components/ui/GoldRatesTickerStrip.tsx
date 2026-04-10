@@ -15,9 +15,9 @@ type Props = {
 };
 
 const API_SHOPS =
-  "https://meta.oxyloans.com/api/product-service/all-different-gold-rates";
+  "http://65.0.147.157:9900/api/product-service/all-different-gold-rates";
 const API_IBJA =
-  "https://meta.oxyloans.com/api/oxybrick-service/getIbjGoldRates";
+  "http://65.0.147.157:9900/api/oxybrick-service/getIbjGoldRates";
 
 // ✅ SAME fallback style like GoldRatesDashboard.tsx
 const HARDCODE_FALLBACK_TOKEN =

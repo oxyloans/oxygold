@@ -3,8 +3,8 @@
 // import { useGoldPrice } from '../context/GoldPriceContext';
 // import { usePurchasePrice } from '../context/PurchaseContext';
 
-// const PREVIEW_API = 'https://meta.oxyloans.com/api/digital-gold/preview-buy';
-// const TRANSACTIONS_API = 'https://meta.oxyloans.com/api/digital-gold/transactions';
+// const PREVIEW_API = 'http://65.0.147.157:9900/api/digital-gold/preview-buy';
+// const TRANSACTIONS_API = 'http://65.0.147.157:9900/api/digital-gold/transactions';
 
 // interface Transaction {
 //   date: string;
@@ -565,9 +565,9 @@ import { usePurchasePrice } from '../context/PurchaseContext';
 import { apiCall } from '../utils/tokenManager';
 import { getCurrentUser } from '../utils/userUtils';
 
-const PREVIEW_API = 'https://meta.oxyloans.com/api/digital-gold/preview-buy';
-const TRANSACTIONS_API = 'https://meta.oxyloans.com/api/digital-gold/transactions';
-const WALLET_API = 'https://meta.oxyloans.com/api/digital-gold/wallet';
+const PREVIEW_API = 'http://65.0.147.157:9900/api/digital-gold/preview-buy';
+const TRANSACTIONS_API = 'http://65.0.147.157:9900/api/digital-gold/transactions';
+const WALLET_API = 'http://65.0.147.157:9900/api/digital-gold/wallet';
 
 interface Transaction {
   date: string;

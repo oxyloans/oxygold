@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const API_AUTH = 'https://meta.oxyloans.com/api/auth/userLoginOrRegister';
-const API_ROLE = 'https://meta.oxyloans.com/api/auth/createRole';
+const API_AUTH = 'http://65.0.147.157:9900/api/auth/userLoginOrRegister';
+const API_ROLE = 'http://65.0.147.157:9900/api/auth/createRole';
 
 const Register = () => {
   const navigate = useNavigate();

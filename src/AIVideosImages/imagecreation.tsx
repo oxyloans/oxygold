@@ -46,7 +46,7 @@ const MarkdownRenderer: React.FC<MarkdownProps> = memo(
       ...props
     }: ComponentPropsWithoutRef<"code"> & { inline?: boolean }) => {
       const preRef = useRef<HTMLPreElement>(null);
-      const BASE_URL = "https://meta.oxyloans.com/api";
+      const BASE_URL = "http://65.0.147.157:9900/api";
       return inline ? (
         <code className="rounded bg-gray-100 dark:bg-gray-800 text-pink-600 dark:text-pink-300 px-1 py-0.5 text-sm font-mono">
           {children}
@@ -350,7 +350,7 @@ const ImageCreation: React.FC = () => {
     messageHistory: { role: string; content: string; isImage?: boolean }[],
   ) => {
     const response = await axios.post(
-      `https://meta.oxyloans.com/api/student-service/user/chat1`,
+      `http://65.0.147.157:9900/api/student-service/user/chat1`,
       messageHistory,
       { headers: { "Content-Type": "application/json" } },
     );

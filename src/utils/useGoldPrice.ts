@@ -15,7 +15,7 @@ export const useGoldPrice = () => {
   const fetchGoldPrice = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://meta.oxyloans.com/api/digital-gold/live-price');
+      const response = await fetch('http://65.0.147.157:9900/api/digital-gold/live-price');
       const data = await response.json();
       
       if (data.success) {
