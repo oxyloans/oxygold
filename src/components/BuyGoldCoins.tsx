@@ -27,6 +27,10 @@ export default function BuyGoldSection() {
     );
   };
 
+  const handleBISCertificate = () => {
+    navigate("/bis-certificate");
+  }
+
   const handleAppStore = () => {
     // ✅ replace with your real App Store link
     window.open(
@@ -102,7 +106,7 @@ export default function BuyGoldSection() {
                     type="button"
                     style={styles.viewBtn}
                     className="bis-view-btn"
-                    onClick={() => navigate("/bis-certificate")}
+                    onClick={handleBISCertificate}
                   >
                     View Certificate →
                   </button>
