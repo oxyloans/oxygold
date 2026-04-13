@@ -8,10 +8,20 @@ interface GoldPriceContextType {
   lastUpdated: string | null;
 }
 
+let BASE_URL = ''; // This will be set from Config
+let userType = "prod"; // default to local
+if(userType === "local") {
+    BASE_URL = "http://65.0.147.157:9900/api";
+}
+else {
+    BASE_URL = "http://meta.oxyloans.com/api";
+}
+
+
 const GoldPriceContext = createContext<GoldPriceContextType | undefined>(undefined);
 
-const BUY_API = 'http://65.0.147.157:9229/api/marketing-service/campgin/mmtc-pamp?type=goldBuy';
-const SELL_API = 'http://65.0.147.157:9229/api/marketing-service/campgin/mmtc-pamp?type=goldSell';
+const BUY_API = `${BASE_URL}/marketing-service/campgin/mmtc-pamp?type=goldBuy`;
+const SELL_API = `${BASE_URL}/marketing-service/campgin/mmtc-pamp?type=goldSell`;
 const REFRESH_INTERVAL = 60000; // 60 seconds - refresh every minute
 const API_TIMEOUT = 10000; // 10 seconds timeout
 const DEFAULT_PRICE = 16236;

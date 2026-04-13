@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getCurrentUser } from '../utils/userUtils';
+import { API_BASE_URL } from '../Config';
 
 const BankAccount = () => {
   const navigate = useNavigate();
@@ -11,7 +12,7 @@ const BankAccount = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const SAVE_BANK_API = 'http://65.0.147.157:9900/api/auth/saveBankDetails';
+  const SAVE_BANK_API = `${API_BASE_URL}/oxygold-api/auth/saveBankDetails`;
 
   if (!sellData) { navigate('/sell-gold'); return null; }
 

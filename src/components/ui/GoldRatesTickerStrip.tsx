@@ -14,10 +14,12 @@ type Props = {
   maxShops?: number;
 };
 
+import { API_BASE_URL } from "../../Config";
+
 const API_SHOPS =
-  "http://65.0.147.157:9900/api/product-service/all-different-gold-rates";
+  `${API_BASE_URL}/product-service/all-different-gold-rates`;
 const API_IBJA =
-  "http://65.0.147.157:9900/api/oxybrick-service/getIbjGoldRates";
+  `${API_BASE_URL}/oxybrick-service/getIbjGoldRates`;
 
 // ✅ SAME fallback style like GoldRatesDashboard.tsx
 const HARDCODE_FALLBACK_TOKEN =

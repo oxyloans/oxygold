@@ -4,6 +4,7 @@ import { useGoldPrice } from '../context/GoldPriceContext';
 import { usePurchasePrice } from '../context/PurchaseContext';
 import { apiCall } from '../utils/tokenManager';
 import { getCurrentUser } from '../utils/userUtils';
+import { API_BASE_URL } from '../Config';
 
 interface SellGoldProps {
   onDataPass: (data: any) => void;
@@ -16,8 +17,8 @@ const SellGold = ({ onDataPass }: SellGoldProps) => {
   const goldRate = buyPrice;
   const sellRate = liveSellPrice;
   const MIN_SELL_AMOUNT = 100;
-  const PREVIEW_SELL_API = 'http://65.0.147.157:9900/api/digital-gold/preview-sell';
-  const WALLET_API = 'http://65.0.147.157:9900/api/digital-gold/wallet';
+  const PREVIEW_SELL_API = `${API_BASE_URL}/oxygold-api/digital-gold/preview-sell`;
+  const WALLET_API = `${API_BASE_URL}/oxygold-api/digital-gold/wallet`;
 
   // Authentication guard
   const userId = getCurrentUser();

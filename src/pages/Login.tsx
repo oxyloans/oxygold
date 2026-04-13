@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TokenManager from '../utils/tokenManager';
 import { logout } from '../utils/userUtils';
+import { API_BASE_URL } from '../Config';
 
 // Add global function to window for easy token inspection
 declare global {
@@ -35,7 +36,7 @@ window.showLocalStorage = () => {
   console.log('=== END LOCALSTORAGE ===');
 };
 
-const API = 'http://65.0.147.157:9900/api/auth/userLoginOrRegister';
+const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
 
   const Login = () => {
     const navigate = useNavigate();

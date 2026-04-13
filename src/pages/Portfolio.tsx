@@ -4,6 +4,7 @@ import { useGoldPrice } from "../context/GoldPriceContext";
 import { usePurchasePrice } from "../context/PurchaseContext";
 import { apiCall } from "../utils/tokenManager";
 import { getCurrentUser } from "../utils/userUtils";
+import { API_BASE_URL } from "../Config";
 
 interface Transaction {
   date: string;
@@ -45,8 +46,8 @@ const Portfolio = () => {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
 
   const TRANSACTIONS_API =
-    "http://65.0.147.157:9900/api/digital-gold/transactions";
-  const WALLET_API = "http://65.0.147.157:9900/api/digital-gold/wallet";
+    `${API_BASE_URL}/oxygold-api/digital-gold/transactions`;
+  const WALLET_API = `${API_BASE_URL}/oxygold-api/digital-gold/wallet`;
 
   const getUserId = () => {
     return getCurrentUser();

@@ -1,8 +1,9 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { apiCall } from '../utils/tokenManager';
+import { API_BASE_URL } from '../Config';
 
-const WEBHOOK_API = 'http://65.0.147.157:9900/api/digital-gold/payments/webhook';
+const WEBHOOK_API = `${API_BASE_URL}/oxygold-api/digital-gold/payments/webhook`;
 
 const PaymentSuccess = ({ transactionData: propData }: { transactionData?: any }) => {
   const navigate = useNavigate();

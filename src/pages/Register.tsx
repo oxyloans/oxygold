@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../Config';
 
-const API_AUTH = 'http://65.0.147.157:9900/api/auth/userLoginOrRegister';
-const API_ROLE = 'http://65.0.147.157:9900/api/auth/createRole';
+const API_AUTH = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
+const API_ROLE = `${API_BASE_URL}/oxygold-api/auth/createRole`;
 
 const Register = () => {
   const navigate = useNavigate();

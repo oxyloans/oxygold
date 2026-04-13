@@ -8,6 +8,8 @@ import Orders from '../../pages/Orders';
 import CatalogUpload from '../../pages/CatalogUpload';
 import Products from '../../pages/Products';
 import Settings from '../../pages/Settings';
+import Users from '../../pages/Users';
+
 
 const AdminLayout: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -29,6 +31,8 @@ const AdminLayout: React.FC = () => {
                         <Route path="catalog-upload" element={<CatalogUpload />} />
                         <Route path="products" element={<Products />} />
                         <Route path="settings" element={<Settings />} />
+                        <Route path="users" element={<Users />} />
+
                         <Route path="/" element={<Navigate to="dashboard" replace />} />
                     </Routes>
                 </main>

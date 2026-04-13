@@ -4,6 +4,7 @@ import { Message } from "../types/types";
 import axios from "axios";
 import { LanguageConfig, ChatMessage } from "../types/types";
 import { useLocation, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../../Config";
 
 interface UseMessagesProps {
   messages: Message[];
@@ -84,7 +85,7 @@ export const useMessages = ({
 }: UseMessagesProps) => {
   const location = useLocation();
   const navigate = useNavigate();
- const BASE_URL="http://65.0.147.157:9900/api"
+ const BASE_URL= API_BASE_URL;
   useEffect(() => {
     const isLogin = localStorage.getItem("userId");
     // Show modal when user tries to ask their 5th question
@@ -346,7 +347,7 @@ class VoiceSessionService {
   ): Promise<string> {
     try {
       const res = await fetch(
-        `http://65.0.147.157:9900/api/student-service/user/voicetoken?assistantId=${assistantId}&voicemode=${voicemode}`,
+        `${API_BASE_URL}/student-service/user/voicetoken?assistantId=${assistantId}&voicemode=${voicemode}`,
         {
           method: "POST",
           headers: {
@@ -367,7 +368,7 @@ class VoiceSessionService {
   private async handleGetMalabarGoldPrice(): Promise<any> {
     try {
       const res = await fetch(
-        `http://65.0.147.157:9900/api/product-service/all-different-gold-rates
+        `${API_BASE_URL}/product-service/all-different-gold-rates
 `,
         {
           method: "GET",

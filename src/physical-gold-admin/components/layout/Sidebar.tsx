@@ -23,8 +23,9 @@ const Sidebar: React.FC = () => {
         { title: 'Dashboard', icon: <LayoutDashboard size={18} />, path: '/admin/dashboard' },
         // { title: 'Products', icon: <Package size={18} />, path: '/admin/products' },
         { title: 'Catalog Upload', icon: <UploadCloud size={18} />, path: '/admin/catalog-upload' },
-        // { title: 'Customers', icon: <User size={18} />, path: '/admin/customers' },
+        { title: 'Users', icon: <User size={18} />, path: '/admin/users' },
         { title: 'Orders', icon: <ShoppingBag size={18} />, path: '/admin/orders' },
+
         // { title: 'Settings', icon: <Settings size={18} />, path: '/admin/settings' },
     ];
 

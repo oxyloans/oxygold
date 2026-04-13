@@ -1,6 +1,6 @@
-import { Category, SubCategory, PhysicalGoldProduct, ProductVariant, Order } from "./physicalGoldData";
-
-const BASE_URL = "http://65.0.147.157:9900";
+import { Category, SubCategory, PhysicalGoldProduct, ProductVariant, Order, ProductImageSet } from "./physicalGoldData";
+import { API_BASE_URL } from "../Config";
+const BASE_URL = `${API_BASE_URL}/oxygold-api`;
 
 /**
  * Get current access token from localStorage
@@ -46,9 +46,8 @@ export const refreshAccessToken = async () => {
     const rt = getRefreshToken();
     if (!rt) throw new Error("No refresh token available");
 
-    console.log("Got the rt token", rt);
 
-    const response = await fetch(`${BASE_URL}/api/auth/refresh`, {
+    const response = await fetch(`${BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -83,6 +82,7 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}): Promi
 
     if (response.status === 401) {
         try {
+            console.log("Inside the response status")
             const newToken = await refreshAccessToken();
             // Retry with new token
             headers['Authorization'] = `Bearer ${newToken}`;
@@ -102,27 +102,24 @@ export const fetchCategoryImageURL = async (categoryId: string): Promise<string>
         const response = await authenticatedFetch(`${BASE_URL}/admin/categories/getImageForProduct?categoryId=${categoryId}`);
         if (!response.ok) return "";
         const data = await response.json();
-        console.log(data);
-        return data.data.url || "";
+        const imgObj = data.data;
+        if (!imgObj) return "";
+        return imgObj.frontViewurl || imgObj.backViewUrl || imgObj.leftViewUrl || imgObj.rightViewUrl || imgObj.topViewUrl || imgObj.bottomViewUrl || "";
     } catch (error) {
         console.error(`Failed to fetch image for category ${categoryId}:`, error);
         return "";
     }
 };
 
-export const fetchProductImageURLs = async (productId: string): Promise<string[]> => {
+export const fetchProductImageURLs = async (productId: string): Promise<ProductImageSet | null> => {
     try {
         const response = await authenticatedFetch(`${BASE_URL}/admin/categories/getImageForProduct?productId=${productId}`);
-        if (!response.ok) return [];
+        if (!response.ok) return null;
         const data = await response.json();
-        if (Array.isArray(data?.urls)) return data.urls.filter(Boolean);
-        if (Array.isArray(data?.data?.urls)) return data.data.urls.filter(Boolean);
-        if (data?.url) return [data.url];
-        if (data?.data?.url) return [data.data.url];
-        return [];
+        return data.data || null;
     } catch (error) {
         console.error(`Failed to fetch images for product ${productId}:`, error);
-        return [];
+        return null;
     }
 };
 
@@ -171,12 +168,12 @@ export const fetchSubCategories = async (parentId: string): Promise<SubCategory[
 };
 
 export const fetchProducts = async (subCategoryId: string): Promise<PhysicalGoldProduct[]> => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/products/getAllProduct?categoryId=${subCategoryId}`);
+    const response = await authenticatedFetch(`${BASE_URL}/products/getAllProduct?categoryId=${subCategoryId}`);
     if (!response.ok) {
         throw new Error("Failed to fetch products");
     }
     const data = await response.json();
-    return data.map((item: any) => ({
+    const mappedData = data.map((item: any) => ({
         id: item.id.toString(),
         productName: item.productName || item.name,
         imageUrl: item.imageUrl,
@@ -185,10 +182,11 @@ export const fetchProducts = async (subCategoryId: string): Promise<PhysicalGold
         subCategoryId: item.categoryId.toString(),
         status: item.status,
     }));
+    return mappedData;
 };
 
 export const fetchProductVariants = async (productId: string): Promise<{ variants: ProductVariant[], product: PhysicalGoldProduct }> => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/productvariants/getVariantByProduct?productId=${productId}`, {
+    const response = await authenticatedFetch(`${BASE_URL}/productvariants/getVariantByProduct?productId=${productId}`, {
         method: 'GET'
     });
 
@@ -205,11 +203,11 @@ export const fetchProductVariants = async (productId: string): Promise<{ variant
     console.log(variantsData);
 
     const productImages = await fetchProductImageURLs(productId);
-    const variants = variantsData.listVariantResponse.map((item: any, idx: number) => ({
+    const variants = variantsData.listVariantResponse.map((item: any) => ({
         id: item.id.toString(),
         price: item.price,
         mrp: item.mrp,
-        imageUrl: item.imageUrl || productImages[idx] || productImages[0] || "",
+        imageUrl: item.imageUrl || (productImages ? (productImages.frontViewurl || productImages.backViewUrl || productImages.leftViewUrl || productImages.rightViewUrl || productImages.topViewUrl || productImages.bottomViewUrl) : "") || "",
         purity: item.purity,
         size: item.size,
         sku: item.sku,
@@ -225,6 +223,7 @@ export const fetchProductVariants = async (productId: string): Promise<{ variant
             id: productData.id.toString(),
             productName: productData.name,
             imageUrl: productData.imageUrl,
+            imageSet: productImages || undefined,
             priceRange: productData.priceRange || "Price on request",
             description: productData.description,
             subCategoryId: productData.categoryId.toString(),
@@ -244,7 +243,7 @@ export const loginOrRegister = async (params: {
     mobileOtpSessionId?: string;
     mobileOtpValue?: string;
 }) => {
-    const response = await fetch(`${BASE_URL}/api/auth/userLoginOrRegister`, {
+    const response = await fetch(`${BASE_URL}/auth/userLoginOrRegister`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params),
@@ -257,7 +256,7 @@ export const loginOrRegister = async (params: {
 };
 
 export const createRole = async (role: string) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/auth/createRole`, {
+    const response = await authenticatedFetch(`${BASE_URL}/auth/createRole`, {
         method: 'POST',
         body: JSON.stringify({ role }),
     });
@@ -269,7 +268,7 @@ export const createRole = async (role: string) => {
 };
 
 export const logout = async (refreshToken: string) => {
-    const response = await fetch(`${BASE_URL}/api/auth/logout`, {
+    const response = await fetch(`${BASE_URL}/auth/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken }),
@@ -282,7 +281,7 @@ export const logout = async (refreshToken: string) => {
 };
 
 export const fetchWalletTransactions = async (userId: number) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/wallet/${userId}/transactions`);
+    const response = await authenticatedFetch(`${BASE_URL}/wallet/${userId}/transactions`);
     const data = await response.json();
     if (!response.ok) {
         throw new Error(data?.message || 'Failed to fetch transactions');
@@ -291,7 +290,7 @@ export const fetchWalletTransactions = async (userId: number) => {
 };
 
 export const fetchWalletBalance = async (userId: number) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/wallet/getWallet/${userId}`);
+    const response = await authenticatedFetch(`${BASE_URL}/wallet/getWallet/${userId}`);
     const data = await response.json();
     if (!response.ok) {
         throw new Error(data?.message || 'Failed to fetch wallet balance');
@@ -300,7 +299,7 @@ export const fetchWalletBalance = async (userId: number) => {
 };
 
 export const AddItemToCart = async (cartData: any) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/cart/AddItemToCart`, {
+    const response = await authenticatedFetch(`${BASE_URL}/cart/AddItemToCart`, {
         method: 'POST',
         body: JSON.stringify(cartData),
     });
@@ -312,7 +311,7 @@ export const AddItemToCart = async (cartData: any) => {
 };
 
 export const decrementCartItems = async (cartData: any) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/cart/decrementCartItems`, {
+    const response = await authenticatedFetch(`${BASE_URL}/cart/decrementCartItems`, {
         method: 'POST',
         body: JSON.stringify(cartData),
     });
@@ -324,7 +323,7 @@ export const decrementCartItems = async (cartData: any) => {
 };
 
 export const fetchCustomerCartInfo = async (customerId: number) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/cart/customer-cart-info?customerId=${customerId}`);
+    const response = await authenticatedFetch(`${BASE_URL}/cart/customer-cart-info?customerId=${customerId}`);
     const data = await response.json();
     if (!response.ok) {
         throw new Error(data?.message || 'Failed to fetch cart info');
@@ -333,7 +332,7 @@ export const fetchCustomerCartInfo = async (customerId: number) => {
 };
 
 export const removeCartItem = async (cartId: number, userId: number) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/cart/${cartId}?userId=${userId}`, {
+    const response = await authenticatedFetch(`${BASE_URL}/cart/${cartId}?userId=${userId}`, {
         method: 'DELETE'
     })
     if (!response.ok) {
@@ -344,7 +343,7 @@ export const removeCartItem = async (cartId: number, userId: number) => {
 
 
 export const fetchAddresses = async (userId: number) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/auth/addresses/${userId}`);
+    const response = await authenticatedFetch(`${BASE_URL}/auth/addresses/${userId}`);
     const data = await response.json();
     if (!response.ok) {
         throw new Error(data?.message || 'Failed to fetch addresses');
@@ -353,7 +352,7 @@ export const fetchAddresses = async (userId: number) => {
 };
 
 export const addAddress = async (addressData: any) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/auth/addAddress`, {
+    const response = await authenticatedFetch(`${BASE_URL}/auth/addAddress`, {
         method: 'PATCH',
         body: JSON.stringify(addressData),
     });
@@ -365,7 +364,7 @@ export const addAddress = async (addressData: any) => {
 };
 
 export const updateAddress = async (addressData: any) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/auth/addAddress`, {
+    const response = await authenticatedFetch(`${BASE_URL}/auth/addAddress`, {
         method: 'PUT',
         body: JSON.stringify(addressData),
     });
@@ -377,7 +376,7 @@ export const updateAddress = async (addressData: any) => {
 };
 
 export const saveUserProfile = async (profileData: any) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/auth/saveUserProfile`, {
+    const response = await authenticatedFetch(`${BASE_URL}/auth/saveUserProfile`, {
         method: 'POST',
         body: JSON.stringify(profileData),
     });
@@ -389,7 +388,7 @@ export const saveUserProfile = async (profileData: any) => {
 };
 
 export const getUserProfile = async (userId: number) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/auth/getUserBasedOnUserId?userId=${userId}`);
+    const response = await authenticatedFetch(`${BASE_URL}/auth/getUserBasedOnUserId?userId=${userId}`);
     const data = await response.json();
     if (!response.ok) {
         throw new Error(data?.message || 'Failed to fetch user profile');
@@ -404,7 +403,7 @@ export const createOrder = async (orderData: {
     paymentMode: "WALLET" | "CASHFREE";
     returnUrl?: string;
 }) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/order/createOrder`, {
+    const response = await authenticatedFetch(`${BASE_URL}/order/createOrder`, {
         method: "POST",
         body: JSON.stringify(orderData),
     });
@@ -416,7 +415,7 @@ export const createOrder = async (orderData: {
 };
 
 export const fetchUserOrders = async (userId: number): Promise<Order[]> => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/order/user/${userId}`);
+    const response = await authenticatedFetch(`${BASE_URL}/order/user/${userId}`);
     const data = await response.json();
     if (!response.ok) {
         throw new Error(data?.message || 'Failed to fetch user orders');
@@ -425,7 +424,7 @@ export const fetchUserOrders = async (userId: number): Promise<Order[]> => {
 };
 
 export const confirmOrder = async (orderId: string | number) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/order/${orderId}/confirmOrders`, {
+    const response = await authenticatedFetch(`${BASE_URL}/order/${orderId}/confirmOrders`, {
         method: "POST"
     });
     const data = await response.json();
@@ -436,7 +435,7 @@ export const confirmOrder = async (orderId: string | number) => {
 };
 
 export const paymentWebhook = async (order_id: string | number) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/digital-gold/payments/webhook?order_id=${order_id}`, {
+    const response = await authenticatedFetch(`${BASE_URL}/digital-gold/payments/webhook?order_id=${order_id}`, {
         method: "POST",
     });
     const data = await response.json();
@@ -450,7 +449,7 @@ export const paymentWebhook = async (order_id: string | number) => {
  * Generate invoice for an order
  */
 export const generateInvoice = async (orderId: string | number) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/invoices/generate-from-order/${orderId}`, {
+    const response = await authenticatedFetch(`${BASE_URL}/invoices/generate-from-order/${orderId}`, {
         method: "POST",
     });
     const data = await response.json();
@@ -464,7 +463,7 @@ export const generateInvoice = async (orderId: string | number) => {
  * Get PDF download URL for an invoice
  */
 export const getInvoicePdfUrl = async (orderNumber: string) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/invoices/${orderNumber}/pdf`);
+    const response = await authenticatedFetch(`${BASE_URL}/invoices/${orderNumber}/pdf`);
     if (!response.ok) throw new Error("Failed to get invoice PDF");
     return response; // or response.blob() if you need to download it
 };
@@ -473,9 +472,35 @@ export const getInvoicePdfUrl = async (orderNumber: string) => {
  * Get PDF preview URL for an invoice
  */
 export const getInvoicePreviewUrl = async (orderNumber: string) => {
-    const response = await authenticatedFetch(`${BASE_URL}/api/invoices/${orderNumber}/pdf/preview`);
+    const response = await authenticatedFetch(`${BASE_URL}/invoices/${orderNumber}/pdf/preview`);
     if (!response.ok) throw new Error("Failed to get invoice preview");
     return response;
+};
+
+export const addToWishlistService = async (payload: any) => {
+    const response = await authenticatedFetch(`${BASE_URL}/cart/addToWishlist`, {
+        method: "POST",
+        body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || "Failed to add to wishlist");
+    return data;
+};
+
+export const removeFromWishlistService = async (wishlistId: number) => {
+    const response = await authenticatedFetch(`${BASE_URL}/cart/removeToWishlist/${wishlistId}`, {
+        method: "POST"
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || "Failed to remove from wishlist");
+    return data;
+};
+
+export const fetchWishlistService = async (userId: number) => {
+    const response = await authenticatedFetch(`${BASE_URL}/cart/wishlistByUserId/${userId}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || "Failed to fetch wishlist");
+    return data;
 };
 
 const getEmojiForCategory = (name: string): string => {

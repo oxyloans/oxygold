@@ -26,13 +26,13 @@ const CatalogUpload: React.FC = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentItem, setCurrentItem] = useState<any>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [selectedViewType, setSelectedViewType] = useState('FRONT');
 
     // Confirm Toggle State
     const [confirmToggle, setConfirmToggle] = useState<{ open: boolean; item: any | null; type?: 'variant' | 'product' }>({ open: false, item: null });
 
     // Form State
     const [formData, setFormData] = useState<any>({});
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -55,10 +55,10 @@ const CatalogUpload: React.FC = () => {
             if (level < 3) {
                 const withImages = await Promise.all(
                     result.map(async (item: any) => {
-                        const url = level === 2
+                        const imgData = level === 2
                             ? await adminService.fetchProductImageURL(item.id)
                             : await adminService.fetchCategoryImageURL(item.id);
-                        return { ...item, url };
+                        return { ...item, imageData: imgData };
                     })
                 );
                 setData(withImages);
@@ -109,15 +109,40 @@ const CatalogUpload: React.FC = () => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onloadend = () => setImagePreview(reader.result as string);
-        reader.readAsDataURL(file);
-
         setIsUploading(true);
         try {
-            const uploadRes = await adminService.uploadImage(file);
-            setFormData({ ...formData, imageId: uploadRes.id });
+            const currentParent = path.length > 0 ? path[path.length - 1] : null;
+            const params: any = {
+                documentType: 'image',
+                viewType: selectedViewType
+            };
+
+            if (isEditing) {
+                if (level === 2) params.productId = currentItem.id;
+                else params.categoryId = currentItem.id;
+            } else {
+                // For new items, we might need to handle this differently if API requires ID 
+                // But user says categeryId and productId are query params.
+                // If they are new, they don't have IDs yet. 
+                // Usually we upload after creation or use a temporary container.
+                // However, the user request shows params: categoryId and productId.
+                if (level === 2 && currentParent) params.categoryId = currentParent.id;
+                else if (level === 1 && currentParent) params.categoryId = currentParent.id;
+            }
+
+            await adminService.uploadCatalogImage(file, params);
+
+            // Refresh to show the new image
+            if (isEditing) {
+                const freshImageData = level === 2
+                    ? await adminService.fetchProductImageURL(currentItem.id)
+                    : await adminService.fetchCategoryImageURL(currentItem.id);
+                setCurrentItem({ ...currentItem, imageData: freshImageData });
+            }
+            fetchData();
+            alert("Image uploaded successfully");
         } catch (error) {
+            console.error(error);
             alert("Upload failed");
         } finally {
             setIsUploading(false);
@@ -127,7 +152,6 @@ const CatalogUpload: React.FC = () => {
     const openCreateModal = () => {
         setIsEditing(false);
         setCurrentItem(null);
-        setImagePreview(null);
 
         if (level < 2) {
             setModalType('category');
@@ -152,15 +176,14 @@ const CatalogUpload: React.FC = () => {
     const openEditModal = (item: any) => {
         setIsEditing(true);
         setCurrentItem(item);
-        setImagePreview(item.url || null);
 
         if (level < 2) {
             setModalType('category');
-            setFormData({ name: item.name, description: item.description || '', imageId: item.imageId || 0 });
+            setFormData({ name: item.name, description: item.description || '' });
         } else if (level === 2) {
             setModalType('product');
             setFormData({
-                name: item.name, description: item.description || '', imageId: item.imageId || 0,
+                name: item.name, description: item.description || '',
                 productType: item.productType || '', gstPercentage: item.gstPercentage || 0,
                 makingPercentage: item.makingPercentage || 0,
                 status: item.status || 'ACTIVE'
@@ -231,13 +254,16 @@ const CatalogUpload: React.FC = () => {
         if (level < 3) {
             common.push({
                 header: 'Image',
-                key: 'url',
+                key: 'imageData',
                 width: '80px',
-                render: (url: string) => (
-                    <div className="w-10 h-10 rounded bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
-                        {url ? <img src={url} className="w-full h-full object-cover" alt="" /> : <ImageIcon size={14} className="text-slate-300" />}
-                    </div>
-                )
+                render: (imageData: any) => {
+                    const url = imageData ? (imageData.frontViewurl || imageData.backViewUrl || imageData.leftViewUrl || imageData.rightViewUrl || imageData.topViewUrl || imageData.bottomViewUrl) : null;
+                    return (
+                        <div className="w-10 h-10 rounded bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
+                            {url ? <img src={url} className="w-full h-full object-cover" alt="" /> : <ImageIcon size={14} className="text-slate-300" />}
+                        </div>
+                    );
+                }
             });
             common.push({ header: 'Name', key: 'name' });
             common.push({ header: 'Description', key: 'description' });
@@ -473,22 +499,62 @@ const CatalogUpload: React.FC = () => {
                                     </div>
                                 </>
                             )}
-                            <div className="space-y-1">
-                                <label className="text-[11px] font-semibold text-slate-500 uppercase">Image</label>
-                                <div
-                                    className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer bg-slate-50/50 hover:bg-slate-100/50 ${imagePreview ? 'border-emerald-200' : 'border-slate-200'}`}
-                                    onClick={() => document.getElementById('file-up')?.click()}
-                                >
-                                    {imagePreview ? (
-                                        <img src={imagePreview} className="w-24 h-24 object-cover rounded-md" alt="" />
-                                    ) : (
-                                        <div className="flex flex-col items-center">
-                                            <UploadCloud size={20} className="text-slate-400 mb-1" />
-                                            <span className="text-xs text-slate-400">{isUploading ? 'Uploading...' : 'Upload Image'}</span>
-                                        </div>
-                                    )}
+                            <div className="space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-[11px] font-semibold text-slate-500 uppercase">Image View Type</label>
+                                    <Select
+                                        options={[
+                                            { label: 'Front View', value: 'FRONT' },
+                                            { label: 'Back View', value: 'BACK' },
+                                            { label: 'Left View', value: 'LEFT' },
+                                            { label: 'Right View', value: 'RIGHT' },
+                                            { label: 'Top View', value: 'TOP' },
+                                            { label: 'Bottom View', value: 'BOTTOM' },
+                                        ]}
+                                        value={selectedViewType}
+                                        onChange={val => setSelectedViewType(val as string)}
+                                    />
                                 </div>
-                                <input id="file-up" type="file" className="hidden" onChange={handleImageUpload} accept="image/*" />
+                                <div className="space-y-1">
+                                    <label className="text-[11px] font-semibold text-slate-500 uppercase">Upload {selectedViewType.toLowerCase().replace('_', ' ')}</label>
+                                    <div
+                                        className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer bg-slate-50/50 hover:bg-slate-100/50 border-slate-200`}
+                                        onClick={() => document.getElementById('file-up')?.click()}
+                                    >
+                                        <div className="flex flex-col items-center">
+                                            <UploadCloud size={20} className="text-emerald-500 mb-1" />
+                                            <span className="text-xs text-slate-500 font-medium">{isUploading ? 'Uploading...' : 'Click to upload image'}</span>
+                                        </div>
+                                    </div>
+                                    <input id="file-up" type="file" className="hidden" onChange={handleImageUpload} accept="image/*" />
+                                </div>
+
+                                {isEditing && currentItem?.imageData && (
+                                    <div className="space-y-2 pt-2">
+                                        <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Product Gallery</label>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {[
+                                                { label: 'Front', key: 'frontViewurl' },
+                                                { label: 'Back', key: 'backViewUrl' },
+                                                { label: 'Left', key: 'leftViewUrl' },
+                                                { label: 'Right', key: 'rightViewUrl' },
+                                                { label: 'Top', key: 'topViewUrl' },
+                                                { label: 'Bottom', key: 'bottomViewUrl' }
+                                            ].map(view => {
+                                                const url = currentItem.imageData[view.key];
+                                                if (!url) return null;
+                                                return (
+                                                    <div key={view.key} className="group relative aspect-square rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
+                                                        <img src={url} alt={view.label} className="w-full h-full object-cover" />
+                                                        <div className="absolute inset-x-0 bottom-0 bg-black/60 py-1 px-1.5 backdrop-blur-sm">
+                                                            <p className="text-[9px] text-white font-bold uppercase text-center">{view.label}</p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </>
                     ) : (

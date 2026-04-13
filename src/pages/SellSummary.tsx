@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import TermsModal from '../components/TermsModal';
 import { apiCall } from '../utils/tokenManager';
 import { getCurrentUser } from '../utils/userUtils';
+import { API_BASE_URL } from '../Config';
 
 interface BankDetails {
   accountNumber: string;
@@ -46,8 +47,8 @@ const SellSummary = () => {
   const finalGrams = grams;
   const finalAmount = amount; // This is already the final amount after GST deduction from API
 
-  const BANK_DETAILS_API = 'http://65.0.147.157:9900/api/auth/getBankDetailsByuserId';
-  const SELL_INITIATE_API = 'http://65.0.147.157:9900/api/digital-gold/sell/initiate';
+  const BANK_DETAILS_API = `${API_BASE_URL}/oxygold-api/auth/getBankDetailsByuserId`;
+  const SELL_INITIATE_API = `${API_BASE_URL}/oxygold-api/digital-gold/sell/initiate`;
 
   useEffect(() => {
     if (timeLeft <= 0) return;

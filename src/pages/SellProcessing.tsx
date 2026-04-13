@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getCurrentUser } from '../utils/userUtils';
 import { apiCall } from '../utils/tokenManager';
+import { API_BASE_URL } from '../Config';
 
 const SellProcessing = () => {
   const navigate = useNavigate();
@@ -20,8 +21,8 @@ const SellProcessing = () => {
   
   const { transactionId, beneficiaryId, status, amount, grams, sellRate, bankDetails, message, userId } = sellData;
   
-  const SELL_EXECUTE_API = 'http://65.0.147.157:9900/api/digital-gold/sell/execute';
-  const PAYOUT_STATUS_API = 'http://65.0.147.157:9900/api/digital-gold/payout/status';
+  const SELL_EXECUTE_API = `${API_BASE_URL}/oxygold-api/digital-gold/sell/execute`;
+  const PAYOUT_STATUS_API = `${API_BASE_URL}/oxygold-api/digital-gold/payout/status`;
   
   useEffect(() => {
     // Verify user authentication

@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
     ArrowLeft,
-    ArrowUpRight,
     Briefcase,
     CheckCircle2,
     History,
@@ -12,9 +11,16 @@ import {
     MapPinned,
     Pencil,
     Plus,
+    Minus,
+    Package,
+    ChevronDown,
+    ChevronUp,
+    CreditCard,
+    FileText,
+    ShoppingBag,
     User,
     Wallet,
-    X,
+    Settings,
 } from "lucide-react";
 import {
     addAddress,
@@ -25,8 +31,18 @@ import {
     logout,
     saveUserProfile,
     updateAddress,
+    fetchUserOrders,
+    getInvoicePreviewUrl,
 } from "./physicalGoldService";
-import PhysicalGoldHeader from "./PhysicalGoldHeader";
+import { Order } from "./physicalGoldData";
+import PhysicalGoldHeader from "./components/Header";
+
+const DISPLAY_INR = (v: number) =>
+    new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+    }).format(v);
 
 /* ────────────────────────────────────────────────────────── */
 /*  Types                                                     */
@@ -43,11 +59,10 @@ interface Address {
     latitude: string;
 }
 
-type Tab = "info" | "address" | "wallet";
+type Tab = "info" | "address" | "wallet" | "orders";
 
 interface PageState {
     activeTab: Tab;
-    // Profile
     isEditingProfile: boolean;
     isSavingProfile: boolean;
     isProfileLoading: boolean;
@@ -55,11 +70,10 @@ interface PageState {
         firstName: string;
         lastName: string;
         email: string;
-        alterMobileNumber: string;
+        alternativeNumber: string;
         whatsappNumber: string;
         mobileNumber: string;
     };
-    // Address
     addresses: Address[];
     isAddressLoading: boolean;
     isAddingAddress: boolean;
@@ -78,47 +92,68 @@ interface PageState {
     addrErrors: Record<string, string>;
     isFetchingLocation: boolean;
     locationError: string;
-    // Wallet
     walletBalance: number;
     walletTransactions: any[];
     isWalletLoading: boolean;
+    orders: Order[];
+    isOrdersLoading: boolean;
+    expandedOrderId: number | null;
 }
 
 /* ────────────────────────────────────────────────────────── */
 /*  Helpers                                                   */
 /* ────────────────────────────────────────────────────────── */
-const formatINR = (v: number) =>
-    new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency: "INR",
-        maximumFractionDigits: 0,
-    }).format(v);
+const formatDate = (dateString: string) => {
+    if (!dateString) return "—";
+    return new Date(dateString).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+};
+
+const getStatusColor = (status: string) => {
+    switch (status?.toUpperCase()) {
+        case "CONFIRMED": return "text-emerald-700 bg-emerald-50";
+        case "PENDING": return "text-amber-700 bg-amber-50";
+        case "CANCELLED": return "text-rose-700 bg-rose-50";
+        default: return "text-zinc-600 bg-zinc-100";
+    }
+};
 
 const GET_USER_DATA = () => {
     try {
         const s = localStorage.getItem("user");
         return s ? JSON.parse(s) : null;
-    } catch {
-        return null;
-    }
+    } catch { return null; }
 };
 
-const ADDRESS_ICONS: Record<Address["type"], React.ElementType> = {
-    Home: MapPin,
-    Work: Briefcase,
-    Other: MapPinned,
-};
+/* ────────────────────────────────────────────────────────── */
+/*  Shared input styles                                       */
+/* ────────────────────────────────────────────────────────── */
+const inputCls =
+    "w-full border border-[#E8E0D5] rounded-lg px-3 py-2 text-[13px] text-[#1A1A1A] bg-white placeholder-[#BEB5AA] outline-none focus:border-[#8B6914] focus:ring-2 focus:ring-[#8B6914]/10 transition";
 
-const fieldCls =
-    "w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-xs text-zinc-900 placeholder-zinc-300 outline-none focus:border-[#2b0a59] focus:ring-1 focus:ring-purple-500/20 transition shadow-sm font-medium";
-const labelCls = "block text-[11px] font-black text-zinc-400 mb-1.5 uppercase tracking-wider";
+const labelCls = "block text-[11px] font-semibold text-[#8A8A8A] mb-1";
+
+/* ────────────────────────────────────────────────────────── */
+/*  InfoRow — used for read-only profile fields               */
+/* ────────────────────────────────────────────────────────── */
+const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+    <div className="flex items-center border-b border-[#F0EBE1] py-3.5 last:border-b-0">
+        <span className="w-36 text-[12px] text-[#8A8A8A] shrink-0">{label}</span>
+        <span className="text-[13px] font-semibold text-[#1A1A1A]">{value || "—"}</span>
+    </div>
+);
 
 /* ────────────────────────────────────────────────────────── */
 /*  ProfilePage                                               */
 /* ────────────────────────────────────────────────────────── */
 const ProfilePage: React.FC = () => {
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const initialTab = (searchParams.get("tab") as Tab) || "info";
 
     const [user, setUser] = useState<any>(GET_USER_DATA());
@@ -132,7 +167,7 @@ const ProfilePage: React.FC = () => {
             firstName: "",
             lastName: "",
             email: "",
-            alterMobileNumber: "",
+            alternativeNumber: "",
             whatsappNumber: "",
             mobileNumber: "",
         },
@@ -141,14 +176,8 @@ const ProfilePage: React.FC = () => {
         isAddingAddress: false,
         editingAddress: null,
         addrForm: {
-            flatNo: "",
-            landMark: "",
-            address: "",
-            pinCode: "",
-            state: "",
-            type: "Home",
-            latitude: "",
-            longitude: "",
+            flatNo: "", landMark: "", address: "", pinCode: "",
+            state: "", type: "Home", latitude: "", longitude: "",
             typeDropdownOpen: false,
         },
         addrErrors: {},
@@ -157,6 +186,9 @@ const ProfilePage: React.FC = () => {
         walletBalance: 0,
         walletTransactions: [],
         isWalletLoading: false,
+        orders: [],
+        isOrdersLoading: false,
+        expandedOrderId: null,
     });
 
     const patch = useCallback(
@@ -170,16 +202,16 @@ const ProfilePage: React.FC = () => {
         []
     );
 
-    /* ── update tab if query param changes ── */
+    const patchProfile = (partial: Partial<PageState["profileForm"]>) =>
+        setS((prev) => ({ ...prev, profileForm: { ...prev.profileForm, ...partial } }));
+
     useEffect(() => {
         const tab = searchParams.get("tab") as Tab;
         if (tab && tab !== s.activeTab) {
             patch({ activeTab: tab, isAddingAddress: false, isEditingProfile: false });
         }
-    }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [searchParams, patch, s.activeTab]);
 
-
-    /* ── seed profile form from user data ── */
     useEffect(() => {
         if (user) {
             const profile = user.data?.body || user;
@@ -188,16 +220,15 @@ const ProfilePage: React.FC = () => {
                     firstName: profile.firstName || "",
                     lastName: profile.lastName || "",
                     email: profile.email || "",
-                    alterMobileNumber: profile.alterMobileNumber || "",
+                    alternativeNumber: profile.alternativeNumber || "",
                     whatsappNumber: profile.whatsappNumber || "",
-                    mobileNumber:
-                        profile.mobileNumber || profile.phone || profile.phoneNumber || "",
+                    mobileNumber: profile.mobileNumber || profile.phone || profile.phoneNumber || "",
                 },
             });
         }
-    }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [user, patch]);
 
-    /* ── fetch data when tab changes ── */
+    /* ── fetch helpers ── */
     const fetchProfile = useCallback(async () => {
         const userData = GET_USER_DATA();
         const uid = userData?.data?.userId || userData?.userId;
@@ -212,15 +243,12 @@ const ProfilePage: React.FC = () => {
                         firstName: profile.firstName || "",
                         lastName: profile.lastName || "",
                         email: profile.email || "",
-                        alterMobileNumber: profile.alterMobileNumber || "",
+                        alternativeNumber: profile.alternativeNumber || "",
                         whatsappNumber: profile.whatsappNumber || "",
                         mobileNumber: profile.mobileNumber || "",
                     },
                 });
-                const freshUser = {
-                    ...userData,
-                    data: { ...userData.data, body: profile },
-                };
+                const freshUser = { ...userData, data: { ...userData.data, body: profile } };
                 localStorage.setItem("user", JSON.stringify(freshUser));
                 setUser(freshUser);
             }
@@ -278,11 +306,27 @@ const ProfilePage: React.FC = () => {
         }
     }, [patch]);
 
+    const loadOrders = useCallback(async () => {
+        const userData = GET_USER_DATA();
+        const uid = userData?.data?.userId;
+        if (!uid) return;
+        patch({ isOrdersLoading: true });
+        try {
+            const data = await fetchUserOrders(uid);
+            patch({ orders: data });
+        } catch (err) {
+            console.error("Failed to fetch orders:", err);
+        } finally {
+            patch({ isOrdersLoading: false });
+        }
+    }, [patch]);
+
     useEffect(() => {
         if (s.activeTab === "info") fetchProfile();
         if (s.activeTab === "address") loadAddresses();
         if (s.activeTab === "wallet") fetchWalletInfo();
-    }, [s.activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+        if (s.activeTab === "orders") loadOrders();
+    }, [s.activeTab, fetchProfile, loadAddresses, fetchWalletInfo, loadOrders]);
 
     /* ── actions ── */
     const handleLogout = async () => {
@@ -292,9 +336,7 @@ const ProfilePage: React.FC = () => {
                 const ud = JSON.parse(stored);
                 if (ud.data?.accessToken) await logout(ud.data.accessToken);
             }
-        } catch (e) {
-            console.error("Logout failed:", e);
-        }
+        } catch (e) { console.error("Logout failed:", e); }
         localStorage.removeItem("user");
         navigate("/login");
     };
@@ -309,7 +351,7 @@ const ProfilePage: React.FC = () => {
             await saveUserProfile({
                 userId: uid,
                 email: profileForm.email,
-                alternativeNumber: profileForm.alterMobileNumber,
+                alternativeNumber: profileForm.alternativeNumber,
                 whatsappNumber: profileForm.whatsappNumber,
                 firstName: profileForm.firstName,
                 lastName: profileForm.lastName,
@@ -319,51 +361,25 @@ const ProfilePage: React.FC = () => {
             profile.firstName = profileForm.firstName;
             profile.lastName = profileForm.lastName;
             profile.email = profileForm.email;
-            profile.alterMobileNumber = profileForm.alterMobileNumber;
+            profile.alternativeNumber = profileForm.alternativeNumber;
             localStorage.setItem("user", JSON.stringify(updatedUser));
             setUser(updatedUser);
             patch({ isEditingProfile: false });
         } catch (err) {
             console.error("Failed to save profile:", err);
-            alert("Failed to save profile. Please try again.");
         } finally {
             patch({ isSavingProfile: false });
         }
     };
 
-    const fetchCurrentLocation = () => {
-        if (!navigator.geolocation) {
-            patchAddrForm({});
-            patch({ locationError: "Geolocation not supported by your browser." });
-            return;
-        }
-        patch({ isFetchingLocation: true, locationError: "" });
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                patchAddrForm({
-                    latitude: pos.coords.latitude.toString(),
-                    longitude: pos.coords.longitude.toString(),
-                });
-                patch({ isFetchingLocation: false });
-            },
-            () => {
-                patch({
-                    isFetchingLocation: false,
-                    locationError: "Unable to fetch location. Please allow access.",
-                });
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
-    };
-
     const handleSaveAddr = async () => {
         const { addrForm, editingAddress } = s;
         const errors: Record<string, string> = {};
-        if (!addrForm.flatNo.trim()) errors.flatNo = "Flat / house number is required";
-        if (!addrForm.landMark.trim()) errors.landMark = "Landmark is required";
-        if (!addrForm.address.trim()) errors.address = "Complete address is required";
-        if (!addrForm.pinCode.trim()) errors.pinCode = "PIN code is required";
-        if (!addrForm.state.trim()) errors.state = "State is required";
+        if (!addrForm.flatNo.trim()) errors.flatNo = "Required";
+        if (!addrForm.landMark.trim()) errors.landMark = "Required";
+        if (!addrForm.address.trim()) errors.address = "Required";
+        if (!addrForm.pinCode.trim()) errors.pinCode = "Required";
+        if (!addrForm.state.trim()) errors.state = "Required";
         if (Object.keys(errors).length) { patch({ addrErrors: errors }); return; }
 
         const userData = GET_USER_DATA();
@@ -388,18 +404,11 @@ const ProfilePage: React.FC = () => {
             else await addAddress(payload);
             await loadAddresses();
             patch({
-                isAddingAddress: false,
-                editingAddress: null,
-                addrErrors: {},
-                addrForm: {
-                    flatNo: "", landMark: "", address: "", pinCode: "",
-                    state: "", type: "Home", latitude: "", longitude: "",
-                    typeDropdownOpen: false,
-                },
+                isAddingAddress: false, editingAddress: null, addrErrors: {},
+                addrForm: { flatNo: "", landMark: "", address: "", pinCode: "", state: "", type: "Home", latitude: "", longitude: "", typeDropdownOpen: false },
             });
         } catch (err) {
             console.error("Failed to save address:", err);
-            alert("Failed to save address. Please try again.");
         } finally {
             patch({ isAddressLoading: false });
         }
@@ -408,508 +417,394 @@ const ProfilePage: React.FC = () => {
     const handleEditAddress = (addr: Address) => {
         patch({ editingAddress: addr, isAddingAddress: true, addrErrors: {} });
         patchAddrForm({
-            flatNo: addr.flatNo,
-            landMark: addr.landMark,
-            address: addr.address,
-            pinCode: addr.pinCode,
-            state: addr.state,
-            type: addr.type,
-            latitude: addr.latitude,
-            longitude: addr.longitude,
-            typeDropdownOpen: false,
+            flatNo: addr.flatNo, landMark: addr.landMark, address: addr.address,
+            pinCode: addr.pinCode, state: addr.state, type: addr.type,
+            latitude: addr.latitude, longitude: addr.longitude, typeDropdownOpen: false,
         });
     };
 
     const cancelAddrForm = () =>
         patch({
-            isAddingAddress: false,
-            editingAddress: null,
-            addrErrors: {},
-            addrForm: {
-                flatNo: "", landMark: "", address: "", pinCode: "",
-                state: "", type: "Home", latitude: "", longitude: "",
-                typeDropdownOpen: false,
-            },
+            isAddingAddress: false, editingAddress: null, addrErrors: {},
+            addrForm: { flatNo: "", landMark: "", address: "", pinCode: "", state: "", type: "Home", latitude: "", longitude: "", typeDropdownOpen: false },
         });
 
-    const patchProfile = (partial: Partial<PageState["profileForm"]>) =>
-        setS((prev) => ({ ...prev, profileForm: { ...prev.profileForm, ...partial } }));
+    const toggleOrderExpand = (orderId: number) => {
+        patch({ expandedOrderId: s.expandedOrderId === orderId ? null : orderId });
+    };
+
+    const displayName = user
+        ? `${user.data?.body?.firstName || user.firstName || ""} ${user.data?.body?.lastName || user.lastName || ""}`.trim() || "My Account"
+        : "My Account";
+
+    const displayEmail = user?.data?.body?.email || user?.email || "";
+    const displayPhone = user?.data?.body?.mobileNumber || user?.phone || "";
 
     const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
         { id: "info", label: "Profile", icon: User },
+        { id: "orders", label: "My Orders", icon: Package },
         { id: "address", label: "Addresses", icon: MapPin },
         { id: "wallet", label: "Wallet", icon: Wallet },
     ];
 
-    const displayName = user
-        ? `${user.data?.body?.firstName || user.firstName || ""}${user.data?.body?.lastName || user.lastName ? ` ${user.data?.body?.lastName || user.lastName}` : ""}`.trim() || "My Account"
-        : "My Account";
-
     return (
-        <div className="min-h-screen bg-[#FBF8F3] text-zinc-900">
-            <PhysicalGoldHeader
-                cartItemCount={0}
-            />
+        <div className="min-h-screen bg-[#F5F2EE] text-[#1A1A1A]">
+            <PhysicalGoldHeader />
 
-            <main className="pt-20 sm:pt-24 pb-12">
-                <div className="mx-auto max-w-4xl px-3 sm:px-5 lg:px-8">
+            <main className="pt-40 pb-16 max-w-5xl mx-auto px-4 sm:px-6">
 
-                    {/* Back navigation */}
-                    <button
-                        type="button"
-                        onClick={() => navigate("/physical-gold")}
-                        className="cursor-pointer mb-5 inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-[#2b0a59] group font-semibold"
-                    >
-                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 bg-white transition group-hover:bg-zinc-50 shadow-sm">
-                            <ArrowLeft className="h-3.5 w-3.5" />
-                        </span>
-                        Back to Store
-                    </button>
+                {/* Back */}
+                <button
+                    type="button"
+                    onClick={() => navigate("/physical-gold")}
+                    className="mb-2 mt-2 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#8A8A8A] hover:text-[#8B6914] transition"
+                >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back to Shopping
+                </button>
 
-                    {/* Page header */}
-                    <div className="flex items-center gap-4 mb-6">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#2b0a59] shadow-xl shadow-purple-900/10 flex-shrink-0">
-                            <User className="h-6 w-6 text-white" />
+                {/* Profile Header Card */}
+                <div className="bg-white border border-[#E8E0D5] rounded-xl px-6 py-4 flex items-center justify-between mb-1 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="h-11 w-11 rounded-full bg-[#F5EDD6] flex items-center justify-center text-[#8B6914]">
+                            <User className="h-5 w-5" strokeWidth={1.8} />
                         </div>
                         <div>
-                            <h1 className="text-xl font-black text-zinc-900 uppercase tracking-tight">{displayName}</h1>
-                            <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">
-                                {user?.data?.body?.mobileNumber || user?.data?.body?.email || "Account Management"}
+                            <h1 className="text-[15px] font-semibold text-[#1A1A1A] leading-tight">{displayName}</h1>
+                            <p className="text-[11px] text-[#8A8A8A] mt-0.5">
+                                {displayEmail}{displayPhone ? ` · ${displayPhone}` : ""}
                             </p>
                         </div>
                     </div>
+                    <button
+                        onClick={() => {
+                            setSearchParams({ tab: "info" });
+                            patch({ activeTab: "info", isEditingProfile: true });
+                        }}
+                        className="inline-flex items-center gap-1.5 border border-[#E8E0D5] rounded-lg px-3.5 py-1.5 text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition"
+                    >
+                        <Pencil className="h-3 w-3" />
+                        Edit Profile
+                    </button>
+                </div>
 
-                    {/* Tab bar */}
-                    <div className="flex gap-1.5 mb-6 rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-sm">
-                        {tabs.map(({ id, label, icon: Icon }) => (
-                            <button
-                                key={id}
-                                type="button"
-                                onClick={() => patch({ activeTab: id, isAddingAddress: false, isEditingProfile: false })}
-                                className={[
-                                    "cursor-pointer flex-1 inline-flex items-center justify-center gap-2 rounded-xl py-3 text-[11px] font-black uppercase tracking-widest transition-all",
-                                    s.activeTab === id
-                                        ? "bg-[#2b0a59] text-white shadow-lg shadow-purple-900/10"
-                                        : "text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50",
-                                ].join(" ")}
-                            >
-                                <Icon className="h-3.5 w-3.5" />
-                                {label}
-                            </button>
-                        ))}
+                {/* Tabs */}
+                <div className="bg-white border border-[#E8E0D5] border-t-0 rounded-b-xl shadow-sm mb-6">
+                    <div className="flex border-b border-[#F0EBE1]">
+                        {tabs.map(({ id, label, icon: Icon }) => {
+                            const isActive = s.activeTab === id;
+                            return (
+                                <button
+                                    key={id}
+                                    onClick={() => {
+                                        setSearchParams({ tab: id });
+                                        patch({ activeTab: id, isAddingAddress: false, isEditingProfile: false });
+                                    }}
+                                    className={`flex items-center gap-1.5 px-5 py-3 text-[14px] font-medium border-b-2 transition-all ${isActive ? "border-[#8B6914] text-[#8B6914]" : "border-transparent text-[#8A8A8A] hover:text-[#1A1A1A]"}`}
+                                >
+                                    <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.5 : 1.8} />
+                                    {label}
+                                </button>
+                            );
+                        })}
                     </div>
 
-                    {/* ═══════════════════════════
-                        TAB: PROFILE INFO
-                    ═══════════════════════════ */}
+                    {/* ── PROFILE TAB ── */}
                     {s.activeTab === "info" && (
-                        <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100 bg-zinc-50/50">
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                                    Personal Details
-                                </span>
-                                {!s.isEditingProfile && !s.isProfileLoading && (
-                                    <button
-                                        onClick={() => patch({ isEditingProfile: true })}
-                                        className="cursor-pointer inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-600 transition hover:bg-zinc-50 shadow-sm"
-                                    >
-                                        <Pencil className="h-3 w-3" /> Edit Profile
-                                    </button>
-                                )}
-                            </div>
-
+                        <div className="p-6">
                             {s.isProfileLoading ? (
-                                <div className="flex justify-center py-20">
-                                    <Loader2 className="h-8 w-8 animate-spin text-zinc-200" />
+                                <div className="flex items-center justify-center py-16 gap-2 text-[#8A8A8A]">
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    <span className="text-[12px]">Loading...</span>
                                 </div>
-                            ) : (
-                                <div className="p-5 sm:p-6 space-y-5">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            ) : s.isEditingProfile ? (
+                                <div className="space-y-5 max-w-2xl">
+                                    <h3 className="text-[18px] font-semibold text-[#1A1A1A] mb-4">Personal Information</h3>
+                                    <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className={labelCls}>First Name <span className="text-rose-500">*</span></label>
-                                            <input
-                                                readOnly={!s.isEditingProfile}
-                                                value={s.profileForm.firstName}
-                                                onChange={(e) => patchProfile({ firstName: e.target.value })}
-                                                placeholder="e.g. Rahul"
-                                                className={`${fieldCls} ${!s.isEditingProfile ? "bg-zinc-50/50 border-zinc-100 text-zinc-500 cursor-default shadow-none" : ""}`}
-                                            />
+                                            <label className={labelCls}>First Name</label>
+                                            <input value={s.profileForm.firstName} onChange={(e) => patchProfile({ firstName: e.target.value })} className={inputCls} />
                                         </div>
                                         <div>
                                             <label className={labelCls}>Last Name</label>
-                                            <input
-                                                readOnly={!s.isEditingProfile}
-                                                value={s.profileForm.lastName}
-                                                onChange={(e) => patchProfile({ lastName: e.target.value })}
-                                                placeholder="e.g. Sharma"
-                                                className={`${fieldCls} ${!s.isEditingProfile ? "bg-zinc-50/50 border-zinc-100 text-zinc-500 cursor-default shadow-none" : ""}`}
-                                            />
+                                            <input value={s.profileForm.lastName} onChange={(e) => patchProfile({ lastName: e.target.value })} className={inputCls} />
                                         </div>
                                     </div>
-
                                     <div>
-                                        <label className={labelCls}>Email Address</label>
-                                        <input
-                                            readOnly={!s.isEditingProfile}
-                                            value={s.profileForm.email}
-                                            onChange={(e) => patchProfile({ email: e.target.value })}
-                                            placeholder="rahul@example.com"
-                                            className={`${fieldCls} ${!s.isEditingProfile ? "bg-zinc-50/50 border-zinc-100 text-zinc-500 cursor-default shadow-none" : ""}`}
-                                        />
+                                        <label className={labelCls}>Email</label>
+                                        <input value={s.profileForm.email} onChange={(e) => patchProfile({ email: e.target.value })} className={inputCls} />
                                     </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className={labelCls}>Primary Mobile <span className="text-zinc-300 font-bold">(Fixed)</span></label>
-                                            <input
-                                                readOnly
-                                                value={s.profileForm.mobileNumber}
-                                                className={`${fieldCls} bg-zinc-50/50 border-zinc-100 text-zinc-400 cursor-not-allowed shadow-none font-bold`}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className={labelCls}>Alternate Mobile</label>
-                                            <input
-                                                readOnly={!s.isEditingProfile}
-                                                value={s.profileForm.alterMobileNumber}
-                                                onChange={(e) => patchProfile({ alterMobileNumber: e.target.value })}
-                                                placeholder="Optional secondary number"
-                                                className={`${fieldCls} ${!s.isEditingProfile ? "bg-zinc-50/50 border-zinc-100 text-zinc-500 cursor-default shadow-none" : ""}`}
-                                            />
-                                        </div>
+                                    <div>
+                                        <label className={labelCls}>WhatsApp Number</label>
+                                        <input value={s.profileForm.whatsappNumber} onChange={(e) => patchProfile({ whatsappNumber: e.target.value })} className={inputCls} />
                                     </div>
-
-                                    {/* Actions */}
-                                    <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
-                                        <button
-                                            onClick={handleLogout}
-                                            className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-rose-100 bg-rose-50/30 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-rose-500 transition hover:bg-rose-50 hover:text-rose-600"
-                                        >
-                                            <LogOut className="h-3.5 w-3.5" /> Logout Session
+                                    <div>
+                                        <label className={labelCls}>Alternative Number</label>
+                                        <input value={s.profileForm.alternativeNumber} onChange={(e) => patchProfile({ alternativeNumber: e.target.value })} className={inputCls} />
+                                    </div>
+                                    <div className="flex gap-3 pt-2">
+                                        <button onClick={() => patch({ isEditingProfile: false })} className="px-5 py-2 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition">Cancel</button>
+                                        <button onClick={handleSaveProfile} disabled={s.isSavingProfile} className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-60">
+                                            {s.isSavingProfile ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                            Save Changes
                                         </button>
-
-                                        {s.isEditingProfile ? (
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => patch({ isEditingProfile: false })}
-                                                    className="cursor-pointer rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-[10px] font-black uppercase tracking-wider text-zinc-500 transition hover:bg-zinc-50 shadow-sm"
-                                                >
-                                                    Discard
-                                                </button>
-                                                <button
-                                                    onClick={handleSaveProfile}
-                                                    disabled={s.isSavingProfile}
-                                                    className="cursor-pointer inline-flex items-center gap-2 rounded-full bg-[#2b0a59] px-6 py-2.5 text-[10px] font-black uppercase tracking-wider text-white shadow-xl shadow-purple-900/10 transition hover:bg-[#150b33] disabled:opacity-60 disabled:cursor-not-allowed"
-                                                >
-                                                    {s.isSavingProfile
-                                                        ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</>
-                                                        : <><CheckCircle2 className="h-3.5 w-3.5" /> Save Changes</>}
-                                                </button>
-                                            </div>
-                                        ) : null}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="max-w-2xl">
+                                    <h3 className="text-[18px] font-semibold text-[#1A1A1A] mb-4">Personal Information</h3>
+                                    <div className="divide-y divide-[#F0EBE1]">
+                                        <InfoRow label="Full Name" value={`${s.profileForm.firstName} ${s.profileForm.lastName}`.trim()} />
+                                        <InfoRow label="Email" value={s.profileForm.email} />
+                                        <InfoRow label="Phone" value={s.profileForm.mobileNumber} />
+                                        <InfoRow label="WhatsApp" value={s.profileForm.whatsappNumber} />
+                                        <InfoRow label="Alt. Number" value={s.profileForm.alternativeNumber} />
+                                    </div>
+                                    <div className="mt-6 flex items-center justify-between border-t border-[#F0EBE1] pt-4">
+                                        <button onClick={() => patch({ isEditingProfile: true })} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition">
+                                            <Pencil className="h-3 w-3" /> Edit Information
+                                        </button>
+                                        <button onClick={handleLogout} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-rose-500 hover:text-rose-600 transition">
+                                            <LogOut className="h-3.5 w-3.5" /> Sign Out
+                                        </button>
                                     </div>
                                 </div>
                             )}
                         </div>
                     )}
 
-                    {/* ═══════════════════════════
-                        TAB: ADDRESSES
-                    ═══════════════════════════ */}
+                    {/* ── ADDRESSES TAB ── */}
                     {s.activeTab === "address" && (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            {/* Header / Add Button */}
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 ml-1">
-                                    Saved Shipping Locations
-                                </h2>
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-5">
+                                <h3 className="text-[18px] font-semibold text-[#1A1A1A]">Saved Addresses</h3>
                                 {!s.isAddingAddress && (
-                                    <button
-                                        onClick={() => {
-                                            patch({ isAddingAddress: true, editingAddress: null, addrErrors: {} });
-                                            patchAddrForm({ flatNo: "", landMark: "", address: "", pinCode: "", state: "", type: "Home", latitude: "", longitude: "", typeDropdownOpen: false });
-                                        }}
-                                        className="cursor-pointer inline-flex items-center gap-1.5 rounded-full bg-[#2b0a59] px-4 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-xl shadow-purple-900/10 transition hover:bg-[#150b33]"
-                                    >
-                                        <Plus className="h-3 w-3" /> Add New Address
+                                    <button onClick={() => patch({ isAddingAddress: true, editingAddress: null, addrErrors: {} })} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8B6914] text-white text-[11px] font-medium hover:bg-[#7A5C10] transition">
+                                        <Plus className="h-3 w-3" strokeWidth={2.5} /> Add Address
                                     </button>
                                 )}
                             </div>
 
-                            {/* Add address form */}
                             {s.isAddingAddress && (
-                                <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden animate-in slide-in-from-right-4 duration-300">
-                                    <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100 bg-zinc-50/50">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                                            {s.editingAddress ? "Update Location" : "New Shipping Location"}
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={cancelAddrForm}
-                                            className="cursor-pointer flex h-7 w-7 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-400 transition hover:bg-zinc-50 hover:text-zinc-600 shadow-sm"
-                                        >
-                                            <X className="h-3.5 w-3.5" />
+                                <div className="border border-[#E8E0D5] rounded-xl p-5 mb-5 space-y-4 bg-[#FAFAF8]">
+                                    <h4 className="text-[12px] font-semibold text-[#1A1A1A]">{s.editingAddress ? "Edit Address" : "New Address"}</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className={labelCls}>Flat No {s.addrErrors.flatNo && <span className="text-rose-500 ml-1">{s.addrErrors.flatNo}</span>}</label>
+                                            <input value={s.addrForm.flatNo} onChange={(e) => patchAddrForm({ flatNo: e.target.value })} className={`${inputCls} ${s.addrErrors.flatNo ? "border-rose-400" : ""}`} />
+                                        </div>
+                                        <div>
+                                            <label className={labelCls}>Landmark {s.addrErrors.landMark && <span className="text-rose-500 ml-1">{s.addrErrors.landMark}</span>}</label>
+                                            <input value={s.addrForm.landMark} onChange={(e) => patchAddrForm({ landMark: e.target.value })} className={`${inputCls} ${s.addrErrors.landMark ? "border-rose-400" : ""}`} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className={labelCls}>Complete Address {s.addrErrors.address && <span className="text-rose-500 ml-1">{s.addrErrors.address}</span>}</label>
+                                        <textarea value={s.addrForm.address} onChange={(e) => patchAddrForm({ address: e.target.value })} className={`${inputCls} resize-none ${s.addrErrors.address ? "border-rose-400" : ""}`} rows={2} />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className={labelCls}>Pin Code {s.addrErrors.pinCode && <span className="text-rose-500 ml-1">{s.addrErrors.pinCode}</span>}</label>
+                                            <input value={s.addrForm.pinCode} onChange={(e) => patchAddrForm({ pinCode: e.target.value })} className={`${inputCls} ${s.addrErrors.pinCode ? "border-rose-400" : ""}`} />
+                                        </div>
+                                        <div>
+                                            <label className={labelCls}>State {s.addrErrors.state && <span className="text-rose-500 ml-1">{s.addrErrors.state}</span>}</label>
+                                            <input value={s.addrForm.state} onChange={(e) => patchAddrForm({ state: e.target.value })} className={`${inputCls} ${s.addrErrors.state ? "border-rose-400" : ""}`} />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3 pt-1">
+                                        <button onClick={cancelAddrForm} className="px-4 py-2 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition">Cancel</button>
+                                        <button onClick={handleSaveAddr} disabled={s.isAddressLoading} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-60">
+                                            {s.isAddressLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                                            {s.editingAddress ? "Update" : "Save Address"}
                                         </button>
                                     </div>
-                                    <div className="p-5 sm:p-6 space-y-4">
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className={labelCls}>Flat / House No. <span className="text-rose-500">*</span></label>
-                                                <input value={s.addrForm.flatNo} onChange={(e) => patchAddrForm({ flatNo: e.target.value })} className={fieldCls} placeholder="e.g. 4B" />
-                                                {s.addrErrors.flatNo && <p className="mt-1.5 text-[10px] font-bold text-rose-500 uppercase tracking-tight">{s.addrErrors.flatNo}</p>}
-                                            </div>
-                                            <div>
-                                                <label className={labelCls}>Landmark</label>
-                                                <input value={s.addrForm.landMark} onChange={(e) => patchAddrForm({ landMark: e.target.value })} className={fieldCls} placeholder="Nearby landmark" />
-                                                {s.addrErrors.landMark && <p className="mt-1.5 text-[10px] font-bold text-rose-500 uppercase tracking-tight">{s.addrErrors.landMark}</p>}
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className={labelCls}>Complete Address <span className="text-rose-500">*</span></label>
-                                            <textarea rows={2} value={s.addrForm.address} onChange={(e) => patchAddrForm({ address: e.target.value })} className={`${fieldCls} resize-none min-h-[80px]`} placeholder="Street, area, city" />
-                                            {s.addrErrors.address && <p className="mt-1.5 text-[10px] font-bold text-rose-500 uppercase tracking-tight">{s.addrErrors.address}</p>}
-                                        </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className={labelCls}>State <span className="text-rose-500">*</span></label>
-                                                <input value={s.addrForm.state} onChange={(e) => patchAddrForm({ state: e.target.value })} className={fieldCls} placeholder="e.g. Telangana" />
-                                                {s.addrErrors.state && <p className="mt-1.5 text-[10px] font-bold text-rose-500 uppercase tracking-tight">{s.addrErrors.state}</p>}
-                                            </div>
-                                            <div>
-                                                <label className={labelCls}>PIN Code <span className="text-rose-500">*</span></label>
-                                                <input value={s.addrForm.pinCode} onChange={(e) => patchAddrForm({ pinCode: e.target.value })} maxLength={6} className={fieldCls} placeholder="6-digit PIN" />
-                                                {s.addrErrors.pinCode && <p className="mt-1.5 text-[10px] font-bold text-rose-500 uppercase tracking-tight">{s.addrErrors.pinCode}</p>}
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className={labelCls}>Address Type</label>
-                                            <div className="flex gap-2">
-                                                {(["Home", "Work", "Other"] as const).map((t) => (
-                                                    <button
-                                                        key={t}
-                                                        type="button"
-                                                        onClick={() => patchAddrForm({ type: t })}
-                                                        className={[
-                                                            "cursor-pointer flex-1 rounded-xl border py-2.5 text-[10px] font-black uppercase tracking-widest transition-all",
-                                                            s.addrForm.type === t
-                                                                ? "border-[#2b0a59] bg-purple-50/30 text-[#2b0a59]"
-                                                                : "border-zinc-100 bg-zinc-50/50 text-zinc-400 hover:border-zinc-200",
-                                                        ].join(" ")}
-                                                    >
-                                                        {t}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Location */}
-                                        <div>
-                                            <label className={labelCls}>Location <span className="text-zinc-300 font-bold">(Optional)</span></label>
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={fetchCurrentLocation}
-                                                    disabled={s.isFetchingLocation}
-                                                    className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[#2b0a59] shadow-sm transition hover:bg-zinc-50 disabled:opacity-50"
-                                                >
-                                                    {s.isFetchingLocation
-                                                        ? <><Loader2 className="h-3 w-3 animate-spin" /> Fetching…</>
-                                                        : <><MapPin className="h-3 w-3" /> Use Current Location</>}
-                                                </button>
-                                                {s.addrForm.latitude && s.addrForm.longitude && (
-                                                    <span className="text-[10px] font-black uppercase tracking-tighter text-emerald-600">
-                                                        ✓ GPS Linked
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {s.locationError && <p className="mt-1.5 text-[10px] font-bold text-rose-500 uppercase tracking-tight">{s.locationError}</p>}
-                                        </div>
-
-                                        <div className="flex gap-3 pt-4 border-t border-zinc-100">
-                                            <button
-                                                type="button"
-                                                onClick={cancelAddrForm}
-                                                className="cursor-pointer flex-1 rounded-full border border-zinc-200 bg-white py-3 text-[10px] font-black uppercase tracking-wider text-zinc-500 transition hover:bg-zinc-50 shadow-sm"
-                                            >
-                                                Discard
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={handleSaveAddr}
-                                                disabled={s.isAddressLoading}
-                                                className="cursor-pointer flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[#2b0a59] py-3 text-[10px] font-black uppercase tracking-wider text-white shadow-xl shadow-purple-900/10 transition hover:bg-[#150b33] disabled:opacity-60 disabled:cursor-not-allowed"
-                                            >
-                                                {s.isAddressLoading
-                                                    ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</>
-                                                    : <><CheckCircle2 className="h-3.5 w-3.5" /> {s.editingAddress ? "Update Address" : "Confirm Address"}</>}
-                                            </button>
-                                        </div>
-                                    </div>
                                 </div>
                             )}
 
-                            {/* Address List */}
-                            {!s.isAddingAddress && (
-                                <div className="grid grid-cols-1 gap-3">
-                                    {s.isAddressLoading && s.addresses.length === 0 ? (
-                                        <div className="flex justify-center py-20 bg-white rounded-2xl border border-zinc-200 shadow-sm">
-                                            <Loader2 className="h-8 w-8 animate-spin text-zinc-200" />
+                            {s.isAddressLoading && !s.isAddingAddress ? (
+                                <div className="flex items-center justify-center py-12 gap-2 text-[#8A8A8A]">
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    <span className="text-[12px]">Loading addresses...</span>
+                                </div>
+                            ) : s.addresses.length === 0 && !s.isAddingAddress ? (
+                                <div className="text-center py-16">
+                                    <MapPin className="h-8 w-8 text-[#D1C7BB] mx-auto mb-3" />
+                                    <p className="text-[12px] text-[#8A8A8A]">No addresses saved yet</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {s.addresses.map((addr) => (
+                                        <div key={addr.id} className="flex items-start gap-4 border border-[#E8E0D5] rounded-xl px-5 py-4 bg-white hover:border-[#C9B87A] transition">
+                                            <div className="h-8 w-8 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
+                                                <MapPin className="h-4 w-4" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[13px] font-semibold text-[#1A1A1A] truncate">{addr.address}</p>
+                                                <p className="text-[11px] text-[#8A8A8A] mt-0.5">{[addr.flatNo, addr.landMark, addr.state, addr.pinCode].filter(Boolean).join(" · ")}</p>
+                                            </div>
+                                            <button onClick={() => handleEditAddress(addr)} className="h-7 w-7 flex items-center justify-center rounded-lg border border-[#E8E0D5] text-[#8A8A8A] hover:bg-[#F5EDD6] hover:text-[#8B6914] hover:border-[#C9B87A] transition shrink-0">
+                                                <Pencil className="h-3 w-3" />
+                                            </button>
                                         </div>
-                                    ) : s.addresses.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/50">
-                                            <MapPin className="mb-3 h-10 w-10 text-zinc-200" />
-                                            <p className="text-sm font-bold text-zinc-400 uppercase tracking-tight">No addresses found</p>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ── WALLET TAB ── */}
+                    {s.activeTab === "wallet" && (
+                        <div className="p-6">
+                            {s.isWalletLoading ? (
+                                <div className="flex items-center justify-center py-16 gap-2 text-[#8A8A8A]">
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    <span className="text-[12px]">Loading wallet...</span>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Balance Card */}
+                                    <div className="rounded-xl bg-[#1A1200] text-white px-6 py-5 mb-5 flex items-center justify-between shadow-md">
+                                        <div>
+                                            <p className="text-[10px] font-medium text-[#8A7A50] uppercase tracking-widest mb-1">Wallet Balance</p>
+                                            <p className="text-[26px] font-semibold tracking-tight">{DISPLAY_INR(s.walletBalance)}</p>
+                                        </div>
+                                        <div className="h-12 w-12 rounded-full bg-[#8B6914]/20 flex items-center justify-center">
+                                            <Wallet className="h-5 w-5 text-[#C9A84C]" />
+                                        </div>
+                                    </div>
+
+                                    {/* Transactions */}
+                                    <h4 className="text-[18px] font-semibold text-[#1A1A1A] mb-3">Transaction History</h4>
+                                    {s.walletTransactions.length === 0 ? (
+                                        <div className="text-center py-12">
+                                            <History className="h-8 w-8 text-[#D1C7BB] mx-auto mb-3" />
+                                            <p className="text-[12px] text-[#8A8A8A]">No transactions yet</p>
                                         </div>
                                     ) : (
-                                        s.addresses.map((addr) => {
-                                            const Icon = ADDRESS_ICONS[addr.type] || MapPin;
-                                            return (
-                                                <div
-                                                    key={addr.id}
-                                                    className="group relative flex items-start gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-[#2b0a59]/30 hover:shadow-md"
-                                                >
-                                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-400 group-hover:bg-purple-50 group-hover:text-[#2b0a59] transition-colors">
-                                                        <Icon className="h-6 w-6" />
+                                        <div className="divide-y divide-[#F0EBE1] border border-[#E8E0D5] rounded-xl overflow-hidden">
+                                            {s.walletTransactions.map((tx, i) => (
+                                                <div key={i} className="flex items-center justify-between px-5 py-3.5 bg-white hover:bg-[#FAFAF8] transition">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`h-7 w-7 rounded-full flex items-center justify-center ${tx.type === "CREDIT" ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-500"}`}>
+                                                            {tx.type === "CREDIT" ? <Plus size={12} /> : <Minus size={12} />}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[13px] font-medium text-[#1A1A1A]">{tx.description || "Transaction"}</p>
+                                                            <p className="text-[11px] text-[#8A8A8A]">{formatDate(tx.createdAt)}</p>
+                                                        </div>
+                                                    </div>
+                                                    <span className={`text-[13px] font-semibold ${tx.type === "CREDIT" ? "text-emerald-600" : "text-[#1A1A1A]"}`}>
+                                                        {tx.type === "CREDIT" ? "+" : "−"}{tx.amount?.toLocaleString("en-IN")}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ── ORDERS TAB ── */}
+                    {s.activeTab === "orders" && (
+                        <div className="p-6">
+                            <h3 className="text-[18px] font-semibold text-[#1A1A1A] mb-5">Order History</h3>
+                            {s.isOrdersLoading ? (
+                                <div className="flex items-center justify-center py-16 gap-2 text-[#8A8A8A]">
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    <span className="text-[12px]">Loading orders...</span>
+                                </div>
+                            ) : s.orders.length === 0 ? (
+                                <div className="text-center py-16">
+                                    <ShoppingBag className="h-8 w-8 text-[#D1C7BB] mx-auto mb-3" />
+                                    <p className="text-[13px] font-semibold text-[#1A1A1A] mb-1">No orders yet</p>
+                                    <p className="text-[12px] text-[#8A8A8A] mb-5">Explore our collection and place your first order</p>
+                                    <button onClick={() => navigate("/physical-gold")} className="px-5 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition">Explore Collection</button>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {s.orders.map((order) => {
+                                        const isExp = s.expandedOrderId === order.orderId;
+                                        return (
+                                            <div key={order.orderId} className="border border-[#E8E0D5] rounded-xl overflow-hidden bg-white">
+                                                {/* Order Header */}
+                                                <div className="flex items-center gap-4 px-5 py-4">
+                                                    <div className="h-10 w-10 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0">
+                                                        <Package className="h-5 w-5" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="mb-2 flex items-center gap-2">
-                                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2b0a59]">
-                                                                {addr.type}
-                                                            </span>
-                                                            <div className="h-1 w-1 rounded-full bg-zinc-200" />
-                                                            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-300">
-                                                                {addr.state}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-sm font-bold text-zinc-900 leading-snug">{addr.address}</p>
-                                                        <p className="mt-1 text-xs text-zinc-500 font-medium leading-relaxed">
-                                                            {[addr.landMark, addr.flatNo].filter(Boolean).join(", ")} — {addr.pinCode}
-                                                        </p>
+                                                        <p className="text-[11px] text-[#8A8A8A]">Order #{order.orderNumber}</p>
+                                                        <p className="text-[12px] font-medium text-[#1A1A1A] mt-0.5">{formatDate(order.paymentExpiry)}</p>
                                                     </div>
-                                                    <div className="flex flex-col gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={() => handleEditAddress(addr)}
-                                                            className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-zinc-50 hover:text-zinc-900 border border-transparent hover:border-zinc-200"
-                                                            title="Edit Address"
-                                                        >
-                                                            <Pencil className="h-4 w-4" />
-                                                        </button>
+                                                    <div className="flex items-center gap-3 shrink-0">
+                                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold ${getStatusColor(order.orderStatus)}`}>{order.orderStatus}</span>
+                                                        <span className="text-[14px] font-semibold text-[#1A1A1A]">{DISPLAY_INR(order.totalAmount)}</span>
                                                     </div>
                                                 </div>
-                                            );
-                                        })
-                                    )}
+
+                                                {/* Actions */}
+                                                <div className="flex items-center gap-2 px-5 pb-4 border-t border-[#F0EBE1] pt-3">
+                                                    <button
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            try {
+                                                                const res = await getInvoicePreviewUrl(order.orderNumber);
+                                                                const b = await res.blob();
+                                                                const u = URL.createObjectURL(b);
+                                                                window.open(u, "_blank");
+                                                            } catch (err) { console.error(err); }
+                                                        }}
+                                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition"
+                                                    >
+                                                        <FileText className="h-3 w-3" /> Invoice
+                                                    </button>
+                                                    <button
+                                                        onClick={() => toggleOrderExpand(order.orderId)}
+                                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition ml-auto"
+                                                    >
+                                                        {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                                        {isExp ? "Hide Details" : "View Details"}
+                                                    </button>
+                                                </div>
+
+                                                {/* Expanded Details */}
+                                                {isExp && (
+                                                    <div className="border-t border-[#F0EBE1] bg-[#FAFAF8] px-5 py-4 space-y-3">
+                                                        <p className="text-[11px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-2">Items</p>
+                                                        {order.items?.map((item: any, i: number) => (
+                                                            <div key={i} className="flex items-center justify-between bg-white border border-[#E8E0D5] rounded-lg px-4 py-3">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="h-8 w-8 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914]">
+                                                                        <Package className="h-4 w-4" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-[12px] font-medium text-[#1A1A1A]">Product #{item.productId}</p>
+                                                                        <p className="text-[11px] text-[#8A8A8A]">Qty: {item.quantity}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-[13px] font-semibold text-[#1A1A1A]">{DISPLAY_INR(item.subtotal)}</p>
+                                                            </div>
+                                                        ))}
+                                                        <div className="flex items-center justify-between bg-[#1A1200] text-white rounded-lg px-4 py-3 mt-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <CreditCard className="h-3.5 w-3.5 text-[#C9A84C]" />
+                                                                <span className="text-[11px] font-medium">{order.paymentMode}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block" />
+                                                                <span className="text-[10px] text-[#8A7A50]">Verified</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
                     )}
-
-                    {/* ═══════════════════════════
-                        TAB: WALLET
-                    ═══════════════════════════ */}
-                    {s.activeTab === "wallet" && (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            {/* Balance Card */}
-                            <div className="relative overflow-hidden rounded-[2rem] bg-[#2b0a59] p-8 text-white shadow-2xl shadow-purple-900/20">
-                                <div className="absolute -right-6 -top-6 opacity-10">
-                                    <Wallet size={160} />
-                                </div>
-                                <div className="relative z-10">
-                                    <div className="mb-6 flex items-center gap-2">
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md">
-                                            <Wallet className="h-4 w-4" />
-                                        </div>
-                                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white/50">
-                                            Available Balance
-                                        </span>
-                                    </div>
-                                    <div className="flex items-baseline gap-1">
-                                        <span className="text-4xl font-black tracking-tighter">
-                                            {s.isWalletLoading
-                                                ? "..."
-                                                : formatINR(s.walletBalance)}
-                                        </span>
-                                    </div>
-                                    <div className="mt-8 flex items-center justify-between border-t border-white/10 pt-6">
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                                            OxyGold Secure Wallet
-                                        </p>
-                                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-                                            <CheckCircle2 className="h-3.5 w-3.5" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Transactions Section */}
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between px-1">
-                                    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                                        Recent Activity
-                                    </h2>
-                                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-300">
-                                        <History className="h-3 w-3" /> Filter
-                                    </div>
-                                </div>
-
-                                <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
-                                    {s.isWalletLoading && s.walletTransactions.length === 0 ? (
-                                        <div className="flex justify-center py-20">
-                                            <Loader2 className="h-8 w-8 animate-spin text-zinc-200" />
-                                        </div>
-                                    ) : s.walletTransactions.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center py-20 text-center">
-                                            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-200">
-                                                <History className="h-6 w-6" />
-                                            </div>
-                                            <p className="text-[11px] font-bold uppercase tracking-tight text-zinc-300">No history found</p>
-                                        </div>
-                                    ) : (
-                                        <div className="divide-y divide-zinc-100">
-                                            {s.walletTransactions.map((tx: any) => {
-                                                const isCredit = tx.type === "LOAD";
-                                                return (
-                                                    <div key={tx.transactionId} className="group flex items-center justify-between px-5 py-4 transition hover:bg-zinc-50/50">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className={`flex h-10 w-10 items-center justify-center rounded-xl transition-transform group-hover:scale-110 ${isCredit
-                                                                ? "bg-emerald-50 text-emerald-600"
-                                                                : "bg-rose-50 text-rose-600"
-                                                                }`}>
-                                                                <ArrowUpRight className={`h-5 w-5 ${!isCredit ? "rotate-90" : ""}`} />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-[13px] font-bold text-zinc-900">
-                                                                    {isCredit ? "Added to Wallet" : "Product Purchase"}
-                                                                </p>
-                                                                <p className="text-[10px] font-bold uppercase tracking-tight text-zinc-400">
-                                                                    {new Date(tx.createdAt).toLocaleDateString("en-IN", {
-                                                                        day: "2-digit", month: "short", year: "numeric",
-                                                                    })}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className={`text-sm font-black tracking-tight ${isCredit ? "text-emerald-600" : "text-zinc-900"}`}>
-                                                                {isCredit ? "+" : "−"}{formatINR(tx.amount)}
-                                                            </p>
-                                                            <div className="flex items-center justify-end gap-1 mt-0.5">
-                                                                <div className={`h-1 w-1 rounded-full ${tx.status === 'SUCCESS' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                                                                <span className="text-[9px] font-black uppercase tracking-tighter text-zinc-300">{tx.status}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                 </div>
             </main>
         </div>

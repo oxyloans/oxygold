@@ -4,6 +4,7 @@ import TermsModal from "../components/TermsModal";
 import { load } from "@cashfreepayments/cashfree-js";
 import { apiCall } from "../utils/tokenManager";
 import TokenManager from "../utils/tokenManager";
+import { API_BASE_URL } from "../Config";
 
 const PaymentMethod = ({ onDataPass }: { onDataPass: (data: any) => void }) => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const PaymentMethod = ({ onDataPass }: { onDataPass: (data: any) => void }) => {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showError, setShowError] = useState(false);
 
-  const BUY_API = 'http://65.0.147.157:9900/api/digital-gold/buy';
+  const BUY_API = `${API_BASE_URL}/oxygold-api/digital-gold/buy`;
 
   useEffect(() => {
     if (!paymentData || !Object.keys(paymentData).length) {

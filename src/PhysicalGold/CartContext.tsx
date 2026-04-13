@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { PhysicalGoldProduct, ProductVariant } from "./physicalGoldData";
-import { AddItemToCart, decrementCartItems, fetchCustomerCartInfo, removeCartItem } from "./physicalGoldService";
+import { AddItemToCart, decrementCartItems, fetchCustomerCartInfo, removeCartItem, fetchProductImageURLs } from "./physicalGoldService";
 
 interface CartItem {
     cartId?: number;
@@ -60,29 +60,36 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setIsLoading(true);
             const data = await fetchCustomerCartInfo(userId);
             if (data?.itemsInCart) {
-                const mappedItems: CartItem[] = data.itemsInCart.map((item: any) => ({
-                    cartId: item.cartId,
-                    product: {
-                        id: item.productId.toString(),
-                        productName: item.productName,
-                        imageUrl: item.imageUrl,
-                        description: "",
-                        priceRange: "",
-                        subCategoryId: "",
-                        status: item.status,
-                    },
-                    variant: {
-                        id: item.productVariantId.toString(),
-                        price: item.price,
-                        purity: item.purity,
-                        size: item.size,
-                        weight: item.weight,
-                        sku: "gram",
-                        status: item.status,
-                        stockQuantity: item.stockQuantity,
-                    },
-                    quantity: item.quantity,
-                }));
+                const mappedItems: CartItem[] = await Promise.all(
+                    data.itemsInCart.map(async (item: any) => {
+                        const productImages = await fetchProductImageURLs(item.productId.toString());
+                        const imageUrl = productImages ? (productImages.frontViewurl || productImages.backViewUrl || productImages.leftViewUrl || productImages.rightViewUrl || productImages.topViewUrl || productImages.bottomViewUrl) : item.imageUrl;
+
+                        return {
+                            cartId: item.cartId,
+                            product: {
+                                id: item.productId.toString(),
+                                productName: item.productName,
+                                imageUrl: imageUrl || "",
+                                description: "",
+                                priceRange: "",
+                                subCategoryId: "",
+                                status: item.status,
+                            },
+                            variant: {
+                                id: item.productVariantId.toString(),
+                                price: item.price,
+                                purity: item.purity,
+                                size: item.size,
+                                weight: item.weight,
+                                sku: "gram",
+                                status: item.status,
+                                stockQuantity: item.stockQuantity,
+                            },
+                            quantity: item.quantity,
+                        };
+                    })
+                );
                 setCartItems(mappedItems);
                 setTotalItems(data.totalItemsInCart || 0);
                 setCartSubtotal(data.totalCartValue || 0);

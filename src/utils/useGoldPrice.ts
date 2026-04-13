@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from "../Config";
+
+let BASE_URL = API_BASE_URL+"/oxygold-api";
+
 
 interface GoldPriceData {
   preTaxAmount: string;
@@ -15,7 +19,7 @@ export const useGoldPrice = () => {
   const fetchGoldPrice = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://65.0.147.157:9900/api/digital-gold/live-price');
+      const response = await fetch(`${BASE_URL}/digital-gold/live-price`);
       const data = await response.json();
       
       if (data.success) {

@@ -1,3 +1,6 @@
+import { API_BASE_URL } from "../Config";
+let BASE_URL = API_BASE_URL+"/oxygold-api";
+
 interface TokenData {
   accessToken: string;
   refreshToken: string;
@@ -156,7 +159,7 @@ class TokenManager {
   private async performTokenRefresh(): Promise<string> {
     try {
       console.log('[TokenManager] Refreshing access token...');
-      const response = await fetch('http://65.0.147.157:9900/api/auth/refresh', {
+      const response = await fetch(`${BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: this.refreshToken }),

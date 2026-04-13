@@ -26,49 +26,45 @@ import OxyGoldAI from './components/OxyGoldAI';
 import VideoCreationPage from './AIVideosImages/VideoCreation';
 import ImageCreation from './AIVideosImages/imagecreation';
 import RealtimeVoice from './RealtimeVoice/components/RealTimeMainscreen';
-import PhysicalGoldPage from './PhysicalGold/PhysicalGoldPage';
-// import Login from './PhysicalGold/Login';
-// import Register from './PhysicalGold/Register';
-import OrdersPage from './PhysicalGold/OrdersPage';
+import PhysicalGoldPage from './PhysicalGold/PhysicalGoldPageNew';
 import CartPage from './PhysicalGold/CartSlider';
 import ProfilePage from './PhysicalGold/ProfileSlider';
 import PaymentStatusPage from './PhysicalGold/PaymentStatus';
+import WishlistPage from './PhysicalGold/WishlistPage';
+import ProductDetailsPage from './PhysicalGold/ProductDetailsPage';
 import { CartProvider } from './PhysicalGold/CartContext';
+import { WishlistProvider } from './PhysicalGold/WishlistContext';
+import PhysicalGoldLayout from './PhysicalGold/components/PhysicalGoldLayout';
 import AdminLayout from './physical-gold-admin/components/layout/AdminLayout';
 import AdminLogin from './physical-gold-admin/pages/AdminLogin';
 import AdminRegister from './physical-gold-admin/pages/AdminRegister';
+import PartnerLayout from './physical-gold-partner/components/layout/PartnerLayout';
+import PartnerLogin from './physical-gold-partner/pages/PartnerLogin';
+import PartnerRegister from './physical-gold-partner/pages/PartnerRegister';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import APITest from './pages/APITest';
 import ReviewOrder from './pages/ReviewOrder';
 import GoldSelection from './pages/GoldSelection';
-import BISCertificate from './pages/BISCertificate';
 
 
 function AppContent() {
   const [transactionData, setTransactionData] = useState<any>(null);
   const location = useLocation();
-    const isAuthPage = ['/login', '/register'].includes(location.pathname);
-    const isTestPage = location.pathname === '/api-test';
-    const isFullPageFlow = [
-      '/review-order',
-      '/payment-method',
-      '/payment-processing',
-      '/payment-success',
-      '/sell-summary',
-      '/bank-account',
-      '/sell-processing',
-      '/sell-success',
-      '/',
-      "/physical-gold",
-      "/admin/*",
-      "/physical-gold/orders",
-      "/physical-gold/cart",
-      "/physical-gold/profile",
-      "/physical-gold/payment-status",
-      "/select-gold",
-      "/bis-certificate"
-    ].includes(location.pathname);
+  const isAuthPage = ['/login', '/register'].includes(location.pathname);
+  const isTestPage = location.pathname === '/api-test';
+  const isFullPageFlow = [
+    '/review-order',
+    '/payment-method',
+    '/payment-processing',
+    '/payment-success',
+    '/sell-summary',
+    '/bank-account',
+    '/sell-processing',
+    '/sell-success',
+    '/',
+    "/select-gold"
+  ].includes(location.pathname) || location.pathname.startsWith("/physical-gold") || location.pathname.startsWith("/admin") || location.pathname.startsWith("/partner");
   const handleDataPass = (data: any) => {
     setTransactionData(data);
   };
@@ -83,7 +79,6 @@ function AppContent() {
           <Route path="/register" element={<Register />} />
           <Route path="/api-test" element={<APITest />} />
           <Route path="/select-gold" element={<GoldSelection />} />
-          <Route path="/bis-certificate" element={<BISCertificate />} />
 
           {/* Processing (full-page, no header) */}
           <Route path="/payment-processing" element={<PaymentProcessing />} />
@@ -118,18 +113,25 @@ function AppContent() {
           <Route path="/faq" element={<FAQ />} />
 
           {/* Physical Gold */}
-          <Route path="/physical-gold" element={<PhysicalGoldPage />} />
-          <Route path="/physical-gold/orders" element={<OrdersPage />} />
-          <Route path="/physical-gold/cart" element={<CartPage />} />
-          <Route path="/physical-gold/profile" element={<ProfilePage />} />
-          <Route path="/physical-gold/payment-status" element={<PaymentStatusPage />} />
+          <Route element={<PhysicalGoldLayout />}>
+            <Route path="/physical-gold" element={<PhysicalGoldPage />} />
+            <Route path="/physical-gold/product/:id" element={<ProductDetailsPage />} />
+            <Route path="/physical-gold/orders" element={<Navigate to="/physical-gold/profile?tab=orders" replace />} />
+            <Route path="/physical-gold/cart" element={<CartPage />} />
+            <Route path="/physical-gold/profile" element={<ProfilePage />} />
+            <Route path="/physical-gold/wishlist" element={<WishlistPage />} />
+            <Route path="/physical-gold/payment-status" element={<PaymentStatusPage />} />
+          </Route>
 
           {/* Admin */}
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/register" element={<AdminRegister />} />
           <Route path="/admin/*" element={<AdminLayout />} />
 
-          {/* Fallback */}
+          {/* Partner */}
+          <Route path="/partner/login" element={<PartnerLogin />} />
+          <Route path="/partner/register" element={<PartnerRegister />} />
+          <Route path="/partner/*" element={<PartnerLayout />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
@@ -144,7 +146,9 @@ function App() {
       <PurchaseProvider>
         <BrowserRouter>
           <CartProvider>
-            <AppContent />
+            <WishlistProvider>
+              <AppContent />
+            </WishlistProvider>
           </CartProvider>
         </BrowserRouter>
       </PurchaseProvider>

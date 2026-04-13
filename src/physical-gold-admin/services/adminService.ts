@@ -1,4 +1,6 @@
-const BASE_URL = "http://65.0.147.157:9900";
+import {API_BASE_URL} from "../../Config";
+
+let BASE_URL = API_BASE_URL+"/oxygold-api";
 
 /**
  * Get current admin access token from localStorage
@@ -49,7 +51,7 @@ export const refreshAdminAccessToken = async () => {
     const rt = getAdminRefreshToken();
     if (!rt) throw new Error("No refresh token available");
 
-    const response = await fetch(`${BASE_URL}/api/auth/refresh`, {
+    const response = await fetch(`${BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: rt })
@@ -108,25 +110,57 @@ export const fetchSubCategories = async (parentId: number | string) => {
 export const fetchCategoryImageURL = async (categoryId: number | string) => {
     try {
         const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/categories/getImageForProduct?categoryId=${categoryId}`);
-        if (!response.ok) return "";
+        if (!response.ok) return null;
         const data = await response.json();
-        return data.url || "";
+        return data.data || null;
     } catch (error) {
         console.error(`Failed to fetch image for category ${categoryId}:`, error);
-        return "";
+        return null;
     }
 };
 
 export const fetchProductImageURL = async (productId: number | string) => {
     try {
         const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/categories/getImageForProduct?productId=${productId}`);
-        if (!response.ok) return "";
+        if (!response.ok) return null;
         const data = await response.json();
-        return data.url || "";
+        return data.data || null;
     } catch (error) {
         console.error(`Failed to fetch image for product ${productId}:`, error);
-        return "";
+        return null;
     }
+};
+
+export const uploadCatalogImage = async (
+    file: File,
+    params: { documentType: string; categoryId?: number; productId?: number; viewType: string }
+) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = getAdminAuthToken();
+
+    const queryParams = new URLSearchParams({
+        documentType: params.documentType,
+        viewType: params.viewType
+    });
+
+    if (params.categoryId) queryParams.append('categoryId', params.categoryId.toString());
+    if (params.productId) queryParams.append('productId', params.productId.toString());
+
+    const response = await fetch(
+        `${BASE_URL}/admin/categories/uploadImages?${queryParams.toString()}`,
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`, // ✅ keep this only
+            },
+            body: formData,
+        }
+    );
+
+    if (!response.ok) throw new Error("Image upload failed");
+    return response.json();
 };
 
 export const uploadImage = async (file: File) => {
@@ -134,7 +168,7 @@ export const uploadImage = async (file: File) => {
     formData.append('file', file);
 
     const token = getAdminAuthToken();
-    const response = await fetch(`${BASE_URL}/api/auth/upload?documentType=image&userId=9`, {
+    const response = await fetch(`${BASE_URL}/auth/upload?documentType=image&userId=9`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`
@@ -173,13 +207,13 @@ export const updateCategory = async (data: any) => {
 // --- Products API ---
 
 export const getAllProducts = async (categoryId: number | string) => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/api/products/getAllProduct?categoryId=${categoryId}`);
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/products/getAllProduct?categoryId=${categoryId}`);
     if (!response.ok) throw new Error("Failed to fetch products");
     return response.json();
 };
 
 export const createProduct = async (data: any) => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/api/products/createProduct`, {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/products/createProduct`, {
         method: 'POST',
         body: JSON.stringify(data)
     });
@@ -191,7 +225,7 @@ export const createProduct = async (data: any) => {
 };
 
 export const updateProduct = async (productId: number | string, data: any) => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/api/products/updateProduct/${productId}`, {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/products/updateProduct/${productId}`, {
         method: 'PUT',
         body: JSON.stringify(data)
     });
@@ -206,7 +240,7 @@ export const updateProductStatus = async (productId: number | string, data: any)
     const payload = {
         status: data
     }
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/api/products/updateProduct/${productId}`, {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/products/updateProduct/${productId}`, {
         method: 'PUT',
         body: JSON.stringify(payload)
     })
@@ -220,7 +254,7 @@ export const updateProductStatus = async (productId: number | string, data: any)
 // --- Product Variants API ---
 
 export const getAllVariants = async (productId: number | string) => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/api/productvariants/getVariantByProduct?productId=${productId}`);
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/productvariants/getVariantByProduct?productId=${productId}`);
     console.log(response)
     if (response.status === 404) {
         return [];
@@ -230,7 +264,7 @@ export const getAllVariants = async (productId: number | string) => {
 };
 
 export const addVariant = async (productId: number | string, data: any) => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/api/productvariants/addVariant/${productId}`, {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/productvariants/addVariant/${productId}`, {
         method: 'POST',
         body: JSON.stringify(data)
     });
@@ -242,7 +276,7 @@ export const addVariant = async (productId: number | string, data: any) => {
 };
 
 export const updateVariantStatus = async (variantId: number | string, status: string) => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/api/productvariants/${variantId}/status`, {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/productvariants/${variantId}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status })
     });
@@ -251,7 +285,7 @@ export const updateVariantStatus = async (variantId: number | string, status: st
 };
 
 export const updateVariantQuantity = async (variantId: number | string, stockQuantity: number) => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/api/productvariants/${variantId}/quantity`, {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/productvariants/${variantId}/quantity`, {
         method: 'PATCH',
         body: JSON.stringify({ stockQuantity })
     });
@@ -260,7 +294,7 @@ export const updateVariantQuantity = async (variantId: number | string, stockQua
 };
 
 export const updateVariantPrice = async (variantId: number | string, price: number) => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/api/productvariants/${variantId}/price`, {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/productvariants/${variantId}/price`, {
         method: 'PATCH',
         body: JSON.stringify({ price })
     });
@@ -269,7 +303,7 @@ export const updateVariantPrice = async (variantId: number | string, price: numb
 };
 
 export const loginOrRegister = async (params: any) => {
-    const response = await fetch(`${BASE_URL}/api/auth/userLoginOrRegister`, {
+    const response = await fetch(`${BASE_URL}/auth/userLoginOrRegister`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params),
@@ -282,7 +316,7 @@ export const loginOrRegister = async (params: any) => {
 };
 
 export const createRole = async (role: string) => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/api/auth/createRole`, {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/auth/createRole`, {
         method: 'POST',
         body: JSON.stringify({ role }),
     });
@@ -302,7 +336,7 @@ export const isAdminLoggedIn = (): boolean => {
 
 export const logout = async () => {
     const refreshToken = getAdminRefreshToken();
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/api/auth/logout`, {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/auth/logout`, {
         method: 'POST',
         body: JSON.stringify({ refreshToken }),
     });
@@ -355,7 +389,7 @@ export interface PaymentModeSummary {
 }
 
 export const fetchActiveOrders = async (): Promise<AdminOrder[]> => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/api/order/active`);
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/order/active`);
     if (!response.ok) throw new Error("Failed to fetch active orders");
     const data = await response.json();
     return data.data;
@@ -363,7 +397,7 @@ export const fetchActiveOrders = async (): Promise<AdminOrder[]> => {
 
 export const fetchPaymentModeSummary = async (startDate: string, endDate: string): Promise<PaymentModeSummary> => {
     const response = await adminAuthenticatedFetch(
-        `${BASE_URL}/api/order/orders/payment-mode-summary?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
+        `${BASE_URL}/order/orders/payment-mode-summary?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
     );
     if (!response.ok) throw new Error("Failed to fetch payment mode summary");
     const data = await response.json();
@@ -371,8 +405,15 @@ export const fetchPaymentModeSummary = async (startDate: string, endDate: string
 };
 
 export const getAllOrders = async (): Promise<AdminOrder[]> => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/api/order/getAllOrders`);
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/order/getAllOrders`);
     if (!response.ok) throw new Error("Failed to fetch all orders");
     const data = await response.json();
     return data.data || [];
 };
+
+export const viewAllUsers = async (page: number, size: number) => {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/auth/viewAllUsers?page=${page}&size=${size}`);
+    if (!response.ok) throw new Error("Failed to fetch users");
+    return response.json();
+};
+
