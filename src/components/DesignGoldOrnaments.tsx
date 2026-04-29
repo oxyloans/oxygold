@@ -135,15 +135,6 @@ const cards = [
     showModal: false,
   },
   {
-    id: "physical-gold",
-    Icon: ShoppingCartOutlined,
-    label: "Physical Gold Store",
-    sub: "Coins, bars & jewellery checkout",
-    route: "/physical-gold",
-    accent: "#F5D36C",
-    showModal: false,
-  },
-  {
     id: "voice",
     Icon: AudioOutlined,
     label: "Speak with Vedika",

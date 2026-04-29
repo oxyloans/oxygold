@@ -35,6 +35,13 @@ import ProductDetailsPage from './PhysicalGold/ProductDetailsPage';
 import { CartProvider } from './PhysicalGold/CartContext';
 import { WishlistProvider } from './PhysicalGold/WishlistContext';
 import PhysicalGoldLayout from './PhysicalGold/components/PhysicalGoldLayout';
+import PrivacyPolicy from './PhysicalGold/PrivacyPolicy';
+import TermsConditionsPhysical from './PhysicalGold/TermsConditions';
+import ShippingPolicy from './PhysicalGold/ShippingPolicy';
+import ReturnRefundPolicy from './PhysicalGold/ReturnRefundPolicy';
+import FAQPage from './PhysicalGold/FAQPage';
+import CookiePolicy from './PhysicalGold/CookiePolicy';
+import CancellationPolicy from './PhysicalGold/CancellationPolicy';
 import AdminLayout from './physical-gold-admin/components/layout/AdminLayout';
 import AdminLogin from './physical-gold-admin/pages/AdminLogin';
 import AdminRegister from './physical-gold-admin/pages/AdminRegister';
@@ -124,6 +131,13 @@ function AppContent() {
             <Route path="/physical-gold/profile" element={<ProfilePage />} />
             <Route path="/physical-gold/wishlist" element={<WishlistPage />} />
             <Route path="/physical-gold/payment-status" element={<PaymentStatusPage />} />
+            <Route path="/physical-gold/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/physical-gold/terms-conditions" element={<TermsConditionsPhysical />} />
+            <Route path="/physical-gold/shipping-policy" element={<ShippingPolicy />} />
+            <Route path="/physical-gold/return-refund-policy" element={<ReturnRefundPolicy />} />
+            <Route path="/physical-gold/faq" element={<FAQPage />} />
+            <Route path="/physical-gold/cookie-policy" element={<CookiePolicy />} />
+            <Route path="/physical-gold/cancellation-policy" element={<CancellationPolicy />} />
           </Route>
 
           {/* Admin */}

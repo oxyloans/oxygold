@@ -200,6 +200,13 @@ export const fetchActiveOrders = async (): Promise<PartnerOrder[]> => {
     return data.data;
 };
 
+export const fetchOrdersByStatus = async (status: string, page: number = 0, size: number = 10) => {
+    const response = await partnerAuthenticatedFetch(`${BASE_URL}/order/orders/by-status?status=${status}&page=${page}&size=${size}`);
+    if (!response.ok) throw new Error("Failed to fetch orders by status");
+    const result = await response.json();
+    return result.data;
+};
+
 export const getAllOrders = async (): Promise<PartnerOrder[]> => {
     const response = await partnerAuthenticatedFetch(`${BASE_URL}/order/getAllOrders`);
     if (!response.ok) throw new Error("Failed to fetch all orders");

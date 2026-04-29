@@ -3,22 +3,21 @@ import { Search, ShoppingCart, User, Heart, Menu, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../CartContext";
 import { useWishlist } from "../WishlistContext";
+import oxygoldLogo from "../../assets/oxygoldlogo.png";
 import "../styles.css";
 
 interface HeaderProps {
   categories?: Array<{ id: string; name: string }>;
-  searchQuery?: string;
-  onSearchChange?: (v: string) => void;
   onCategoryClick?: (categoryId: string) => void;
   onLogoClick?: () => void;
+  selectedCategoryId?: string;
 }
 
 const Header: React.FC<HeaderProps> = ({
   categories = [],
-  searchQuery = "",
-  onSearchChange,
   onCategoryClick,
   onLogoClick,
+  selectedCategoryId,
 }) => {
   const navigate = useNavigate();
   const { totalItems } = useCart();
@@ -36,6 +35,7 @@ const Header: React.FC<HeaderProps> = ({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-md">
@@ -73,30 +73,21 @@ const Header: React.FC<HeaderProps> = ({
               }}
               className="flex items-center gap-2 cursor-pointer"
             >
-              <span className="font-serif font-semibold text-xl md:text-2xl tracking-tight text-primary">
-                OXYGOLD
-              </span>
+              <img 
+                src={oxygoldLogo} 
+                alt="OxyGold" 
+                className="h-4 md:h-7 w-auto object-contain"
+              />
             </button>
-
-            {/* Desktop Search */}
-            <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
-                <input
-                  type="text"
-                  placeholder="Search jewellery..."
-                  value={searchQuery}
-                  onChange={(e) => onSearchChange?.(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-secondary border border-gray-200 text-foreground"
-                />
-              </div>
-            </div>
 
             {/* Right Actions */}
             <div className="flex items-center gap-3 md:gap-5">
-              {/* Mobile Search */}
-              <button className="md:hidden p-2 cursor-pointer transition-colors text-foreground hover:text-primary">
-                <Search size={20} />
+              {/* Digital Gold Button */}
+              <button
+                onClick={() => navigate("/buy-gold")}
+                className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 cursor-pointer rounded-lg bg-[#C29B27] text-white text-[12px] font-semibold hover:bg-[#A88820] transition-all shadow-sm"
+              >
+                Digital Gold
               </button>
 
               {/* Wishlist */}
@@ -151,9 +142,19 @@ const Header: React.FC<HeaderProps> = ({
                 <button
                   key={cat.id}
                   onClick={() => onCategoryClick?.(cat.id)}
-                  className="text-[13px] font-sans cursor-pointer tracking-wide transition-colors uppercase text-foreground hover:text-primary"
+                  className={`text-[13px] font-sans cursor-pointer tracking-wide uppercase relative pb-1 transition-all duration-300
+                    ${
+                      selectedCategoryId === cat.id
+                        ? "text-primary font-semibold"
+                        : "text-foreground hover:text-primary"
+                    }`}
                 >
                   {cat.name}
+                  <span
+                    className={`absolute bottom-0 left-0 h-[3px] bg-primary rounded-t transition-all duration-300 
+                      ${selectedCategoryId === cat.id ? "w-full" : "w-0"}
+                    `}
+                  />
                 </button>
               ))}
             </div>
@@ -165,6 +166,15 @@ const Header: React.FC<HeaderProps> = ({
       {isMobileMenuOpen && (
         <div className="md:hidden absolute inset-x-0 top-full shadow-lg z-50 bg-background border-b border-gray-200">
           <nav className="flex flex-col p-4 gap-1">
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                navigate("/buy-gold");
+              }}
+              className="py-3 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-foreground hover:text-primary hover:bg-secondary"
+            >
+              Digital Gold
+            </button>
             {categories.map((cat) => (
               <button
                 key={cat.id}

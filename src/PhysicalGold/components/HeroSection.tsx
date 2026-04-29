@@ -1,9 +1,40 @@
 import React from "react";
 import { ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import heroImage from "../assets/hero-jewelry.jpg";
 import "../styles.css";
 
 const HeroSection: React.FC = () => {
+  const navigate = useNavigate();
+
+  const handleViewBangles = async () => {
+    // Import the service to fetch categories
+    const { fetchMainCategories, fetchSubCategories } = await import("../physicalGoldService");
+    
+    try {
+      // Fetch all categories
+      const categories = await fetchMainCategories();
+      
+      // Find the Bangles category (case-insensitive search)
+      const banglesCategory = categories.find(cat => 
+        cat.name.toLowerCase().includes("bangle")
+      );
+      
+      if (banglesCategory) {
+        // Navigate to physical-gold page with the bangles category selected
+        navigate("/physical-gold", {
+          state: { selectedCategory: banglesCategory.id, timestamp: Date.now() }
+        });
+      } else {
+        // Fallback: just scroll to collections if bangles category not found
+        document.getElementById('collections-section')?.scrollIntoView({ behavior: 'smooth' });
+      }
+    } catch (error) {
+      console.error("Failed to load bangles category:", error);
+      // Fallback: scroll to collections
+      document.getElementById('collections-section')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
   return (
     <section className="relative overflow-hidden">
       <div className="absolute inset-0">
@@ -44,7 +75,8 @@ const HeroSection: React.FC = () => {
               Explore Collection <ArrowRight className="inline ml-2" size={16} />
             </button>
             <button
-              className="px-8 py-3 rounded-full text-sm uppercase tracking-wider h-auto transition-all"
+              onClick={handleViewBangles}
+              className="px-8 py-3 rounded-full cursor-pointer text-sm uppercase tracking-wider h-auto transition-all"
               style={{
                 border: "2px solid hsla(38, 40%, 95%, 0.4)",
                 color: "hsl(38, 40%, 95%)",

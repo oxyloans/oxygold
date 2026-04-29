@@ -6,9 +6,10 @@ import "../styles.css";
 interface CategoryGridProps {
   categories: Category[];
   onCategoryClick: (categoryId: string) => void;
+  selectedCategoryId?: string;
 }
 
-const CategoryGrid: React.FC<CategoryGridProps> = ({ categories, onCategoryClick }) => {
+const CategoryGrid: React.FC<CategoryGridProps> = ({ categories, onCategoryClick, selectedCategoryId }) => {
   return (
     <section id="collections-section" className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
@@ -27,7 +28,9 @@ const CategoryGrid: React.FC<CategoryGridProps> = ({ categories, onCategoryClick
             <button
               key={cat.id}
               onClick={() => onCategoryClick(cat.id)}
-              className="group relative rounded-lg overflow-hidden aspect-square cursor-pointer"
+              className={`group relative rounded-lg overflow-hidden aspect-square cursor-pointer transition-all ${
+                selectedCategoryId === cat.id ? 'ring-2 ring-primary ring-offset-2' : ''
+              }`}
               style={{ animationDelay: `${i * 100}ms` }}
             >
               {cat.imageUrl ? (

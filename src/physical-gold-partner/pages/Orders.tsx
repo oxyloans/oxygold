@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Table from '../components/ui/Table';
 import { ShoppingBag, Search, UserCheck, XCircle, Eye } from 'lucide-react';
 import Button from '../components/ui/Button';
-import { fetchActiveOrders, PartnerOrder } from '../services/partnerService';
+import Pagination from '../components/ui/Pagination';
+import { fetchActiveOrders, fetchOrdersByStatus, PartnerOrder } from '../services/partnerService';
 import AssignOrderModal from '../components/AssignOrderModal';
 import RejectOrderModal from '../components/RejectOrderModal';
 
@@ -15,16 +16,39 @@ const Orders: React.FC = () => {
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedStatus, setSelectedStatus] = useState('ASSIGNED');
+    const [currentPage, setCurrentPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalElements, setTotalElements] = useState(0);
 
     useEffect(() => {
         loadOrders();
-    }, []);
+    }, [selectedStatus, currentPage]);
 
     const loadOrders = async () => {
         setIsLoading(true);
         try {
-            const data = await fetchActiveOrders();
-            setOrders(data);
+            const data = await fetchOrdersByStatus(selectedStatus, currentPage, 10);
+            const mappedOrders = (data.content || []).map((order: any) => ({
+                orderId: order.id,
+                orderNumber: order.orderNumber,
+                orderStatus: order.orderStatus,
+                paymentExpiry: order.createdAt,
+                paymentMode: order.paymentMode,
+                paymentSessionId: null,
+                paymentStatus: order.paymentStatus,
+                phoneNumber: order.phoneNumber || '',
+                totalAmount: order.totalAmount,
+                totalItems: order.totalItems,
+                txnId: null,
+                userEmail: order.userEmail || null,
+                userId: order.userId || 0,
+                userName: order.userName || null,
+                items: order.items || [],
+            }));
+            setOrders(mappedOrders);
+            setTotalPages(data.totalPages || 1);
+            setTotalElements(data.totalElements || 0);
         } catch (error) {
             console.error("Failed to fetch orders:", error);
         } finally {
@@ -46,6 +70,15 @@ const Orders: React.FC = () => {
             currency: 'INR',
             maximumFractionDigits: 0
         }).format(amount);
+    };
+
+    const handleStatusChange = (status: string) => {
+        setSelectedStatus(status);
+        setCurrentPage(0);
+    };
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
     };
 
     const filteredOrders = orders.filter(order =>
@@ -155,6 +188,31 @@ const Orders: React.FC = () => {
                 </div>
             </div>
 
+            <div className="flex flex-wrap gap-2 mb-4">
+                {[
+                    { value: 'ASSIGNED', label: 'Assigned' },
+                    { value: 'ACCEPTED', label: 'Accepted' },
+                    { value: 'PICKED_UP', label: 'Picked Up' },
+                    { value: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
+                    { value: 'DELIVERED', label: 'Delivered' },
+                    { value: 'REJECTED', label: 'Rejected' },
+                    { value: 'FAILED', label: 'Failed' },
+                    { value: 'REASSIGNED', label: 'Reassigned' },
+                ].map((status) => (
+                    <button
+                        key={status.value}
+                        onClick={() => handleStatusChange(status.value)}
+                        className={`px-4 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wide transition-all ${
+                            selectedStatus === status.value
+                                ? 'bg-emerald-600 text-white shadow-md'
+                                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                        }`}
+                    >
+                        {status.label}
+                    </button>
+                ))}
+            </div>
+
             <div className="max-w-md relative group">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500" />
                 <input
@@ -172,7 +230,14 @@ const Orders: React.FC = () => {
                     data={filteredOrders}
                     isLoading={isLoading}
                     onRowClick={handleRowClick}
-                    emptyMessage="No active orders found"
+                    emptyMessage="No orders found"
+                />
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalElements={totalElements}
+                    size={10}
+                    onPageChange={handlePageChange}
                 />
             </div>
 

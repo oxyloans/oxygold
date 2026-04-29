@@ -182,25 +182,31 @@ const CartPage: React.FC = () => {
         (async () => {
             patch({ loadingAddresses: true });
             try {
-                const [addrRes, balRes] = await Promise.all([
-                    fetchAddresses(uid),
-                    fetchWalletBalance(uid),
-                ]);
-                const mapped: Address[] = (addrRes.data || addrRes || []).map((a: any) => ({
-                    id: String(a.id),
-                    type: a.type || "Home",
-                    flatNo: a.flatNo || "",
-                    landMark: a.landMark || "",
-                    address: a.address || "",
-                    pinCode: a.pinCode || "",
-                    state: a.state || "",
-                }));
-                patch({
-                    addresses: mapped,
-                    selectedAddressId: mapped[0]?.id ?? "",
-                    walletBalance: balRes?.success ? (balRes.data?.balance ?? 0) : null,
-                    loadingAddresses: false,
-                });
+                const [addrResult, balResult] = await Promise.allSettled([
+                fetchAddresses(uid),
+                fetchWalletBalance(uid),
+            ]);
+
+
+            const addrRes = addrResult.status === "fulfilled" ? addrResult.value : null;
+            const balRes  = balResult.status  === "fulfilled" ? balResult.value  : null;
+
+            const mapped: Address[] = (addrRes?.data || addrRes || []).map((a: any) => ({
+                id: String(a.id),
+                type: a.type || "Home",
+                flatNo: a.flatNo || "",
+                landMark: a.landMark || "",
+                address: a.address || "",
+                pinCode: a.pinCode || "",
+                state: a.state || "",
+            }));
+
+            patch({
+                addresses: mapped,
+                selectedAddressId: mapped[0]?.id ?? "",
+                walletBalance: balRes?.success ? (balRes.data?.balance ?? 0) : null,
+                loadingAddresses: false,
+            });
             } catch (err) {
                 console.error("Cart init error:", err);
                 patch({ loadingAddresses: false });

@@ -72,30 +72,36 @@ export const refreshAccessToken = async () => {
  * Wrapper around fetch that handles auth headers and token refresh
  */
 const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-    const headers = {
-        'Content-Type': 'application/json',
-        ...options.headers,
-        'Authorization': `Bearer ${getAuthToken()}`
-    };
+    // 1. Initialize using the browser's Headers class
+    const headers = new Headers(options.headers);
 
+    // 2. Add the Auth token
+    headers.set('Authorization', `Bearer ${getAuthToken()}`);
+
+    // 3. Only set JSON if we aren't sending a File/FormData
+    if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+    }
+
+    // 4. Use the headers in the fetch call
     let response = await fetch(url, { ...options, headers });
 
     if (response.status === 401) {
         try {
-            console.log("Inside the response status")
             const newToken = await refreshAccessToken();
-            // Retry with new token
-            headers['Authorization'] = `Bearer ${newToken}`;
+            headers.set('Authorization', `Bearer ${newToken}`);
+            // Retry
             response = await fetch(url, { ...options, headers });
         } catch (error) {
             console.error("Token refresh failed:", error);
-            // Optionally redirect to login here or handle globally
             throw error;
         }
     }
 
     return response;
 };
+
+
 
 export const fetchCategoryImageURL = async (categoryId: string): Promise<string> => {
     try {
@@ -130,17 +136,21 @@ export const fetchMainCategories = async (): Promise<Category[]> => {
     }
     const data = await response.json();
 
-    // Fetch images for all categories in parallel
-    const categoriesWithImages = await Promise.all(data.map(async (item: any) => {
-        const imageUrl = await fetchCategoryImageURL(item.id.toString());
-        return {
-            id: item.id.toString(),
-            name: item.name,
-            emoji: getEmojiForCategory(item.name || ""),
-            description: item.description,
-            imageUrl: imageUrl
-        };
-    }));
+    // Filter out null/undefined items and fetch images for all categories in parallel
+    const categoriesWithImages = await Promise.all(
+        data
+            .filter((item: any) => item && item.id) // Filter out null/undefined items
+            .map(async (item: any) => {
+                const imageUrl = await fetchCategoryImageURL(item.id.toString());
+                return {
+                    id: item.id.toString(),
+                    name: item.name || "",
+                    emoji: getEmojiForCategory(item.name || ""),
+                    description: item.description || "",
+                    imageUrl: imageUrl
+                };
+            })
+    );
 
     return categoriesWithImages;
 };
@@ -152,17 +162,21 @@ export const fetchSubCategories = async (parentId: string): Promise<SubCategory[
     }
     const data = await response.json();
 
-    // Fetch images for all sub-categories in parallel
-    const subCategoriesWithImages = await Promise.all(data.map(async (item: any) => {
-        const imageUrl = await fetchCategoryImageURL(item.id.toString());
-        return {
-            id: item.id.toString(),
-            categoryId: item.parentId.toString(),
-            name: item.name,
-            description: item.description,
-            imageUrl: imageUrl
-        };
-    }));
+    // Filter out null/undefined items and fetch images for all sub-categories in parallel
+    const subCategoriesWithImages = await Promise.all(
+        data
+            .filter((item: any) => item && item.id) // Filter out null/undefined items
+            .map(async (item: any) => {
+                const imageUrl = await fetchCategoryImageURL(item.id.toString());
+                return {
+                    id: item.id.toString(),
+                    categoryId: item.parentId ? item.parentId.toString() : parentId,
+                    name: item.name || "",
+                    description: item.description || "",
+                    imageUrl: imageUrl
+                };
+            })
+    );
 
     return subCategoriesWithImages;
 };
@@ -173,15 +187,17 @@ export const fetchProducts = async (subCategoryId: string): Promise<PhysicalGold
         throw new Error("Failed to fetch products");
     }
     const data = await response.json();
-    const mappedData = data.map((item: any) => ({
-        id: item.id.toString(),
-        productName: item.productName || item.name,
-        imageUrl: item.imageUrl,
-        priceRange: item.priceRange || "Price on request",
-        description: item.description,
-        subCategoryId: item.categoryId.toString(),
-        status: item.status,
-    }));
+    const mappedData = data
+        .filter((item: any) => item && item.id) // Filter out null/undefined items
+        .map((item: any) => ({
+            id: item.id.toString(),
+            productName: item.productName || item.name || "",
+            imageUrl: item.imageUrl || "",
+            priceRange: item.priceRange || "Price on request",
+            description: item.description || "",
+            subCategoryId: item.categoryId ? item.categoryId.toString() : subCategoryId,
+            status: item.status || "ACTIVE",
+        }));
     return mappedData;
 };
 
@@ -233,6 +249,75 @@ export const fetchProductVariants = async (productId: string): Promise<{ variant
         } : (null as any)
     };
 }
+
+export const generateModelImage = async (imageUrl: string): Promise<string> => {
+    const encodedImageUrl = encodeURIComponent(imageUrl);
+  const response = await authenticatedFetch(`${BASE_URL}/auth/generate-modelImage?imageUrl=${encodedImageUrl}`, {
+    method: "POST",
+  });
+  console.log(response);
+  console.log(response.ok);
+
+  if (!response.ok) {
+    throw new Error(`Failed to generate model image: ${response.statusText}`);
+  }
+
+  const data = await response.text();
+  console.log(data);
+
+  // API returns a direct image URL string
+  return data;
+};
+
+export const generateVirtualTryOn = async (
+  userImageFile: File,
+  productImageUrl: string
+): Promise<string> => {
+  const formData = new FormData();
+
+  // Maps to @RequestParam("image2") MultipartFile image2
+  formData.append("image2", userImageFile);
+
+  // Maps to @RequestParam String imageUrl1
+  const url = `${BASE_URL}/auth/edit-imageByPerson?imageUrl1=${encodeURIComponent(productImageUrl)}`;
+
+  const response = await authenticatedFetch(url, {
+    method: "POST",
+    body: formData,
+    // Note: Do NOT set 'Content-Type' header; let the browser set it with the boundary
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Virtual try-on failed (${response.status}): ${errorText || response.statusText}`
+    );
+  }
+
+  const data = await response.json();
+  console.log(data);
+  // Returns the string result from aiService.editImagewithperson
+  return data.data;
+};
+
+
+export const uploadUserImage = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    const response = await authenticatedFetch(`${BASE_URL}/auth/upload-image`, {
+        method: "POST",
+        body: formData,
+        headers: {}, // Let browser set Content-Type with boundary
+    });
+    
+    if (!response.ok) {
+        throw new Error(`Failed to upload image: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data.url || data.data?.url || data;
+};
 
 export const loginOrRegister = async (params: {
     phoneNumber: string;
@@ -365,12 +450,23 @@ export const addAddress = async (addressData: any) => {
 
 export const updateAddress = async (addressData: any) => {
     const response = await authenticatedFetch(`${BASE_URL}/auth/addAddress`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify(addressData),
     });
     const data = await response.json();
     if (!response.ok) {
         throw new Error(data?.message || 'Failed to update address');
+    }
+    return data;
+};
+
+export const deleteAddress = async (userId: number, addressId: string) => {
+    const response = await authenticatedFetch(`${BASE_URL}/order/${userId}/${addressId}`, {
+        method: 'DELETE',
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'Failed to delete address');
     }
     return data;
 };
@@ -392,6 +488,15 @@ export const getUserProfile = async (userId: number) => {
     const data = await response.json();
     if (!response.ok) {
         throw new Error(data?.message || 'Failed to fetch user profile');
+    }
+    return data;
+};
+
+export const verifyPan = async (userId: number, name: string, pan: string) => {
+    const response = await authenticatedFetch(`${BASE_URL}/auth/verifyPan/${userId}?name=${encodeURIComponent(name)}&pan=${encodeURIComponent(pan)}`);
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'PAN verification failed');
     }
     return data;
 };
@@ -419,6 +524,15 @@ export const fetchUserOrders = async (userId: number): Promise<Order[]> => {
     const data = await response.json();
     if (!response.ok) {
         throw new Error(data?.message || 'Failed to fetch user orders');
+    }
+    return data.data;
+};
+
+export const fetchOrdersByStatus = async (userId: number, status: string, page: number = 0, size: number = 10) => {
+    const response = await authenticatedFetch(`${BASE_URL}/order/user/${userId}/order-by-status?status=${status}&page=${page}&size=${size}`);
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || 'Failed to fetch orders by status');
     }
     return data.data;
 };
@@ -500,6 +614,42 @@ export const fetchWishlistService = async (userId: number) => {
     const response = await authenticatedFetch(`${BASE_URL}/cart/wishlistByUserId/${userId}`);
     const data = await response.json();
     if (!response.ok) throw new Error(data?.message || "Failed to fetch wishlist");
+    return data;
+};
+
+export const searchProducts = async (params: {
+    q?: string;
+    categoryId?: number;
+    purity?: string;
+    size?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    minWeight?: number;
+    maxWeight?: number;
+    inStock?: boolean;
+    productType?: "PHYSICAL" | "DIGITAL";
+    sortBy?: "PRICE_ASC" | "PRICE_DESC" | "NEWEST" | "NAME_ASC";
+    page?: number;
+    pageSize?: number;
+}) => {
+    const queryParams = new URLSearchParams();
+    if (params.q) queryParams.append("q", params.q);
+    if (params.categoryId) queryParams.append("categoryId", params.categoryId.toString());
+    if (params.purity) queryParams.append("purity", params.purity);
+    if (params.size) queryParams.append("size", params.size);
+    if (params.minPrice !== undefined) queryParams.append("minPrice", params.minPrice.toString());
+    if (params.maxPrice !== undefined) queryParams.append("maxPrice", params.maxPrice.toString());
+    if (params.minWeight !== undefined) queryParams.append("minWeight", params.minWeight.toString());
+    if (params.maxWeight !== undefined) queryParams.append("maxWeight", params.maxWeight.toString());
+    if (params.inStock !== undefined) queryParams.append("inStock", params.inStock.toString());
+    if (params.productType) queryParams.append("productType", params.productType);
+    if (params.sortBy) queryParams.append("sortBy", params.sortBy);
+    if (params.page !== undefined) queryParams.append("page", params.page.toString());
+    if (params.pageSize !== undefined) queryParams.append("pageSize", params.pageSize.toString());
+
+    const response = await authenticatedFetch(`${BASE_URL}/search/products?${queryParams.toString()}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || "Search failed");
     return data;
 };
 
