@@ -51,6 +51,9 @@ const CatalogUpload: React.FC = () => {
                 result = variantData.data?.listVariantResponse || [];
             }
 
+            // Filter out any null or undefined items from result
+            result = (Array.isArray(result) ? result : []).filter(item => item !== null && item !== undefined);
+
             // Fetch images for categories and products
             if (level < 3) {
                 const withImages = await Promise.all(

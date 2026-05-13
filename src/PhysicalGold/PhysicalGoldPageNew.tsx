@@ -192,11 +192,7 @@ const PhysicalGoldPageNew: React.FC = () => {
     }
   }, [filters.q, filters.sortBy, filters.purity, filters.size, filters.minPrice, filters.maxPrice, filters.minWeight, filters.maxWeight, filters.inStock, filters.page]);
 
-  const activeFilters = Object.entries(filters).filter(
-    ([key, value]) => value !== undefined && key !== "page" && key !== "pageSize" && key !== "sortBy" && key !== "q"
-  );
-
-  // Sidebar shown whenever a subcategory is selected (grid itself is hidden during loading)
+  // Sidebar shown whenever a subcategory is selected
   const showSidebar = !!selectedSubCategoryId;
 
   const filteredProducts = useMemo(() => products, [products]);
@@ -266,11 +262,10 @@ const PhysicalGoldPageNew: React.FC = () => {
                   setSelectedSubCategoryId("");
                   setProducts([]);
                 }}
-                className={`transition-colors ${
-                  !selectedSubCategoryId
+                className={`transition-colors ${!selectedSubCategoryId
                     ? "text-primary font-semibold cursor-default"
                     : "text-gray-500 hover:text-primary"
-                }`}
+                  }`}
                 disabled={!selectedSubCategoryId}
               >
                 {categories.find((c) => c.id === selectedCategoryId)?.name || "Category"}
@@ -345,18 +340,16 @@ const PhysicalGoldPageNew: React.FC = () => {
               </div>
             )}
 
-            {/* CHANGE 1 & 2: Products heading row with search bar inline, heading renamed to selected subcategory */}
+            {/* Products heading row with search bar inline */}
             {selectedSubCategoryId && (
               <div
                 id="products-section"
                 className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6"
               >
-                {/* CHANGE 2: Heading shows selected subcategory name */}
                 <h3 className="font-serif text-2xl text-[#1A1A1A] font-bold whitespace-nowrap">
                   {subCategories.find((s) => s.id === selectedSubCategoryId)?.name || "Collection"}
                 </h3>
 
-                {/* CHANGE 1: Search bar moved here, inline with heading */}
                 <div className="relative w-full sm:max-w-sm">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#8A8A8A]" />
                   <input
@@ -378,10 +371,54 @@ const PhysicalGoldPageNew: React.FC = () => {
               </div>
             )}
 
-            {/* Active Filters */}
-            {activeFilters.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-6">
-                {activeFilters.map(([key, value]) => (
+            {/* ── Active Filter Chips ────────────────────────────────────────────────
+                • Price min+max  → one chip "Price: ₹500 – ₹2,000"  (clears both)
+                • Weight min+max → one chip "Weight: 2g – 10g"       (clears both)
+                • Everything else → individual chip per filter
+            ──────────────────────────────────────────────────────────────────────── */}
+            {(() => {
+              const chips: React.ReactNode[] = [];
+
+              // Single combined chip for price range
+              if (filters.minPrice !== undefined && filters.maxPrice !== undefined) {
+                chips.push(
+                  <button
+                    key="priceRange"
+                    onClick={() =>
+                      setFilters(prev => ({ ...prev, minPrice: undefined, maxPrice: undefined, page: 0 }))
+                    }
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#8B6914] text-white text-[11px] font-medium hover:bg-[#7A5C10] transition"
+                  >
+                    Price: ₹{filters.minPrice.toLocaleString()} – ₹{filters.maxPrice.toLocaleString()}
+                    <X className="h-3 w-3" />
+                  </button>
+                );
+              }
+
+              // Single combined chip for weight range
+              if (filters.minWeight !== undefined && filters.maxWeight !== undefined) {
+                chips.push(
+                  <button
+                    key="weightRange"
+                    onClick={() =>
+                      setFilters(prev => ({ ...prev, minWeight: undefined, maxWeight: undefined, page: 0 }))
+                    }
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#8B6914] text-white text-[11px] font-medium hover:bg-[#7A5C10] transition"
+                  >
+                    Weight: {filters.minWeight}g – {filters.maxWeight}g
+                    <X className="h-3 w-3" />
+                  </button>
+                );
+              }
+
+              // Individual chips for all remaining filters (purity, size, inStock)
+              const skipKeys = new Set([
+                "page", "pageSize", "sortBy", "q",
+                "minPrice", "maxPrice", "minWeight", "maxWeight",
+              ]);
+              Object.entries(filters).forEach(([key, value]) => {
+                if (skipKeys.has(key) || value === undefined) return;
+                chips.push(
                   <button
                     key={key}
                     onClick={() => removeFilter(key as keyof typeof filters)}
@@ -390,11 +427,15 @@ const PhysicalGoldPageNew: React.FC = () => {
                     {key}: {value?.toString()}
                     <X className="h-3 w-3" />
                   </button>
-                ))}
-              </div>
-            )}
+                );
+              });
 
-            {/* Full-width centered loading spinner — outside grid so it truly centers */}
+              return chips.length > 0 ? (
+                <div className="flex flex-wrap gap-2 mb-6">{chips}</div>
+              ) : null;
+            })()}
+
+            {/* Full-width centered loading spinner */}
             {loadingProds && (
               <div className="flex justify-center items-center py-20 w-full">
                 <LoadingSpinner message="Loading Products..." />
@@ -403,103 +444,101 @@ const PhysicalGoldPageNew: React.FC = () => {
 
             {/* Products Grid with Filters */}
             {!loadingProds && (
-            <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
 
-              {/* Filter Sidebar — always visible once a subcategory is selected */}
-              {showSidebar && (
-                <aside className="lg:sticky lg:top-24 h-fit">
-                  <FilterSidebar
-                    filters={{
-                      q: "",
-                      page: filters.page,
-                      pageSize: filters.pageSize,
-                      sortBy: filters.sortBy,
-                      purity: filters.purity,
-                      size: filters.size,
-                      minPrice: filters.minPrice,
-                      maxPrice: filters.maxPrice,
-                      minWeight: filters.minWeight,
-                      maxWeight: filters.maxWeight,
-                      inStock: filters.inStock,
-                    }}
-                    onFilterChange={updateFilters}
-                    onClearFilters={clearFilters}
-                    facets={facets}
-                  />
-                </aside>
-              )}
-
-              {/* Products */}
-              <div>
-                {filteredProducts.length === 0 ? (
-                  /* CHANGE 3 & 4: Empty state centered, shown alongside sidebar */
-                  <div className="flex flex-col items-center justify-center py-20 gap-5 w-full text-center">
-                    <Package size={64} style={{ color: "hsl(30, 15%, 92%)" }} />
-                    <div className="space-y-2">
-                      <p className="font-bold text-xl" style={{ color: "hsl(20, 10%, 12%)" }}>
-                        {searchInput ? "No products found" : "No products available"}
-                      </p>
-                      <p className="text-sm" style={{ color: "hsl(20, 8%, 45%)" }}>
-                        {searchInput
-                          ? `No results found for "${searchInput}". Try different keywords or clear filters.`
-                          : activeFilters.length > 0
-                          ? "No products match your filters. Try adjusting your criteria."
-                          : "No products available in this category at the moment."}
-                      </p>
-                    </div>
-                    {(searchInput || activeFilters.length > 0) && (
-                      <button
-                        onClick={() => {
-                          clearSearch();
-                          clearFilters();
-                        }}
-                        className="text-sm font-bold rounded-full px-6 py-2 transition-colors"
-                        style={{
-                          color: "hsl(38, 80%, 45%)",
-                          border: "1px solid hsl(30, 20%, 88%)",
-                        }}
-                      >
-                        Clear All Filters
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  /* Products Grid */
-                  <>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-                      {filteredProducts.map((product) => (
-                        <ProductCard
-                          key={product.id}
-                          product={product}
-                          onClick={() => navigate(`/physical-gold/product/${product.id}`, {
-                            state: {
-                              categoryId: selectedCategoryId,
-                              categoryName: categories.find(c => c.id === selectedCategoryId)?.name,
-                              subCategoryId: selectedSubCategoryId,
-                              subCategoryName: subCategories.find(s => s.id === selectedSubCategoryId)?.name
-                            }
-                          })}
-                        />
-                      ))}
-                    </div>
-
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                      <div className="mt-8">
-                        <Pagination
-                          currentPage={filters.page}
-                          totalPages={totalPages}
-                          onPageChange={(page) => setFilters(prev => ({ ...prev, page }))}
-                          totalElements={totalElements}
-                          pageSize={filters.pageSize}
-                        />
-                      </div>
-                    )}
-                  </>
+                {/* Filter Sidebar */}
+                {showSidebar && (
+                  <aside className="lg:sticky lg:top-24 h-fit">
+                    <FilterSidebar
+                      filters={{
+                        q: "",
+                        page: filters.page,
+                        pageSize: filters.pageSize,
+                        sortBy: filters.sortBy,
+                        purity: filters.purity,
+                        size: filters.size,
+                        minPrice: filters.minPrice,
+                        maxPrice: filters.maxPrice,
+                        minWeight: filters.minWeight,
+                        maxWeight: filters.maxWeight,
+                        inStock: filters.inStock,
+                      }}
+                      onFilterChange={updateFilters}
+                      onClearFilters={clearFilters}
+                      facets={facets}
+                    />
+                  </aside>
                 )}
+
+                {/* Products */}
+                <div>
+                  {filteredProducts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 gap-5 w-full text-center">
+                      <Package size={64} style={{ color: "hsl(30, 15%, 92%)" }} />
+                      <div className="space-y-2">
+                        <p className="font-bold text-xl" style={{ color: "hsl(20, 10%, 12%)" }}>
+                          {searchInput ? "No products found" : "No products available"}
+                        </p>
+                        <p className="text-sm" style={{ color: "hsl(20, 8%, 45%)" }}>
+                          {searchInput
+                            ? `No results found for "${searchInput}". Try different keywords or clear filters.`
+                            : filters.minPrice !== undefined || filters.minWeight !== undefined || filters.purity || filters.size || filters.inStock
+                              ? "No products match your filters. Try adjusting your criteria."
+                              : "No products available in this category at the moment."}
+                        </p>
+                      </div>
+                      {(searchInput || filters.minPrice !== undefined || filters.minWeight !== undefined || filters.purity || filters.size || filters.inStock) && (
+                        <button
+                          onClick={() => {
+                            clearSearch();
+                            clearFilters();
+                          }}
+                          className="text-sm font-bold rounded-full px-6 py-2 transition-colors"
+                          style={{
+                            color: "hsl(38, 80%, 45%)",
+                            border: "1px solid hsl(30, 20%, 88%)",
+                          }}
+                        >
+                          Clear All Filters
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                        {filteredProducts.map((product) => (
+                          <ProductCard
+                            key={product.id}
+                            product={product}
+                            onClick={() => navigate(`/physical-gold/product/${product.id}`, {
+                              state: {
+                                categoryId: selectedCategoryId,
+                                categoryName: categories.find(c => c.id === selectedCategoryId)?.name,
+                                subCategoryId: selectedSubCategoryId,
+                                subCategoryName: subCategories.find(s => s.id === selectedSubCategoryId)?.name
+                              }
+                            })}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Pagination */}
+                      {totalPages > 1 && (
+                        <div className="mt-8">
+                          <Pagination
+                            currentPage={filters.page}
+                            totalPages={totalPages}
+                            onPageChange={(page) => setFilters(prev => ({ ...prev, page }))}
+                            totalElements={totalElements}
+                            pageSize={filters.pageSize}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-            )} {/* end !loadingProds */}
+            )}
           </div>
         </div>
       )}

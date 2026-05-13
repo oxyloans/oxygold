@@ -92,7 +92,14 @@ const Header: React.FC<HeaderProps> = ({
 
               {/* Wishlist */}
               <button
-                onClick={() => navigate("/physical-gold/wishlist")}
+                onClick={() => {
+                  const stored = localStorage.getItem("user");
+                  if (!stored) {
+                    navigate("/physical-gold/login");
+                  } else {
+                    navigate("/physical-gold/wishlist");
+                  }
+                }}
                 className="hidden md:block p-2 cursor-pointer transition-colors relative text-foreground hover:text-primary"
                 aria-label="Wishlist"
               >
@@ -107,7 +114,14 @@ const Header: React.FC<HeaderProps> = ({
               {/* Profile Dropdown */}
               <div className="relative" ref={dropdownRef}>
                 <button
-                  onClick={() => navigate("/physical-gold/profile")}
+                  onClick={() => {
+                    const stored = localStorage.getItem("user");
+                    if (!stored) {
+                      navigate("/physical-gold/login");
+                    } else {
+                      navigate("/physical-gold/profile");
+                    }
+                  }}
                   className="p-2 transition-colors cursor-pointer text-foreground hover:text-primary"
                   aria-label="Account"
                 >
@@ -117,7 +131,14 @@ const Header: React.FC<HeaderProps> = ({
 
               {/* Cart */}
               <button
-                onClick={() => navigate("/physical-gold/cart")}
+                onClick={() => {
+                  const stored = localStorage.getItem("user");
+                  if (!stored) {
+                    navigate("/physical-gold/login");
+                  } else {
+                    navigate("/physical-gold/cart");
+                  }
+                }}
                 className="p-2 transition-colors cursor-pointer relative text-foreground hover:text-primary"
                 aria-label="Cart"
               >

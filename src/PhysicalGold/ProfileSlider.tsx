@@ -368,7 +368,7 @@ const ProfilePage: React.FC = () => {
             }
         } catch (e) { console.error("Logout failed:", e); }
         localStorage.removeItem("user");
-        navigate("/login");
+        navigate("/login", { replace: true });
     };
 
     const validatePan = (pan: string): boolean => {
@@ -380,10 +380,10 @@ const ProfilePage: React.FC = () => {
         const userData = GET_USER_DATA();
         const uid = userData?.data?.userId || userData?.userId;
         if (!uid) return;
-        
+
         const { profileForm } = s;
         const errors: Record<string, string> = {};
-        
+
         // Required field validations
         if (!profileForm.firstName.trim()) errors.firstName = "First name is required";
         if (!profileForm.lastName.trim()) errors.lastName = "Last name is required";
@@ -398,30 +398,30 @@ const ProfilePage: React.FC = () => {
             errors.alternativeNumber = "Invalid mobile number (10 digits, starting with 6-9)";
         }
         if (!profileForm.gender) errors.gender = "Gender is required";
-        
+
         // PAN validation
         if (!profileForm.panNumber.trim()) {
             errors.panNumber = "PAN number is required";
         } else if (!validatePan(profileForm.panNumber.toUpperCase())) {
             errors.panNumber = "Invalid PAN format (e.g., ABCDE1234F)";
         }
-        
+
         if (!profileForm.panVerified && profileForm.panNumber.trim()) {
             if (!profileForm.panName.trim()) {
                 errors.panName = "Name as per PAN is required for verification";
             }
         }
-        
+
         // Optional WhatsApp number validation
         if (profileForm.whatsappNumber.trim() && !validateMobileNumber(profileForm.whatsappNumber)) {
             errors.whatsappNumber = "Invalid mobile number (10 digits, starting with 6-9)";
         }
-        
+
         if (Object.keys(errors).length) {
             patch({ profileErrors: errors, toast: { message: "Please fix the errors in the form", type: "error" } });
             return;
         }
-        
+
         patch({ isSavingProfile: true, profileErrors: {} });
         try {
             // Verify PAN if not verified
@@ -431,7 +431,7 @@ const ProfilePage: React.FC = () => {
                     await verifyPan(uid, profileForm.panName, profileForm.panNumber.toUpperCase());
                     patch({ isVerifyingPan: false });
                 } catch (panErr: any) {
-                    patch({ 
+                    patch({
                         isVerifyingPan: false,
                         isSavingProfile: false,
                         profileErrors: { panNumber: panErr.message || "PAN verification failed" },
@@ -440,7 +440,7 @@ const ProfilePage: React.FC = () => {
                     return;
                 }
             }
-            
+
             await saveUserProfile({
                 userId: uid,
                 email: profileForm.email,
@@ -474,7 +474,7 @@ const ProfilePage: React.FC = () => {
     const handleSaveAddr = async () => {
         const { addrForm, editingAddress } = s;
         const errors: Record<string, string> = {};
-        
+
         // Required field validations
         if (!addrForm.flatNo.trim()) errors.flatNo = "Flat No is required";
         if (!addrForm.landMark.trim()) errors.landMark = "Landmark is required";
@@ -484,7 +484,7 @@ const ProfilePage: React.FC = () => {
         } else if (!validatePincode(addrForm.pinCode)) {
             errors.pinCode = "Invalid pin code (6 digits)";
         }
-        
+
         if (Object.keys(errors).length) {
             patch({ addrErrors: errors, toast: { message: "Please fix the errors in the form", type: "error" } });
             return;
@@ -538,7 +538,7 @@ const ProfilePage: React.FC = () => {
             patch({ toast: { message: "Geolocation is not supported by your browser", type: "error" } });
             return;
         }
-        
+
         patch({ isFetchingLocation: true, locationError: "" });
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -550,8 +550,8 @@ const ProfilePage: React.FC = () => {
             },
             (error) => {
                 console.error("Geolocation error:", error);
-                patch({ 
-                    isFetchingLocation: false, 
+                patch({
+                    isFetchingLocation: false,
                     locationError: "Unable to fetch location",
                     toast: { message: "Failed to get location. Please enable location access.", type: "error" }
                 });
@@ -604,7 +604,7 @@ const ProfilePage: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#F5F2EE] text-[#1A1A1A]">
             <PhysicalGoldHeader />
-            
+
             {/* Toast */}
             {s.toast && (
                 <Toast
@@ -686,8 +686,8 @@ const ProfilePage: React.FC = () => {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className={labelCls}>First Name<span className="text-rose-500 ml-1">*</span></label>
-                                            <input 
-                                                value={s.profileForm.firstName} 
+                                            <input
+                                                value={s.profileForm.firstName}
                                                 onChange={(e) => {
                                                     patchProfile({ firstName: e.target.value });
                                                     if (s.profileErrors.firstName && e.target.value.trim()) {
@@ -695,15 +695,15 @@ const ProfilePage: React.FC = () => {
                                                         delete newErrors.firstName;
                                                         patch({ profileErrors: newErrors });
                                                     }
-                                                }} 
+                                                }}
                                                 className={`${inputCls} ${s.profileErrors.firstName ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
                                             />
                                             {s.profileErrors.firstName && <p className="text-[11px] text-rose-500 mt-1">{s.profileErrors.firstName}</p>}
                                         </div>
                                         <div>
                                             <label className={labelCls}>Last Name<span className="text-rose-500 ml-1">*</span></label>
-                                            <input 
-                                                value={s.profileForm.lastName} 
+                                            <input
+                                                value={s.profileForm.lastName}
                                                 onChange={(e) => {
                                                     patchProfile({ lastName: e.target.value });
                                                     if (s.profileErrors.lastName && e.target.value.trim()) {
@@ -711,7 +711,7 @@ const ProfilePage: React.FC = () => {
                                                         delete newErrors.lastName;
                                                         patch({ profileErrors: newErrors });
                                                     }
-                                                }} 
+                                                }}
                                                 className={`${inputCls} ${s.profileErrors.lastName ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
                                             />
                                             {s.profileErrors.lastName && <p className="text-[11px] text-rose-500 mt-1">{s.profileErrors.lastName}</p>}
@@ -719,9 +719,9 @@ const ProfilePage: React.FC = () => {
                                     </div>
                                     <div>
                                         <label className={labelCls}>Email<span className="text-rose-500 ml-1">*</span></label>
-                                        <input 
+                                        <input
                                             type="email"
-                                            value={s.profileForm.email} 
+                                            value={s.profileForm.email}
                                             onChange={(e) => {
                                                 patchProfile({ email: e.target.value });
                                                 if (s.profileErrors.email) {
@@ -731,7 +731,7 @@ const ProfilePage: React.FC = () => {
                                                         patch({ profileErrors: newErrors });
                                                     }
                                                 }
-                                            }} 
+                                            }}
                                             className={`${inputCls} ${s.profileErrors.email ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
                                         />
                                         {s.profileErrors.email && <p className="text-[11px] text-rose-500 mt-1">{s.profileErrors.email}</p>}
@@ -756,9 +756,9 @@ const ProfilePage: React.FC = () => {
                                     />
                                     <div>
                                         <label className={labelCls}>Mobile Number</label>
-                                        <input 
+                                        <input
                                             type="tel"
-                                            value={s.profileForm.mobileNumber} 
+                                            value={s.profileForm.mobileNumber}
                                             disabled
                                             className={`${inputCls} bg-[#F5F2EE] cursor-not-allowed opacity-60`}
                                         />
@@ -766,9 +766,9 @@ const ProfilePage: React.FC = () => {
                                     </div>
                                     <div>
                                         <label className={labelCls}>Alternative Number<span className="text-rose-500 ml-1">*</span></label>
-                                        <input 
+                                        <input
                                             type="tel"
-                                            value={s.profileForm.alternativeNumber} 
+                                            value={s.profileForm.alternativeNumber}
                                             onChange={(e) => {
                                                 const formatted = formatMobileNumber(e.target.value);
                                                 if (formatted.length <= 10) {
@@ -789,9 +789,9 @@ const ProfilePage: React.FC = () => {
                                     </div>
                                     <div>
                                         <label className={labelCls}>WhatsApp Number</label>
-                                        <input 
+                                        <input
                                             type="tel"
-                                            value={s.profileForm.whatsappNumber} 
+                                            value={s.profileForm.whatsappNumber}
                                             onChange={(e) => {
                                                 const formatted = formatMobileNumber(e.target.value);
                                                 if (formatted.length <= 10) {
@@ -819,9 +819,9 @@ const ProfilePage: React.FC = () => {
                                                 </span>
                                             )}
                                         </label>
-                                        <input 
+                                        <input
                                             type="text"
-                                            value={s.profileForm.panNumber} 
+                                            value={s.profileForm.panNumber}
                                             onChange={(e) => {
                                                 const formatted = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
                                                 if (formatted.length <= 10) {
@@ -844,9 +844,9 @@ const ProfilePage: React.FC = () => {
                                     {!s.profileForm.panVerified && s.profileForm.panNumber.trim() && (
                                         <div>
                                             <label className={labelCls}>Name as per PAN<span className="text-rose-500 ml-1">*</span></label>
-                                            <input 
+                                            <input
                                                 type="text"
-                                                value={s.profileForm.panName} 
+                                                value={s.profileForm.panName}
                                                 onChange={(e) => {
                                                     patchProfile({ panName: e.target.value });
                                                     if (s.profileErrors.panName && e.target.value.trim()) {
@@ -899,8 +899,8 @@ const ProfilePage: React.FC = () => {
                                             <div className="flex items-center gap-2">
                                                 <span className="text-[13px] font-semibold text-[#1A1A1A]">
                                                     {s.profileForm.panNumber ? (
-                                                        s.profileForm.panVerified ? 
-                                                            `${s.profileForm.panNumber.slice(0, 5)}****${s.profileForm.panNumber.slice(-1)}` : 
+                                                        s.profileForm.panVerified ?
+                                                            `${s.profileForm.panNumber.slice(0, 5)}****${s.profileForm.panNumber.slice(-1)}` :
                                                             s.profileForm.panNumber
                                                     ) : "—"}
                                                 </span>
@@ -943,8 +943,8 @@ const ProfilePage: React.FC = () => {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className={labelCls}>Flat No<span className="text-rose-500 ml-1">*</span></label>
-                                            <input 
-                                                value={s.addrForm.flatNo} 
+                                            <input
+                                                value={s.addrForm.flatNo}
                                                 onChange={(e) => {
                                                     patchAddrForm({ flatNo: e.target.value });
                                                     if (s.addrErrors.flatNo && e.target.value.trim()) {
@@ -952,15 +952,15 @@ const ProfilePage: React.FC = () => {
                                                         delete newErrors.flatNo;
                                                         patch({ addrErrors: newErrors });
                                                     }
-                                                }} 
-                                                className={`${inputCls} ${s.addrErrors.flatNo ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`} 
+                                                }}
+                                                className={`${inputCls} ${s.addrErrors.flatNo ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
                                             />
                                             {s.addrErrors.flatNo && <p className="text-[11px] text-rose-500 mt-1">{s.addrErrors.flatNo}</p>}
                                         </div>
                                         <div>
                                             <label className={labelCls}>Landmark<span className="text-rose-500 ml-1">*</span></label>
-                                            <input 
-                                                value={s.addrForm.landMark} 
+                                            <input
+                                                value={s.addrForm.landMark}
                                                 onChange={(e) => {
                                                     patchAddrForm({ landMark: e.target.value });
                                                     if (s.addrErrors.landMark && e.target.value.trim()) {
@@ -968,16 +968,16 @@ const ProfilePage: React.FC = () => {
                                                         delete newErrors.landMark;
                                                         patch({ addrErrors: newErrors });
                                                     }
-                                                }} 
-                                                className={`${inputCls} ${s.addrErrors.landMark ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`} 
+                                                }}
+                                                className={`${inputCls} ${s.addrErrors.landMark ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
                                             />
                                             {s.addrErrors.landMark && <p className="text-[11px] text-rose-500 mt-1">{s.addrErrors.landMark}</p>}
                                         </div>
                                     </div>
                                     <div>
                                         <label className={labelCls}>Complete Address<span className="text-rose-500 ml-1">*</span></label>
-                                        <textarea 
-                                            value={s.addrForm.address} 
+                                        <textarea
+                                            value={s.addrForm.address}
                                             onChange={(e) => {
                                                 patchAddrForm({ address: e.target.value });
                                                 if (s.addrErrors.address && e.target.value.trim()) {
@@ -985,17 +985,17 @@ const ProfilePage: React.FC = () => {
                                                     delete newErrors.address;
                                                     patch({ addrErrors: newErrors });
                                                 }
-                                            }} 
-                                            className={`${inputCls} resize-none ${s.addrErrors.address ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`} 
-                                            rows={2} 
+                                            }}
+                                            className={`${inputCls} resize-none ${s.addrErrors.address ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
+                                            rows={2}
                                         />
                                         {s.addrErrors.address && <p className="text-[11px] text-rose-500 mt-1">{s.addrErrors.address}</p>}
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className={labelCls}>Pin Code<span className="text-rose-500 ml-1">*</span></label>
-                                            <input 
-                                                value={s.addrForm.pinCode} 
+                                            <input
+                                                value={s.addrForm.pinCode}
                                                 onChange={(e) => {
                                                     const formatted = formatPincode(e.target.value);
                                                     patchAddrForm({ pinCode: formatted });
@@ -1006,18 +1006,18 @@ const ProfilePage: React.FC = () => {
                                                             patch({ addrErrors: newErrors });
                                                         }
                                                     }
-                                                }} 
+                                                }}
                                                 placeholder="6-digit pin code"
-                                                className={`${inputCls} ${s.addrErrors.pinCode ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`} 
+                                                className={`${inputCls} ${s.addrErrors.pinCode ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
                                             />
                                             {s.addrErrors.pinCode && <p className="text-[11px] text-rose-500 mt-1">{s.addrErrors.pinCode}</p>}
                                         </div>
                                         <div>
                                             <label className={labelCls}>State</label>
-                                            <input 
-                                                value={s.addrForm.state} 
-                                                onChange={(e) => patchAddrForm({ state: e.target.value })} 
-                                                className={inputCls} 
+                                            <input
+                                                value={s.addrForm.state}
+                                                onChange={(e) => patchAddrForm({ state: e.target.value })}
+                                                className={inputCls}
                                             />
                                         </div>
                                     </div>
@@ -1077,7 +1077,7 @@ const ProfilePage: React.FC = () => {
                                                 <button onClick={() => handleEditAddress(addr)} className="h-7 w-7 flex items-center justify-center rounded-lg border border-[#E8E0D5] text-[#8A8A8A] hover:bg-[#F5EDD6] hover:text-[#8B6914] hover:border-[#C9B87A] transition">
                                                     <Pencil className="h-3 w-3" />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => patch({ deleteConfirmation: { show: true, addressId: addr.id } })}
                                                     className="h-7 w-7 flex items-center justify-center rounded-lg border border-[#E8E0D5] text-[#8A8A8A] hover:bg-rose-50 hover:text-rose-500 hover:border-rose-300 transition"
                                                 >
@@ -1175,8 +1175,15 @@ const ProfilePage: React.FC = () => {
                                                         <p className="text-[11px] text-[#8A8A8A]">Order #{order.orderNumber}</p>
                                                         <p className="text-[12px] font-medium text-[#1A1A1A] mt-0.5">{formatDate(order.paymentExpiry)}</p>
                                                     </div>
-                                                    <div className="flex items-center gap-3 shrink-0">
-                                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold ${getStatusColor(order.orderStatus)}`}>{order.orderStatus}</span>
+                                                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold ${getStatusColor(order.orderStatus)}`}>
+                                                                Order: {order.orderStatus}
+                                                            </span>
+                                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold ${getStatusColor(order.paymentStatus)}`}>
+                                                                Payment: {order.paymentStatus}
+                                                            </span>
+                                                        </div>
                                                         <span className="text-[14px] font-semibold text-[#1A1A1A]">{DISPLAY_INR(order.totalAmount)}</span>
                                                     </div>
                                                 </div>

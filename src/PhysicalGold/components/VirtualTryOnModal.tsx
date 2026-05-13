@@ -45,14 +45,23 @@ const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!generatedImage) return;
-    const link = document.createElement("a");
-    link.href = generatedImage;
-    link.download = `virtual-tryon-${Date.now()}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const response = await fetch(generatedImage);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `virtual-tryon-${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      // Fallback: open in new tab if CORS blocks the fetch
+      window.open(generatedImage, "_blank");
+    }
   };
 
   if (!isOpen) return null;
@@ -279,12 +288,6 @@ const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                 >
                   <RefreshCw className="h-4 w-4" />
                   Retry Try-On
-                </button>
-                <button
-                  onClick={onClose}
-                  className="sm:flex-none px-6 py-3 rounded-xl border border-[#E8E0D5] text-[#8A8A8A] text-[13px] font-bold hover:bg-[#F5F2EE] transition-all"
-                >
-                  Close
                 </button>
               </div>
             </div>

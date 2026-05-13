@@ -151,7 +151,7 @@ const CartPage: React.FC = () => {
     const [s, setS] = useState<PageState>({
         addresses: [],
         selectedAddressId: "",
-        paymentMode: "WALLET",
+        paymentMode: "CASHFREE",
         walletBalance: null,
         loadingAddresses: false,
         loadingCheckout: false,
@@ -183,30 +183,30 @@ const CartPage: React.FC = () => {
             patch({ loadingAddresses: true });
             try {
                 const [addrResult, balResult] = await Promise.allSettled([
-                fetchAddresses(uid),
-                fetchWalletBalance(uid),
-            ]);
+                    fetchAddresses(uid),
+                    fetchWalletBalance(uid),
+                ]);
 
 
-            const addrRes = addrResult.status === "fulfilled" ? addrResult.value : null;
-            const balRes  = balResult.status  === "fulfilled" ? balResult.value  : null;
+                const addrRes = addrResult.status === "fulfilled" ? addrResult.value : null;
+                const balRes = balResult.status === "fulfilled" ? balResult.value : null;
 
-            const mapped: Address[] = (addrRes?.data || addrRes || []).map((a: any) => ({
-                id: String(a.id),
-                type: a.type || "Home",
-                flatNo: a.flatNo || "",
-                landMark: a.landMark || "",
-                address: a.address || "",
-                pinCode: a.pinCode || "",
-                state: a.state || "",
-            }));
+                const mapped: Address[] = (addrRes?.data || addrRes || []).map((a: any) => ({
+                    id: String(a.id),
+                    type: a.type || "Home",
+                    flatNo: a.flatNo || "",
+                    landMark: a.landMark || "",
+                    address: a.address || "",
+                    pinCode: a.pinCode || "",
+                    state: a.state || "",
+                }));
 
-            patch({
-                addresses: mapped,
-                selectedAddressId: mapped[0]?.id ?? "",
-                walletBalance: balRes?.success ? (balRes.data?.balance ?? 0) : null,
-                loadingAddresses: false,
-            });
+                patch({
+                    addresses: mapped,
+                    selectedAddressId: mapped[0]?.id ?? "",
+                    walletBalance: balRes?.success ? (balRes.data?.balance ?? 0) : null,
+                    loadingAddresses: false,
+                });
             } catch (err) {
                 console.error("Cart init error:", err);
                 patch({ loadingAddresses: false });
@@ -526,7 +526,7 @@ const CartPage: React.FC = () => {
                                 <div className="bg-white border border-[#E8E0D5] rounded-xl p-5">
                                     <h3 className="text-[14px] font-semibold text-[#1A1A1A] mb-4">Payment Method</h3>
                                     <div className="grid grid-cols-2 gap-3">
-                                        {(["WALLET", "CASHFREE"] as const).map((mode) => (
+                                        {(["CASHFREE", "WALLET"] as const).map((mode) => (
                                             <button
                                                 key={mode}
                                                 onClick={() => patch({ paymentMode: mode })}

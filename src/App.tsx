@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
+import ProtectedRoute from './components/ProtectedRoute';
 // import './styles/App.css';
 // import './index.css';
 import { GoldPriceProvider } from './context/GoldPriceContext';
@@ -87,7 +88,7 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/api-test" element={<APITest />} />
-          <Route path="/select-gold" element={<GoldSelection />} />
+          <Route path="/select-gold" element={<ProtectedRoute> <GoldSelection /> </ProtectedRoute>} />
           <Route path="/bis-certificate" element={<BISCertificate />} />
 
           {/* Processing (full-page, no header) */}
@@ -123,10 +124,19 @@ function AppContent() {
           <Route path="/faq" element={<FAQ />} />
 
           {/* Physical Gold */}
-          <Route element={<PhysicalGoldLayout />}>
+          <Route
+            element={
+              <ProtectedRoute>
+                <PhysicalGoldLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route path="/physical-gold" element={<PhysicalGoldPage />} />
             <Route path="/physical-gold/product/:id" element={<ProductDetailsPage />} />
-            <Route path="/physical-gold/orders" element={<Navigate to="/physical-gold/profile?tab=orders" replace />} />
+            <Route
+              path="/physical-gold/orders"
+              element={<Navigate to="/physical-gold/profile?tab=orders" replace />}
+            />
             <Route path="/physical-gold/cart" element={<CartPage />} />
             <Route path="/physical-gold/profile" element={<ProfilePage />} />
             <Route path="/physical-gold/wishlist" element={<WishlistPage />} />

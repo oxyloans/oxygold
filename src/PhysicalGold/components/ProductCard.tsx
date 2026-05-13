@@ -49,10 +49,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, isWishlistP
             toggleWishlist(product);
           }}
           className={`absolute top-2 right-2 w-9 h-9 rounded-full flex items-center justify-center transition-all ${isWishlistPage
-              ? "opacity-100 bg-[#FFF5F5] text-[#D84C4C] hover:bg-[#FFE5E5]"
-              : isLiked
-                ? "opacity-0 group-hover:opacity-100 bg-primary text-white"
-                : "opacity-0 group-hover:opacity-100 bg-white text-foreground"
+            ? "opacity-100 bg-[#FFF5F5] text-[#D84C4C] hover:bg-[#FFE5E5]"
+            : isLiked
+              ? "opacity-100 bg-primary text-white"
+              : "opacity-0 group-hover:opacity-100 bg-white text-foreground"
             }`}
         >
           {isWishlistPage ? (

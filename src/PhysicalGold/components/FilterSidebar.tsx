@@ -1,5 +1,5 @@
 import React from "react";
-import { X, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, ArrowRight } from "lucide-react";
 import { SearchFilters } from "../SearchContext";
 
 interface FilterSidebarProps {
@@ -13,48 +13,69 @@ interface FilterSidebarProps {
 }
 
 const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, onFilterChange, onClearFilters, facets }) => {
-    // Use facets if available, otherwise fallback to defaults
-    const purities = facets?.byPurity ? Object.keys(facets.byPurity) : ["22K", "22KT", "18K", "18KT", "24K", "24KT"];
-    const sizes = facets?.bySize ? Object.keys(facets.bySize).sort((a, b) => parseFloat(a) - parseFloat(b)) : ["Small", "Medium", "Large"];
+    const purities = facets?.byPurity
+        ? Object.keys(facets.byPurity)
+        : ["22K", "22KT", "18K", "18KT", "24K", "24KT"];
+    const sizes = facets?.bySize
+        ? Object.keys(facets.bySize).sort((a, b) => parseFloat(a) - parseFloat(b))
+        : ["Small", "Medium", "Large"];
 
-    // Local state for price/weight inputs (to avoid API calls on every keystroke)
     const [localMinPrice, setLocalMinPrice] = React.useState(filters.minPrice);
     const [localMaxPrice, setLocalMaxPrice] = React.useState(filters.maxPrice);
     const [localMinWeight, setLocalMinWeight] = React.useState(filters.minWeight);
     const [localMaxWeight, setLocalMaxWeight] = React.useState(filters.maxWeight);
 
-    // Sync local state with filters
+    const [priceError, setPriceError] = React.useState<string>("");
+    const [weightError, setWeightError] = React.useState<string>("");
+
+    // Sync local state when filters are cleared/reset externally
     React.useEffect(() => {
         setLocalMinPrice(filters.minPrice);
         setLocalMaxPrice(filters.maxPrice);
+        setPriceError("");
+    }, [filters.minPrice, filters.maxPrice]);
+
+    React.useEffect(() => {
         setLocalMinWeight(filters.minWeight);
         setLocalMaxWeight(filters.maxWeight);
-    }, [filters.minPrice, filters.maxPrice, filters.minWeight, filters.maxWeight]);
+        setWeightError("");
+    }, [filters.minWeight, filters.maxWeight]);
 
-    // Smart price range handler - only trigger API when both are set or both are cleared
-    const handlePriceBlur = () => {
-        const bothSet = localMinPrice !== undefined && localMaxPrice !== undefined;
-        const bothCleared = localMinPrice === undefined && localMaxPrice === undefined;
-        const changed = localMinPrice !== filters.minPrice || localMaxPrice !== filters.maxPrice;
-        
-        if (changed && (bothSet || bothCleared)) {
-            onFilterChange({ minPrice: localMinPrice, maxPrice: localMaxPrice });
+    // --- Price ---
+    const bothPriceFilled = localMinPrice !== undefined && localMaxPrice !== undefined;
+    const priceValid = bothPriceFilled && localMaxPrice! > localMinPrice!;
+    const priceChanged = localMinPrice !== filters.minPrice || localMaxPrice !== filters.maxPrice;
+    const priceApplyEnabled = priceValid && priceChanged;
+
+    const handleApplyPrice = () => {
+        if (!bothPriceFilled) return;
+        if (localMaxPrice! <= localMinPrice!) {
+            setPriceError("Max price must be greater than min price.");
+            return;
         }
+        setPriceError("");
+        onFilterChange({ minPrice: localMinPrice, maxPrice: localMaxPrice });
     };
 
-    // Smart weight range handler - only trigger API when both are set or both are cleared
-    const handleWeightBlur = () => {
-        const bothSet = localMinWeight !== undefined && localMaxWeight !== undefined;
-        const bothCleared = localMinWeight === undefined && localMaxWeight === undefined;
-        const changed = localMinWeight !== filters.minWeight || localMaxWeight !== filters.maxWeight;
-        
-        if (changed && (bothSet || bothCleared)) {
-            onFilterChange({ minWeight: localMinWeight, maxWeight: localMaxWeight });
+    // --- Weight ---
+    const bothWeightFilled = localMinWeight !== undefined && localMaxWeight !== undefined;
+    const weightValid = bothWeightFilled && localMaxWeight! > localMinWeight!;
+    const weightChanged = localMinWeight !== filters.minWeight || localMaxWeight !== filters.maxWeight;
+    const weightApplyEnabled = weightValid && weightChanged;
+
+    const handleApplyWeight = () => {
+        if (!bothWeightFilled) return;
+        if (localMaxWeight! <= localMinWeight!) {
+            setWeightError("Max weight must be greater than min weight.");
+            return;
         }
+        setWeightError("");
+        onFilterChange({ minWeight: localMinWeight, maxWeight: localMaxWeight });
     };
 
     return (
         <div className="bg-white border border-[#E8E0D5] rounded-xl p-5 space-y-6">
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <SlidersHorizontal className="h-4 w-4 text-[#8B6914]" />
@@ -90,21 +111,46 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, onFilterChange, 
                     <input
                         type="number"
                         placeholder="Min"
-                        value={localMinPrice || ""}
-                        onChange={(e) => setLocalMinPrice(e.target.value ? Number(e.target.value) : undefined)}
-                        onBlur={handlePriceBlur}
-                        className="border border-[#E8E0D5] rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914]"
+                        value={localMinPrice ?? ""}
+                        onChange={(e) => {
+                            setLocalMinPrice(e.target.value ? Number(e.target.value) : undefined);
+                            setPriceError("");
+                        }}
+                        className={`border rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914] transition-colors ${priceError ? "border-red-400" : "border-[#E8E0D5]"
+                            }`}
                     />
                     <input
                         type="number"
                         placeholder="Max"
-                        value={localMaxPrice || ""}
-                        onChange={(e) => setLocalMaxPrice(e.target.value ? Number(e.target.value) : undefined)}
-                        onBlur={handlePriceBlur}
-                        className="border border-[#E8E0D5] rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914]"
+                        value={localMaxPrice ?? ""}
+                        onChange={(e) => {
+                            setLocalMaxPrice(e.target.value ? Number(e.target.value) : undefined);
+                            setPriceError("");
+                        }}
+                        className={`border rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914] transition-colors ${priceError ? "border-red-400" : "border-[#E8E0D5]"
+                            }`}
                     />
                 </div>
-                <p className="text-[10px] text-[#8A8A8A] mt-1">Enter both min & max to apply</p>
+
+                {priceError ? (
+                    <p className="text-[10px] text-red-500 mt-1">{priceError}</p>
+                ) : (
+                    <p className="text-[10px] text-[#8A8A8A] mt-1">
+                        Enter both values
+                    </p>
+                )}
+
+                <button
+                    onClick={handleApplyPrice}
+                    disabled={!priceApplyEnabled}
+                    className={`mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-semibold transition-all ${priceApplyEnabled
+                        ? "bg-[#8B6914] text-white hover:bg-[#7A5C10] cursor-pointer"
+                        : "bg-[#F5F0E8] text-[#BEB5AA] cursor-not-allowed"
+                        }`}
+                >
+                    Apply Price
+                    <ArrowRight className="h-3.5 w-3.5" />
+                </button>
             </div>
 
             {/* Weight Range */}
@@ -114,21 +160,46 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, onFilterChange, 
                     <input
                         type="number"
                         placeholder="Min"
-                        value={localMinWeight || ""}
-                        onChange={(e) => setLocalMinWeight(e.target.value ? Number(e.target.value) : undefined)}
-                        onBlur={handleWeightBlur}
-                        className="border border-[#E8E0D5] rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914]"
+                        value={localMinWeight ?? ""}
+                        onChange={(e) => {
+                            setLocalMinWeight(e.target.value ? Number(e.target.value) : undefined);
+                            setWeightError("");
+                        }}
+                        className={`border rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914] transition-colors ${weightError ? "border-red-400" : "border-[#E8E0D5]"
+                            }`}
                     />
                     <input
                         type="number"
                         placeholder="Max"
-                        value={localMaxWeight || ""}
-                        onChange={(e) => setLocalMaxWeight(e.target.value ? Number(e.target.value) : undefined)}
-                        onBlur={handleWeightBlur}
-                        className="border border-[#E8E0D5] rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914]"
+                        value={localMaxWeight ?? ""}
+                        onChange={(e) => {
+                            setLocalMaxWeight(e.target.value ? Number(e.target.value) : undefined);
+                            setWeightError("");
+                        }}
+                        className={`border rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914] transition-colors ${weightError ? "border-red-400" : "border-[#E8E0D5]"
+                            }`}
                     />
                 </div>
-                <p className="text-[10px] text-[#8A8A8A] mt-1">Enter both min & max to apply</p>
+
+                {weightError ? (
+                    <p className="text-[10px] text-red-500 mt-1">{weightError}</p>
+                ) : (
+                    <p className="text-[10px] text-[#8A8A8A] mt-1">
+                        Enter both values
+                    </p>
+                )}
+
+                <button
+                    onClick={handleApplyWeight}
+                    disabled={!weightApplyEnabled}
+                    className={`mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-semibold transition-all ${weightApplyEnabled
+                        ? "bg-[#8B6914] text-white hover:bg-[#7A5C10] cursor-pointer"
+                        : "bg-[#F5F0E8] text-[#BEB5AA] cursor-not-allowed"
+                        }`}
+                >
+                    Apply Weight
+                    <ArrowRight className="h-3.5 w-3.5" />
+                </button>
             </div>
 
             {/* Purity */}
@@ -141,7 +212,9 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, onFilterChange, 
                                 type="radio"
                                 name="purity"
                                 checked={filters.purity === purity}
-                                onChange={() => onFilterChange({ purity: filters.purity === purity ? undefined : purity })}
+                                onChange={() =>
+                                    onFilterChange({ purity: filters.purity === purity ? undefined : purity })
+                                }
                                 className="w-4 h-4 text-[#8B6914] focus:ring-[#8B6914]"
                             />
                             <span className="text-[12px] text-[#1A1A1A]">{purity}</span>
@@ -160,7 +233,9 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, onFilterChange, 
                                 type="radio"
                                 name="size"
                                 checked={filters.size === size}
-                                onChange={() => onFilterChange({ size: filters.size === size ? undefined : size })}
+                                onChange={() =>
+                                    onFilterChange({ size: filters.size === size ? undefined : size })
+                                }
                                 className="w-4 h-4 text-[#8B6914] focus:ring-[#8B6914]"
                             />
                             <span className="text-[12px] text-[#1A1A1A]">{size}</span>
