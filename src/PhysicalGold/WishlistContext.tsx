@@ -8,6 +8,7 @@ interface WishlistContextType {
   removeFromWishlist: (productId: string) => Promise<void>;
   toggleWishlist: (product: PhysicalGoldProduct, variantId?: string) => Promise<void>;
   isInWishlist: (productId: string) => boolean;
+  refreshWishlist: () => Promise<void>;
   wishlistCount: number;
 }
 
@@ -38,9 +39,9 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
     try {
       const data = await fetchWishlistService(userId);
       console.log("Wishlist API Response:", data);
-      
+
       const allCategories = await fetchMainCategories();
-      
+
       if (data?.data && Array.isArray(data.data)) {
         const mappedItems: PhysicalGoldProduct[] = await Promise.all(
           data.data.map(async (item: any) => {
@@ -52,11 +53,11 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
             let categoryId = item.categoryId?.toString() || "";
             let categoryName = item.categoryName || "";
             let subCategoryName = item.subCategoryName || "";
-            
+
             if (!categoryId && fullProduct?.subCategoryId) {
               const parentCat = allCategories.find(cat => {
-                return cat.id === fullProduct.subCategoryId || 
-                       fullProduct.subCategoryId.startsWith(cat.id);
+                return cat.id === fullProduct.subCategoryId ||
+                  fullProduct.subCategoryId.startsWith(cat.id);
               });
               if (parentCat) {
                 categoryId = parentCat.id;
@@ -169,6 +170,7 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
         toggleWishlist,
         isInWishlist,
         wishlistCount: wishlist.length,
+        refreshWishlist
       }}
     >
       {children}

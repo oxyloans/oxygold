@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import TokenManager from '../utils/tokenManager';
 import { logout } from '../utils/userUtils';
 import { API_BASE_URL } from '../Config';
+import { useCart } from '../PhysicalGold/CartContext';
+import { useWishlist } from '../PhysicalGold/WishlistContext';
 
 // Add global function to window for easy token inspection
 declare global {
@@ -41,6 +43,8 @@ const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
   const Login = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { refreshCart } = useCart();
+    const { refreshWishlist } = useWishlist();
     const [step, setStep] = useState<'phone' | 'otp'>('phone');
     const [phone, setPhone] = useState('');
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -173,7 +177,13 @@ const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
         
         setShowSuccess(true);
         // Add a small delay to ensure token storage is complete
-        setTimeout(() => { 
+        setTimeout(async () => { 
+          try {
+            await refreshCart();
+            await refreshWishlist();
+          } catch (e) {
+            console.error('Failed to refresh context on login', e);
+          }
           console.log('[Login] Redirecting to:', redirectTo);
           navigate(redirectTo); 
         }, 1500);

@@ -1189,29 +1189,32 @@ const ProfilePage: React.FC = () => {
                                                 </div>
 
                                                 {/* Actions */}
-                                                <div className="flex items-center gap-2 px-5 pb-4 border-t border-[#F0EBE1] pt-3">
-                                                    <button
-                                                        onClick={async (e) => {
-                                                            e.stopPropagation();
-                                                            try {
-                                                                const res = await getInvoicePreviewUrl(order.orderNumber);
-                                                                const b = await res.blob();
-                                                                const u = URL.createObjectURL(b);
-                                                                window.open(u, "_blank");
-                                                            } catch (err) { console.error(err); }
-                                                        }}
-                                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition"
-                                                    >
-                                                        <FileText className="h-3 w-3" /> Invoice
-                                                    </button>
-                                                    <button
-                                                        onClick={() => toggleOrderExpand(order.orderId)}
-                                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition ml-auto"
-                                                    >
-                                                        {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                                        {isExp ? "Hide Details" : "View Details"}
-                                                    </button>
-                                                </div>
+                                                {order.paymentStatus !== 'PENDING' && (
+                                                    <div className="flex items-center gap-2 px-5 pb-4 border-t border-[#F0EBE1] pt-3">
+                                                        <button
+                                                            onClick={async (e) => {
+                                                                e.stopPropagation();
+                                                                try {
+                                                                    const res = await getInvoicePreviewUrl(order.orderNumber);
+                                                                    const b = await res.blob();
+                                                                    const u = URL.createObjectURL(b);
+                                                                    window.open(u, "_blank");
+                                                                } catch (err) { console.error(err); }
+                                                            }}
+                                                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition"
+                                                        >
+                                                            <FileText className="h-3 w-3" /> Invoice
+                                                        </button>
+                                                        <button
+                                                            onClick={() => toggleOrderExpand(order.orderId)}
+                                                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition ml-auto"
+                                                        >
+                                                            {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                                            {isExp ? "Hide Details" : "View Details"}
+                                                        </button>
+                                                    </div>
+                                                )}
+
 
                                                 {/* Expanded Details */}
                                                 {isExp && (

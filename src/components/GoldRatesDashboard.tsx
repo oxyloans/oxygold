@@ -11,6 +11,7 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
+import SubscribeLivePrice from "./SubscribeLivePrice";
 
 type ShopRate = {
   id: string;
@@ -248,6 +249,7 @@ export default function GoldRatesDashboard() {
               textAlign: "center",
               gap: "14px",
               marginBottom: "28px",
+              position: "relative",
             }}
           >
             {/* TITLE */}
@@ -286,6 +288,9 @@ export default function GoldRatesDashboard() {
               Clean comparison of Shop rates vs IBJA trend intelligence.
             </p>
 
+            <div style={{ position: "absolute", right: 0, top: 0 }}>
+              <SubscribeLivePrice />
+            </div>
           </div>
 
           <div className="controls">
