@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Logo from "../assets/oxygoldlogo.png";
+import SubscribeLivePrice from "../components/SubscribeLivePrice";
 
 type LinkItem = { label: string; targetId: string };
 
@@ -78,7 +79,7 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
           </button>
 
           <nav className="og-desktop-nav" style={styles.desktopNav} aria-label="Primary navigation">
-            {navLinks.map((item) => (
+            {navLinks.filter((item) => item.targetId !== "login").map((item) => (
               <button
                 key={item.targetId}
                 style={styles.navBtn}
@@ -90,30 +91,43 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
             ))}
           </nav>
 
-          <div className="og-mobile-wrap" style={styles.mobileWrap}>
+          <div style={styles.rightSection}>
+            <div className="og-subscribe-wrapper" style={styles.subscribeWrapper}>
+              <SubscribeLivePrice />
+            </div>
             <button
-              style={styles.hamburger}
-              aria-label="Open menu"
-              onClick={() => setMobileOpen((v) => !v)}
+              style={styles.loginBtn}
+              className="og-desktop-login"
+              onClick={() => goTo("login")}
             >
-              <span style={styles.hamLine} />
-              <span style={styles.hamLine} />
-              <span style={styles.hamLine} />
+              Login
             </button>
 
-            {mobileOpen && (
-              <div style={styles.mobileMenu}>
-                {navLinks.map((item) => (
-                  <button
-                    key={item.targetId}
-                    onClick={() => goTo(item.targetId)}
-                    style={styles.mobileItem}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="og-mobile-wrap" style={styles.mobileWrap}>
+              <button
+                style={styles.hamburger}
+                aria-label="Open menu"
+                onClick={() => setMobileOpen((v) => !v)}
+              >
+                <span style={styles.hamLine} />
+                <span style={styles.hamLine} />
+                <span style={styles.hamLine} />
+              </button>
+
+              {mobileOpen && (
+                <div style={styles.mobileMenu}>
+                  {navLinks.map((item) => (
+                    <button
+                      key={item.targetId}
+                      onClick={() => goTo(item.targetId)}
+                      style={styles.mobileItem}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -167,6 +181,10 @@ const styles: Record<string, React.CSSProperties> = {
 
   desktopNav: { display: "flex", alignItems: "center", gap: "10px" },
 
+  rightSection: { display: "flex", alignItems: "center", gap: "12px" },
+
+  subscribeWrapper: { display: "flex", alignItems: "center" },
+
   navBtn: {
     padding: "10px 14px",
     borderRadius: "12px",
@@ -178,6 +196,20 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(255, 255, 255, 0.06)",
     color: "rgba(255, 255, 255, 0.92)",
     whiteSpace: "nowrap",
+  },
+
+  loginBtn: {
+    padding: "10px 24px",
+    borderRadius: "12px",
+    fontSize: "18px",
+    fontWeight: 800,
+    border: "none",
+    cursor: "pointer",
+    transition: "all 0.3s ease",
+    background: "linear-gradient(90deg, #f0bb3a 0%, #d9a020 100%)",
+    color: "#0d1f3c",
+    whiteSpace: "nowrap",
+    boxShadow: "0 4px 14px rgba(240, 187, 58, 0.3)",
   },
 
   mobileWrap: { display: "none", position: "relative" },
@@ -235,9 +267,25 @@ const responsiveStyles = `
     transform: translateY(-1px);
     box-shadow: 0 10px 28px rgba(212, 175, 55, 0.15);
   }
+  .og-desktop-login:hover {
+    background: linear-gradient(90deg, #f6cc50 0%, #e8920a 100%) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(240, 187, 58, 0.4);
+  }
   @media (max-width: 980px) {
     .og-desktop-nav { display: none !important; }
+    .og-desktop-login { display: none !important; }
     .og-mobile-wrap { display: block !important; }
+  }
+  @media (max-width: 640px) {
+    .og-subscribe-wrapper button {
+      padding: 0.5rem 0.75rem !important;
+      font-size: 0.75rem !important;
+    }
+    .og-subscribe-wrapper button svg {
+      width: 14px !important;
+      height: 14px !important;
+    }
   }
   @media (max-width: 420px) {
     header img { width: 150px !important; }

@@ -240,56 +240,22 @@ export default function GoldRatesDashboard() {
         <div className="panel">
           <div className="topSpace" />
 
-          <div
-            className="header"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              textAlign: "center",
-              gap: "14px",
-              marginBottom: "28px",
-              position: "relative",
-            }}
-          >
-            {/* TITLE */}
-            <h1
-              style={{
-                margin: 0,
-               fontSize: "clamp(22px, 3.4vw, 44px)",
-                fontWeight: 700,
-                lineHeight: 1.25,
-                letterSpacing: "0.2px",
-                color: "#ffffff",
-              }}
-            >
-              Smart{" "}
-              <span
-                style={{
-                  background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                Gold Rate Analytics
-              </span>
-            </h1>
-
-            {/* SUBTITLE */}
-            <p
-              style={{
-                margin: 0,
-                fontSize: "15px",
-                fontWeight: 500,
-                color: "rgba(255,255,255,0.75)",
-                maxWidth: "600px",
-              }}
-            >
-              Clean comparison of Shop rates vs IBJA trend intelligence.
-            </p>
-
-            <div style={{ position: "absolute", right: 0, top: 0 }}>
-              <SubscribeLivePrice />
+          <div className="header">
+            <div className="headerContent">
+              <div>
+                <h1 className="headerTitle">
+                  Smart{" "}
+                  <span className="goldGradient">
+                    Gold Rate Analytics
+                  </span>
+                </h1>
+                <p className="headerSubtitle">
+                  Clean comparison of Shop rates vs IBJA trend intelligence.
+                </p>
+              </div>
+              <div className="subscribeWrapper">
+                <SubscribeLivePrice />
+              </div>
             </div>
           </div>
 
@@ -591,8 +557,42 @@ const styles = `
 .grdRoot .bottomSpace{ height: 0; }
 
 .grdRoot .header{
-  display:flex; align-items:flex-start; justify-content:space-between;
-  gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.grdRoot .headerContent{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.grdRoot .headerTitle{
+  margin: 0;
+  font-size: clamp(22px, 3.4vw, 44px);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.2px;
+  color: #ffffff;
+}
+
+.grdRoot .goldGradient{
+  background: linear-gradient(135deg, #D4AF37, #F5D36C);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.grdRoot .headerSubtitle{
+  margin: 4px 0 0 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.75);
+}
+
+.grdRoot .subscribeWrapper{
+  flex-shrink: 0;
 }
 
 .grdRoot .title{

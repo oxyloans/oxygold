@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Search, ShoppingCart, User, Heart, Menu, X } from "lucide-react";
+import { Search, ShoppingCart, User, Heart, Menu, X, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../CartContext";
 import { useWishlist } from "../WishlistContext";
@@ -24,6 +24,7 @@ const Header: React.FC<HeaderProps> = ({
   const { wishlistCount } = useWishlist();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -185,7 +186,7 @@ const Header: React.FC<HeaderProps> = ({
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute inset-x-0 top-full shadow-lg z-50 bg-background border-b border-gray-200">
+        <div className="md:hidden absolute inset-x-0 top-full shadow-lg z-50 bg-background border-b border-gray-200 max-h-[70vh] overflow-y-auto">
           <nav className="flex flex-col p-4 gap-1">
             <button
               onClick={() => {
@@ -196,18 +197,36 @@ const Header: React.FC<HeaderProps> = ({
             >
               Digital Gold
             </button>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  onCategoryClick?.(cat.id);
-                }}
-                className="py-3 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-foreground hover:text-primary hover:bg-secondary"
-              >
-                {cat.name}
-              </button>
-            ))}
+
+            {categories.length > 0 && (
+              <div className="flex flex-col">
+                <button
+                  onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
+                  className="flex items-center justify-between py-3 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-foreground hover:text-primary hover:bg-secondary"
+                >
+                  Jewellery Categories
+                  {isCategoriesOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+                {isCategoriesOpen && (
+                  <div className="flex flex-col pl-4 border-l-2 border-gray-100 ml-4 mt-1 space-y-1">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          setIsCategoriesOpen(false);
+                          onCategoryClick?.(cat.id);
+                        }}
+                        className="py-2 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-foreground hover:text-primary hover:bg-secondary"
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <button
               onClick={() => {
                 setIsMobileMenuOpen(false);

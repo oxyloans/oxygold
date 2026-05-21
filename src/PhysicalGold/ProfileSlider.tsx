@@ -156,9 +156,9 @@ const labelCls = "block text-[11px] font-semibold text-[#8A8A8A] mb-1";
 /*  InfoRow — used for read-only profile fields               */
 /* ────────────────────────────────────────────────────────── */
 const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-    <div className="flex items-center border-b border-[#F0EBE1] py-3.5 last:border-b-0">
-        <span className="w-36 text-[12px] text-[#8A8A8A] shrink-0">{label}</span>
-        <span className="text-[13px] font-semibold text-[#1A1A1A]">{value || "—"}</span>
+    <div className="flex flex-col sm:flex-row sm:items-center border-b border-[#F0EBE1] py-3.5 last:border-b-0 gap-1 sm:gap-0">
+        <span className="w-full sm:w-36 text-[12px] text-[#8A8A8A] shrink-0">{label}</span>
+        <span className="text-[13px] font-semibold text-[#1A1A1A] break-all">{value || "—"}</span>
     </div>
 );
 
@@ -627,14 +627,14 @@ const ProfilePage: React.FC = () => {
                 </button>
 
                 {/* Profile Header Card */}
-                <div className="bg-white border border-[#E8E0D5] rounded-xl px-6 py-4 flex items-center justify-between mb-1 shadow-sm">
+                <div className="bg-white border border-[#E8E0D5] rounded-xl px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-1 shadow-sm">
                     <div className="flex items-center gap-4">
-                        <div className="h-11 w-11 rounded-full bg-[#F5EDD6] flex items-center justify-center text-[#8B6914]">
+                        <div className="h-11 w-11 rounded-full bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0">
                             <User className="h-5 w-5" strokeWidth={1.8} />
                         </div>
-                        <div>
-                            <h1 className="text-[15px] font-semibold text-[#1A1A1A] leading-tight">{displayName}</h1>
-                            <p className="text-[11px] text-[#8A8A8A] mt-0.5">
+                        <div className="min-w-0 flex-1">
+                            <h1 className="text-[15px] font-semibold text-[#1A1A1A] leading-tight truncate">{displayName}</h1>
+                            <p className="text-[11px] text-[#8A8A8A] mt-0.5 truncate">
                                 {displayEmail}{displayPhone ? ` · ${displayPhone}` : ""}
                             </p>
                         </div>
@@ -644,7 +644,7 @@ const ProfilePage: React.FC = () => {
                             setSearchParams({ tab: "info" });
                             patch({ activeTab: "info", isEditingProfile: true });
                         }}
-                        className="inline-flex items-center gap-1.5 border border-[#E8E0D5] rounded-lg px-3.5 py-1.5 text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition"
+                        className="inline-flex items-center justify-center gap-1.5 border border-[#E8E0D5] rounded-lg px-3.5 py-1.5 text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition shrink-0 w-full sm:w-auto"
                     >
                         <Pencil className="h-3 w-3" />
                         Edit Profile
@@ -653,7 +653,7 @@ const ProfilePage: React.FC = () => {
 
                 {/* Tabs */}
                 <div className="bg-white border border-[#E8E0D5] border-t-0 rounded-b-xl shadow-sm mb-6">
-                    <div className="flex border-b border-[#F0EBE1]">
+                    <div className="flex border-b border-[#F0EBE1] overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                         {tabs.map(({ id, label, icon: Icon }) => {
                             const isActive = s.activeTab === id;
                             return (
@@ -683,7 +683,7 @@ const ProfilePage: React.FC = () => {
                             ) : s.isEditingProfile ? (
                                 <div className="space-y-5 max-w-2xl">
                                     <h3 className="text-[18px] font-semibold text-[#1A1A1A] mb-4">Personal Information</h3>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className={labelCls}>First Name<span className="text-rose-500 ml-1">*</span></label>
                                             <input
@@ -891,13 +891,13 @@ const ProfilePage: React.FC = () => {
                                         <InfoRow label="Full Name" value={`${s.profileForm.firstName} ${s.profileForm.lastName}`.trim()} />
                                         <InfoRow label="Email" value={s.profileForm.email} />
                                         <InfoRow label="Gender" value={s.profileForm.gender ? s.profileForm.gender.charAt(0).toUpperCase() + s.profileForm.gender.slice(1) : "—"} />
-                                        <InfoRow label="Phone" value={s.profileForm.mobileNumber} />
+                                        <InfoRow label="Mobile Number" value={s.profileForm.mobileNumber} />
                                         <InfoRow label="Alt. Number" value={s.profileForm.alternativeNumber} />
                                         <InfoRow label="WhatsApp" value={s.profileForm.whatsappNumber} />
-                                        <div className="flex items-center border-b border-[#F0EBE1] py-3.5 last:border-b-0">
-                                            <span className="w-36 text-[12px] text-[#8A8A8A] shrink-0">PAN Number</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[13px] font-semibold text-[#1A1A1A]">
+                                        <div className="flex flex-col sm:flex-row sm:items-center border-b border-[#F0EBE1] py-3.5 last:border-b-0 gap-1 sm:gap-0">
+                                            <span className="w-full sm:w-36 text-[12px] text-[#8A8A8A] shrink-0">PAN Number</span>
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <span className="text-[13px] font-semibold text-[#1A1A1A] break-all">
                                                     {s.profileForm.panNumber ? (
                                                         s.profileForm.panVerified ?
                                                             `${s.profileForm.panNumber.slice(0, 5)}****${s.profileForm.panNumber.slice(-1)}` :
@@ -905,7 +905,7 @@ const ProfilePage: React.FC = () => {
                                                     ) : "—"}
                                                 </span>
                                                 {s.profileForm.panVerified && (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold shrink-0">
                                                         <CheckCircle2 className="h-3 w-3" /> Verified
                                                     </span>
                                                 )}
@@ -940,7 +940,7 @@ const ProfilePage: React.FC = () => {
                             {s.isAddingAddress && (
                                 <div className="border border-[#E8E0D5] rounded-xl p-5 mb-5 space-y-4 bg-[#FAFAF8]">
                                     <h4 className="text-[12px] font-semibold text-[#1A1A1A]">{s.editingAddress ? "Edit Address" : "New Address"}</h4>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className={labelCls}>Flat No<span className="text-rose-500 ml-1">*</span></label>
                                             <input
@@ -991,7 +991,7 @@ const ProfilePage: React.FC = () => {
                                         />
                                         {s.addrErrors.address && <p className="text-[11px] text-rose-500 mt-1">{s.addrErrors.address}</p>}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className={labelCls}>Pin Code<span className="text-rose-500 ml-1">*</span></label>
                                             <input
@@ -1167,24 +1167,32 @@ const ProfilePage: React.FC = () => {
                                         return (
                                             <div key={order.orderId} className="border border-[#E8E0D5] rounded-xl overflow-hidden bg-white">
                                                 {/* Order Header */}
-                                                <div className="flex items-center gap-4 px-5 py-4">
-                                                    <div className="h-10 w-10 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0">
-                                                        <Package className="h-5 w-5" />
+                                                {/* Order Header */}
+                                                <div className="flex items-start gap-3 px-4 py-4">
+                                                    <div className="h-9 w-9 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
+                                                        <Package className="h-4 w-4" />
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-[11px] text-[#8A8A8A]">Order #{order.orderNumber}</p>
-                                                        <p className="text-[12px] font-medium text-[#1A1A1A] mt-0.5">{formatDate(order.paymentExpiry)}</p>
-                                                    </div>
-                                                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold ${getStatusColor(order.orderStatus)}`}>
+                                                    <div className="flex-1 min-w-0 space-y-1.5">
+                                                        {/* Order number — truncated on small screens */}
+                                                        <p className="text-[11px] text-[#8A8A8A] truncate">
+                                                            Order #{order.orderNumber}
+                                                        </p>
+                                                        {/* Date */}
+                                                        <p className="text-[11px] font-medium text-[#1A1A1A]">
+                                                            {formatDate(order.paymentExpiry)}
+                                                        </p>
+                                                        {/* Badges + amount — all in flow, wraps naturally */}
+                                                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(order.orderStatus)}`}>
                                                                 Order: {order.orderStatus}
                                                             </span>
-                                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold ${getStatusColor(order.paymentStatus)}`}>
+                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(order.paymentStatus)}`}>
                                                                 Payment: {order.paymentStatus}
                                                             </span>
+                                                            <span className="text-[13px] font-semibold text-[#1A1A1A] ml-auto whitespace-nowrap">
+                                                                {DISPLAY_INR(order.totalAmount)}
+                                                            </span>
                                                         </div>
-                                                        <span className="text-[14px] font-semibold text-[#1A1A1A]">{DISPLAY_INR(order.totalAmount)}</span>
                                                     </div>
                                                 </div>
 

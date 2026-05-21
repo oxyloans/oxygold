@@ -442,6 +442,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    flexWrap: "wrap",
     gap: "16px",
     background: "rgba(212,175,55,0.10)",
     backdropFilter: "blur(10px)",
@@ -562,6 +563,10 @@ const responsiveStyles = `
     }
     .gold-banner-img{
       max-width: 100% !important;
+    }
+    .bis-view-btn{
+      width: 100% !important;
+      justify-content: center !important;
     }
   }
 

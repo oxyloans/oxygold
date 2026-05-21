@@ -74,7 +74,11 @@ function AppContent() {
     '/',
     "/select-gold",
     "/bis-certificate"
-  ].includes(location.pathname) || location.pathname.startsWith("/physical-gold") || location.pathname.startsWith("/admin") || location.pathname.startsWith("/partner");
+  ].includes(location.pathname) || 
+  location.pathname.startsWith("/physical-gold") || 
+  location.pathname.startsWith("/admin") || 
+  location.pathname.startsWith("/partner") || 
+  location.pathname.startsWith("/voiceAssistant");
   const handleDataPass = (data: any) => {
     setTransactionData(data);
   };

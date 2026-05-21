@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { API_BASE_URL } from '../Config';
 import { X, Bell, CheckCircle } from 'lucide-react';
 
@@ -7,12 +8,12 @@ const SubscribeLivePrice = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [errors, setErrors] = useState({ name: '', email: '', phone: '' });
+  const [errors, setErrors] = useState({ name: '', email: '', mobileNumber: '' });
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
+    mobileNumber: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,19 +22,19 @@ const SubscribeLivePrice = () => {
 
     if (name === 'name' && value.trim()) setErrors((prev) => ({ ...prev, name: '' }));
     if (name === 'email' && value.trim()) setErrors((prev) => ({ ...prev, email: '' }));
-    if (name === 'phone' && value.trim()) setErrors((prev) => ({ ...prev, phone: '' }));
+    if (name === 'mobileNumber' && value.trim()) setErrors((prev) => ({ ...prev, mobileNumber: '' }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const newErrors = { name: '', email: '', phone: '' };
+    const newErrors = { name: '', email: '', mobileNumber: '' };
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Enter a valid email address';
-    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
+    if (!formData.mobileNumber.trim()) newErrors.mobileNumber = 'mobileNumber number is required';
 
-    if (newErrors.name || newErrors.email || newErrors.phone) {
+    if (newErrors.name || newErrors.email || newErrors.mobileNumber) {
       setErrors(newErrors);
       return;
     }
@@ -42,7 +43,7 @@ const SubscribeLivePrice = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/marketing-service/subscribe`, {
+      const response = await fetch(`${API_BASE_URL}/user-service/savingSubcriptionData`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -54,8 +55,8 @@ const SubscribeLivePrice = () => {
       setTimeout(() => {
         setIsOpen(false);
         setSuccess(false);
-        setFormData({ name: '', email: '', phone: '' });
-        setErrors({ name: '', email: '', phone: '' });
+        setFormData({ name: '', email: '', mobileNumber: '' });
+        setErrors({ name: '', email: '', mobileNumber: '' });
       }, 3000);
     } catch (err: any) {
       setError(err.message || 'An error occurred. Please try again.');
@@ -98,6 +99,20 @@ const SubscribeLivePrice = () => {
           animation: none;
           box-shadow: 0 0 28px 8px rgba(240,187,58,0.60), 0 4px 24px rgba(217,160,32,0.35) !important;
         }
+        .subscribe-btn-text-full {
+          display: inline;
+        }
+        .subscribe-btn-text-short {
+          display: none;
+        }
+        @media (max-width: 640px) {
+          .subscribe-btn-text-full {
+            display: none;
+          }
+          .subscribe-btn-text-short {
+            display: inline;
+          }
+        }
       `}</style>
 
       <button
@@ -105,10 +120,11 @@ const SubscribeLivePrice = () => {
         className="subscribe-btn inline-flex cursor-pointer items-center gap-2 px-5 py-3 bg-[rgba(13,31,60,0.72)] hover:bg-[rgba(13,31,60,0.9)] text-[#f0bb3a] font-semibold rounded-xl border border-[rgba(240,187,58,0.30)] transition-all duration-300 hover:scale-[1.02]"
       >
         <Bell size={18} className="bell-icon" />
-        Subscribe Live Price
+        <span className="subscribe-btn-text-full">Subscribe Live Price</span>
+        <span className="subscribe-btn-text-short">Subscribe</span>
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-gradient-to-b from-[#112347] to-[#0d1f3c] w-full max-w-2xl rounded-2xl border border-[rgba(240,187,58,0.2)] shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
 
@@ -119,7 +135,7 @@ const SubscribeLivePrice = () => {
                   <Bell className="text-[#f0bb3a]" size={20} />
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-lg leading-tight">OXYGOLD-AI</h3>
+                  <h3 className="text-white font-bold text-lg leading-tight">OxyGold-AI</h3>
                   <p className="text-[#f0bb3a] text-xs font-semibold tracking-wider uppercase mt-0.5">Live Pricing Alerts</p>
                 </div>
               </div>
@@ -144,7 +160,7 @@ const SubscribeLivePrice = () => {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <p className="text-white/70 text-sm mb-4">
-                    Get the latest gold prices delivered straight to your inbox or WhatsApp twice daily. Never miss a buying opportunity.
+                    Get the latest gold prices delivered straight to your inbox and WhatsApp twice daily. Never miss a buying opportunity.
                   </p>
 
                   <div className="space-y-4">
@@ -181,13 +197,13 @@ const SubscribeLivePrice = () => {
                       <label className="block text-white/60 text-xs font-semibold mb-1.5 uppercase tracking-wider">WhatsApp Number</label>
                       <input
                         type="tel"
-                        name="phone"
-                        value={formData.phone}
+                        name="mobileNumber"
+                        value={formData.mobileNumber}
                         onChange={handleChange}
-                        className={`w-full bg-[#0d1f3c] border ${errors.phone ? 'border-red-400' : 'border-white/10'} rounded-lg px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#f0bb3a] focus:ring-1 focus:ring-[#f0bb3a] transition-all`}
+                        className={`w-full bg-[#0d1f3c] border ${errors.mobileNumber ? 'border-red-400' : 'border-white/10'} rounded-lg px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#f0bb3a] focus:ring-1 focus:ring-[#f0bb3a] transition-all`}
                         placeholder="+91 9876543210"
                       />
-                      {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone}</p>}
+                      {errors.mobileNumber && <p className="text-red-400 text-xs mt-1">{errors.mobileNumber}</p>}
                     </div>
                   </div>
 
@@ -213,7 +229,8 @@ const SubscribeLivePrice = () => {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
