@@ -180,7 +180,7 @@ const OxyGoldAIPage: React.FC = () => {
   };
 
   return (
-    <section>
+    <section className="oxygold-section">
       <div style={styles.container}>
         {/* Outer card — identical to BuyGoldSection */}
         <div style={styles.card} className="oxygold-card">
@@ -556,8 +556,9 @@ const responsiveStyles = `
 
   /* Mobile */
   @media (max-width: 640px) {
+    .oxygold-section { padding: 16px 12px !important; }
     .oxygold-card > div {
-      padding: 22px !important;
+      padding: 16px !important;
     }
     .oxygold-grid {
       grid-template-columns: 1fr !important;

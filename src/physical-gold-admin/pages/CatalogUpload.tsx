@@ -11,6 +11,7 @@ import Button from '../components/ui/Button';
 import Switch from '../components/ui/Switch';
 import Select from "../components/ui/Select";
 import * as adminService from '../services/adminService';
+import Toast from '../../PhysicalGold/components/Toast';
 
 const CatalogUpload: React.FC = () => {
     // Hierarchical Navigation State
@@ -19,6 +20,9 @@ const CatalogUpload: React.FC = () => {
 
     const [data, setData] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Toast Notification State
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -143,10 +147,10 @@ const CatalogUpload: React.FC = () => {
                 setCurrentItem({ ...currentItem, imageData: freshImageData });
             }
             fetchData();
-            alert("Image uploaded successfully");
+            setToast({ message: "Image uploaded successfully", type: "success" });
         } catch (error) {
             console.error(error);
-            alert("Upload failed");
+            setToast({ message: "Upload failed", type: "error" });
         } finally {
             setIsUploading(false);
         }
@@ -202,49 +206,66 @@ const CatalogUpload: React.FC = () => {
         e.preventDefault();
         try {
             const currentParent = path.length > 0 ? path[path.length - 1] : null;
+            let successMessage = "Action completed successfully";
 
             if (modalType === 'category') {
                 const payload = { ...formData, parentId: currentParent ? currentParent.id : 0 };
-                if (isEditing) await adminService.updateCategory({ ...payload, id: currentItem.id });
-                else await adminService.createCategory(payload);
+                if (isEditing) {
+                    await adminService.updateCategory({ ...payload, id: currentItem.id });
+                    successMessage = "Category updated successfully";
+                } else {
+                    await adminService.createCategory(payload);
+                    successMessage = "Category created successfully";
+                }
             } else if (modalType === 'product') {
                 const payload = { ...formData, categoryId: currentParent!.id };
-                if (isEditing) await adminService.updateProduct(currentItem.id, payload);
-                else await adminService.createProduct(payload);
+                if (isEditing) {
+                    await adminService.updateProduct(currentItem.id, payload);
+                    successMessage = "Product updated successfully";
+                } else {
+                    await adminService.createProduct(payload);
+                    successMessage = "Product created successfully";
+                }
             } else if (modalType === 'variant') {
                 if (!isEditing) {
                     await adminService.addVariant(currentParent!.id, formData);
+                    successMessage = "Variant added successfully";
                 }
             } else if (modalType === 'price') {
                 await adminService.updateVariantPrice(currentItem.id, formData.price);
+                successMessage = "Price updated successfully";
             } else if (modalType === 'quantity') {
                 await adminService.updateVariantQuantity(currentItem.id, formData.stockQuantity);
+                successMessage = "Stock quantity updated successfully";
             }
 
             setIsModalOpen(false);
             fetchData();
+            setToast({ message: successMessage, type: 'success' });
         } catch (error: any) {
-            alert(error.message || "Action failed");
+            setToast({ message: error.message || "Action failed", type: 'error' });
         }
     };
 
     const handleStatusToggle = async (item: any) => {
+        const newStatus = item.status === 'ACTIVE' ? 'OUT_OF_STOCK' : 'ACTIVE';
         try {
-            const newStatus = item.status === 'ACTIVE' ? 'OUT_OF_STOCK' : 'ACTIVE';
             await adminService.updateVariantStatus(item.id, newStatus);
             fetchData();
+            setToast({ message: `Variant status updated to ${newStatus === 'ACTIVE' ? 'Active' : 'Out of Stock'}`, type: 'success' });
         } catch (error) {
-            alert("Status update failed");
+            setToast({ message: "Status update failed", type: 'error' });
         }
     };
 
     const handleProductStatusToggle = async (item: any) => {
+        const newStatus = item.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
         try {
-            const newStatus = item.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
             await adminService.updateProductStatus(item.id, newStatus);
             fetchData();
+            setToast({ message: `Product status updated to ${newStatus === 'ACTIVE' ? 'Active' : 'Inactive'}`, type: 'success' });
         } catch (error) {
-            alert("Status update failed");
+            setToast({ message: "Status update failed", type: 'error' });
         }
     };
 
@@ -607,6 +628,14 @@ const CatalogUpload: React.FC = () => {
                         : 'This will make it visible to customers again. Continue?'}
                 </p>
             </Modal>
+
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
     );
 };

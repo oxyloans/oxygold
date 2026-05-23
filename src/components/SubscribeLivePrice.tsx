@@ -32,7 +32,8 @@ const SubscribeLivePrice = () => {
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Enter a valid email address';
-    if (!formData.mobileNumber.trim()) newErrors.mobileNumber = 'mobileNumber number is required';
+    if (!formData.mobileNumber.trim()) newErrors.mobileNumber = 'Mobile number is required';
+    else if (!/^\+?[0-9]{10,15}$/.test(formData.mobileNumber.replace(/\s+/g, ''))) newErrors.mobileNumber = 'Enter a valid mobile number';
 
     if (newErrors.name || newErrors.email || newErrors.mobileNumber) {
       setErrors(newErrors);
@@ -43,7 +44,27 @@ const SubscribeLivePrice = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/user-service/savingSubcriptionData`, {
+      // 1. Fetch existing users to check for uniqueness
+      const usersResponse = await fetch(`${API_BASE_URL}/product-service/getAllSubscriptionUsers`);
+      if (!usersResponse.ok) {
+        throw new Error('Failed to verify user details. Please try again.');
+      }
+      
+      const existingUsers = await usersResponse.json();
+      
+      const userExists = existingUsers.some((user: any) => 
+        (user.email && user.email.toLowerCase() === formData.email.trim().toLowerCase()) || 
+        (user.mobileNumber && user.mobileNumber.replace(/\s+/g, '') === formData.mobileNumber.replace(/\s+/g, ''))
+      );
+
+      if (userExists) {
+        setError('You are already subscribed to live price alerts with this email or mobile number.');
+        setLoading(false);
+        return;
+      }
+
+      // 2. Proceed with subscription if user doesn't exist
+      const response = await fetch(`${API_BASE_URL}/product-service/savingSubcriptionData`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

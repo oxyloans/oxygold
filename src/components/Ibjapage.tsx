@@ -258,8 +258,8 @@ const responsiveStyles = `
   }
 
   @media (max-width: 640px){
-    .ibja-container{ padding: 34px 2px !important; }
-    .ibja-inner{ padding: 28px !important; }
+    .ibja-container{ padding: 16px 12px !important; }
+    .ibja-inner{ padding: 16px !important; }
     .ibja-card{ border-radius: 20px !important; }
     .ibja-grid{ gap: 24px !important; }
   }

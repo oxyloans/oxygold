@@ -532,13 +532,13 @@ const responsiveStyles = `
   /* Mobile */
   @media (max-width: 640px) {
     section {
-      padding: 32px 16px !important;
+      padding: 16px 12px !important;
     }
     .buy-gold-card {
       border-radius: 20px !important;
     }
     .buy-gold-card > div{
-      padding: 20px !important;
+      padding: 16px !important;
     }
     .buy-gold-grid{
       grid-template-columns: 1fr !important;
@@ -573,7 +573,7 @@ const responsiveStyles = `
   /* Extra small mobile */
   @media (max-width: 400px) {
     section {
-      padding: 24px 12px !important;
+      padding: 12px 12px !important;
     }
     .buy-gold-card > div{
       padding: 16px !important;

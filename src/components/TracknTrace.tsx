@@ -6,7 +6,7 @@ export default function TracknTrace() {
     <section className="w-full">
       <div className="grid items-center gap-4 sm:gap-6 lg:gap-8 grid-cols-1 lg:grid-cols-[1.05fr_0.95fr]">
         {/* LEFT CONTENT */}
-        <div className="flex flex-col justify-center text-center lg:text-left px-3 sm:px-4 lg:px-0 py-6 sm:py-8 lg:py-0">
+        <div className="flex flex-col justify-center text-center lg:text-left px-3 sm:px-4 lg:px-0 py-2 sm:py-8 lg:py-0">
         
 
           <h1 className="mt-2 text-[28px] sm:text-[40px] md:text-[48px] lg:text-[60px] leading-[1.15] font-black text-white">

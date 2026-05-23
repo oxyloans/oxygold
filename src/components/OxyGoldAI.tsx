@@ -188,12 +188,12 @@ export default function OxyGoldLandingPage({ assets }: Props) {
       <div className="mx-auto max-w-7xl px-4 sm:px-7 lg:px-8">
         {/* HERO */}
 
-        <section className="py-10 sm:py-12 lg:py-20">
+        <section className="py-2 sm:py-12 lg:py-20">
           <TrackTrace />
         </section>
         <section
           id="hero"
-          className="relative grid items-center gap-6 sm:gap-8 lg:gap-12 pb-6 sm:pb-8 lg:pb-10 pt-4 sm:pt-6 lg:pt-8 lg:grid-cols-2"
+          className="relative grid items-center gap-6 sm:gap-8 lg:gap-12 pb-4 sm:pb-8 lg:pb-10 pt-2 sm:pt-6 lg:pt-8 lg:grid-cols-2"
         >
           <HeroLocalPattern />
 
@@ -272,34 +272,34 @@ export default function OxyGoldLandingPage({ assets }: Props) {
         </section>
 
         {/* ✅ Live Gold Rate */}
-        <section id="live-rate" className="py-4 sm:py-8 lg:py-16">
+        <section id="live-rate" className="py-0 sm:py-8 lg:py-16">
           <GoldRatesDashboard />
         </section>
 
         {/* ✅ AI Book */}
-        <section id="ai-book" className="py-4 sm:py-8 lg:py-12">
+        <section id="ai-book" className="py-0 sm:py-8 lg:py-12">
           <AIBookSection />
         </section>
 
         {/* ✅ Buy Gold Coins */}
-        <section id="buy-coins" className="py-4 sm:py-8 lg:py-12">
+        <section id="buy-coins" className="py-0 sm:py-8 lg:py-12">
           <BuyGoldCoins />
         </section>
 
         {/* ✅ IBJA */}
-        <section id="ibja-partner" className="py-4 sm:py-8 lg:py-12">
+        <section id="ibja-partner" className="py-0 sm:py-8 lg:py-12">
           <IBJAPartnerSection />
         </section>
 
         {/* ✅ Design Jewellery */}
-        <section id="design-jewellery" className="py-4 sm:py-8 lg:py-12">
+        <section id="design-jewellery" className="py-0 sm:py-8 lg:py-12">
           <DesignGoldOrnaments />
         </section>
 
         {/* MAIN CONTENT SECTIONS */}
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-0 sm:space-y-6">
           {/* ✅ What We Provide */}
-          <section id="provide" className="py-6 sm:py-10">
+          <section id="provide" className="py-2 sm:py-10">
             <SectionHeader
               kicker=""
               title="What We Provide"
@@ -332,7 +332,7 @@ export default function OxyGoldLandingPage({ assets }: Props) {
           </section>
 
           {/* ✅ Modules */}
-          <section id="modules" className="py-4 sm:py-6">
+          <section id="modules" className="py-0 sm:py-6">
             <div className="relative overflow-hidden rounded-xl sm:rounded-2xl lg:rounded-[20px] border border-white/10 bg-white/5">
               <div
                 className="pointer-events-none absolute -left-12 sm:-left-20 lg:-left-24 -top-12 sm:-top-20 lg:-top-24 h-40 w-40 sm:h-56 sm:w-56 lg:h-72 lg:w-72 rounded-full blur-3xl opacity-30"
@@ -381,9 +381,8 @@ export default function OxyGoldLandingPage({ assets }: Props) {
         </div>
 
         {/* ✅ Platforms */}
-        <section id="platforms" className="py-4 sm:py-8 lg:py-12">
+        <section id="platforms" className="py-0 sm:py-8 lg:py-12">
           <OxyEcosystem />
-
           {/* OPTIONAL: If you want dropdown sub-links to scroll inside this section,
           add these anchors near each platform card inside OxyEcosystem component:
           <div id="platform-oxygold" />
@@ -402,7 +401,7 @@ export default function OxyGoldLandingPage({ assets }: Props) {
       {/* Scroll To Top Button */}
       {showScroll && (
         <button
-        aria-label="scrollarrow"
+          aria-label="scrollarrow"
           onClick={scrollToTop}
           className="fixed bottom-6 right-6 z-50 group"
         >

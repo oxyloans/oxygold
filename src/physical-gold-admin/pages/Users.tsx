@@ -51,6 +51,16 @@ const Users: React.FC = () => {
 
     const columns = [
         {
+            header: 'SR No',
+            key: 'srNo',
+            width: '60px',
+            render: (_: any, item: UserData) => (
+                <span className="font-bold text-slate-600">
+                    {users.findIndex(user => user.userId === item.userId) + 1 + (currentPage * pageSize)}
+                </span>
+            )
+        },
+        {
             header: 'User ID',
             key: 'userId',
             width: '80px',
@@ -97,20 +107,23 @@ const Users: React.FC = () => {
             )
         },
         {
-            header: 'Email / Gender',
+            header: 'Email',
             key: 'email',
-            render: (val: string, item: UserData) => (
-                <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5 text-slate-600">
-                        <Mail size={12} className="text-slate-400" />
-                        {val || 'No Email'}
-                    </div>
-                    {item.gender && (
-                        <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
-                            {item.gender}
-                        </div>
-                    )}
+            render: (val: string) => (
+                <div className="flex items-center gap-1.5 text-slate-600">
+                    <Mail size={12} className="text-slate-400" />
+                    {val || 'No Email'}
                 </div>
+            )
+        },
+        {
+            header: 'Gender',
+            key: 'gender',
+            width: '80px',
+            render: (val: string) => (
+                <span className="text-slate-700 font-semibold uppercase text-xs">
+                    {val || '-'}
+                </span>
             )
         },
         {

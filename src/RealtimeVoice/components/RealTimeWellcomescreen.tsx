@@ -82,9 +82,8 @@ function ParticleField() {
                 ctx.beginPath();
                 ctx.moveTo(particle.x, particle.y);
                 ctx.lineTo(particles[j].x, particles[j].y);
-                ctx.strokeStyle = `hsla(${particle.hue}, 70%, 60%, ${
-                  0.05 * (1 - distance / 80)
-                })`;
+                ctx.strokeStyle = `hsla(${particle.hue}, 70%, 60%, ${0.05 * (1 - distance / 80)
+                  })`;
                 ctx.lineWidth = 0.3;
                 ctx.stroke();
               }
@@ -244,9 +243,9 @@ export default function WelcomeScreen({
         selectedLanguage={selectedLanguage}
         isSessionActive={false}
         isConnecting={false}
-        onBackClick={() => {}}
-        onStartSession={() => {}}
-        onStopSession={() => {}}
+        onBackClick={() => { }}
+        onStartSession={() => { }}
+        onStopSession={() => { }}
         currentScreen="welcome"
         hideButtons={true}
       />
@@ -294,8 +293,8 @@ export default function WelcomeScreen({
                   <img
                     src={lang.imageUrl}
                     alt={`${lang.name} representative`}
-                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                    style={{ objectPosition: "center" }}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    style={{ objectPosition: "center top" }}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-sm text-gray-400 bg-gradient-to-br from-gray-100 to-gray-200">

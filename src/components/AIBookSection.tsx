@@ -10,7 +10,7 @@ export default function AIBookSection() {
   };
 
   return (
-    <section>
+    <section className="ai-book-section">
       <div style={styles.container}>
         {/* ✅ use SAME div (no new div) + make it the rounded card */}
         <div
@@ -129,7 +129,8 @@ export default function AIBookSection() {
             .ai-book-grid{ grid-template-columns: 0.95fr 1.05fr !important; }
           }
           @media (max-width: 640px){
-            .ai-book-card{ border-radius: 16px !important; padding: 20px !important; }
+            .ai-book-section { padding: 16px 12px !important; }
+            .ai-book-card{ border-radius: 16px !important; padding: 16px !important; }
             .ai-book-left{ padding: 0 10px; }
           }
           @media (min-width: 641px) and (max-width: 899px){
