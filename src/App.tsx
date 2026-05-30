@@ -75,7 +75,9 @@ function AppContent() {
     "/select-gold",
     "/bis-certificate",
     "/imageCreation",
-    "/videoCreation"
+    "/videoCreation",
+    "/imageCreation/",
+    "/videoCreation/",
   ].includes(location.pathname) ||
     location.pathname.startsWith("/physical-gold") ||
     location.pathname.startsWith("/admin") ||
