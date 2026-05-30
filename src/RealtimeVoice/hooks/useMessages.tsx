@@ -85,7 +85,7 @@ export const useMessages = ({
 }: UseMessagesProps) => {
   const location = useLocation();
   const navigate = useNavigate();
- const BASE_URL= API_BASE_URL;
+  const BASE_URL = API_BASE_URL;
   useEffect(() => {
     const isLogin = localStorage.getItem("userId");
     // Show modal when user tries to ask their 5th question
@@ -93,7 +93,7 @@ export const useMessages = ({
       setShowModal(true);
     }
   }, [questionCount]);
- 
+
   const handleSend = useCallback(
     async (messageContent?: string) => {
       const textToSend = messageContent || input.trim();
@@ -177,7 +177,7 @@ export const useMessages = ({
       questionCount,
       setQuestionCount,
       setShowModal, // Updated: Dependency for showing modal
-    ]
+    ],
   );
 
   const handleEdit = useCallback(
@@ -190,7 +190,7 @@ export const useMessages = ({
       }
 
       const updatedMessages = messages.map((msg) =>
-        msg.id === messageId ? { ...msg, content: newContent } : msg
+        msg.id === messageId ? { ...msg, content: newContent } : msg,
       );
       setMessages(updatedMessages);
       setInput("");
@@ -249,87 +249,88 @@ export const useMessages = ({
       questionCount,
       setQuestionCount,
       setShowModal,
-    ]
+    ],
   );
 
-const handleFileUpload = async (  
-  files: File[] | null,
-  userPrompt: string
-): Promise<string | null> => {
-  if (Number(remainingPrompts) === 0 && remainingPrompts != null) {
-    return await Promise.resolve(null);
-  }
+  const handleFileUpload = async (
+    files: File[] | null,
+    userPrompt: string,
+  ): Promise<string | null> => {
+    if (Number(remainingPrompts) === 0 && remainingPrompts != null) {
+      return await Promise.resolve(null);
+    }
 
-  setLoading(true);
+    setLoading(true);
 
-  const userMessage: Message = {
-    id: Date.now().toString(),
-    role: "user",
-    content: userPrompt,
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: userPrompt,
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+
+    try {
+      const formData = new FormData();
+
+      // append multiple
+      if (files && threadId === null) {
+        files.forEach((file) => formData.append("files", file));
+      }
+
+      formData.append("prompt", userPrompt);
+      if (threadId) formData.append("threadId", threadId);
+
+      const response = await axios.post(
+        `${BASE_URL}/student-service/user/chat-with-files`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
+
+      const {
+        answer,
+        threadId: newThreadId,
+        remainingPrompts: updatedPrompts,
+      } = response.data;
+
+      setThreadId(newThreadId);
+      setRemainingPrompts(updatedPrompts);
+
+      const { isImage, url } = extractImageUrl(answer);
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: isImage
+          ? url || String(answer).trim()
+          : cleanContent(String(answer)),
+        isImage,
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+      messagesEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+      if (location.pathname === "/genoxy") {
+        navigate("/genoxy/chat");
+      }
+
+      return newThreadId;
+    } catch (error) {
+      console.error("File upload failed:", error);
+      const errorMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        role: "assistant",
+        content: "Sorry, the file upload failed. Please try again.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      return null;
+    } finally {
+      setLoading(false);
+    }
   };
-  setMessages((prev) => [...prev, userMessage]);
-  setInput("");
-
-  try {
-    const formData = new FormData();
-
-    // append multiple
-    if (files && threadId === null) {
-      files.forEach((file) => formData.append("files", file));
-    }
-
-    formData.append("prompt", userPrompt);
-    if (threadId) formData.append("threadId", threadId);
-
-    const response = await axios.post(
-      `${BASE_URL}/student-service/user/chat-with-files`,
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } }
-    );
-
-    const {
-      answer,
-      threadId: newThreadId,
-      remainingPrompts: updatedPrompts,
-    } = response.data;
-
-    setThreadId(newThreadId);
-    setRemainingPrompts(updatedPrompts);
-
-    const { isImage, url } = extractImageUrl(answer);
-
-    const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: isImage ? url || String(answer).trim() : cleanContent(String(answer)),
-      isImage,
-    };
-
-    setMessages((prev) => [...prev, assistantMessage]);
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-
-    if (location.pathname === "/genoxy") {
-      navigate("/genoxy/chat");
-    }
-
-    return newThreadId;
-  } catch (error) {
-    console.error("File upload failed:", error);
-    const errorMessage: Message = {
-      id: (Date.now() + 2).toString(),
-      role: "assistant",
-      content: "Sorry, the file upload failed. Please try again.",
-    };
-    setMessages((prev) => [...prev, errorMessage]);
-    return null;
-  } finally {
-    setLoading(false);
-  }
-};
-
 
   return { handleSend, handleEdit, handleFileUpload };
 };
@@ -337,13 +338,12 @@ const handleFileUpload = async (
 class VoiceSessionService {
   private peerConnection: RTCPeerConnection | null = null;
   private micStream: MediaStream | null = null;
-  private recognition: any = null;
   private dataChannel: RTCDataChannel | null = null;
 
   async getEphemeralToken(
     instructions: string,
     assistantId: string,
-    voicemode: string
+    voicemode: string,
   ): Promise<string> {
     try {
       const res = await fetch(
@@ -355,288 +355,30 @@ class VoiceSessionService {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ instructions }),
-        }
+        },
       );
+
       const data = await res.json();
-      return data.client_secret.value;
+
+      console.log("Voice Token Response:", data);
+
+      return data?.value || "";
     } catch (error) {
       console.error("Failed to get ephemeral token:", error);
       throw error;
     }
   }
 
-  private async handleGetMalabarGoldPrice(): Promise<any> {
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/product-service/all-different-gold-rates
-`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      
-      const data = await res.json();
-      console.log(data);
-      
-      return { success: true, data };
-    } catch (error) {
-      console.error("Failed to fetch Malabar gold price:", error);
-      return { error: "Failed to fetch gold price. Please try again." };
+  sendMessage(message: string) {
+    if (!this.dataChannel) {
+      console.error("Data channel is not connected");
+      return;
     }
-  }
 
-  private injectRealtimeTools(
-    dc: RTCDataChannel,
-    selectedInstructions: string
-  ) {
-    const event = {
-      type: "session.update",
-      session: {
-        instructions: selectedInstructions,
-        modalities: ["text", "audio"],
-        tool_choice: "auto",
-        tools: [
-          {
-            type: "function",
-            name: "get_live_gold_price",
-            description:
-              "Fetch the latest gold prices. Call this whenever the user asks about gold price or gold rates.",
-            parameters: {
-              type: "object",
-              properties: {},
-              required: [],
-            },
-          },
-        ],
-      },
-    };
-
-    dc.send(JSON.stringify(event));
-    console.log("✅ Realtime tools injected");
-  }
-
-  // ------------------ Start voice session ------------------
-
-  async startSession(
-    assistantId: string,
-    selectedLanguage: LanguageConfig,
-    selectedInstructions: string,
-    onMessage: (message: ChatMessage) => void,
-    onAssistantSpeaking: (speaking: boolean) => void,
-    navigate: (path: string) => void,
-    voicemode: string
-  ): Promise<RTCDataChannel> {
-    this.stopSession();
-
-    try {
-      const EPHEMERAL_KEY = await this.getEphemeralToken(
-        selectedInstructions,
-        assistantId,
-        voicemode
-      );
-
-      const pc = new RTCPeerConnection();
-      this.peerConnection = pc;
-
-      const audioEl = document.createElement("audio");
-      audioEl.autoplay = true;
-      pc.ontrack = (e) => (audioEl.srcObject = e.streams[0]);
-
-      this.micStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
-      pc.addTrack(this.micStream.getTracks()[0]);
-
-      const dc = pc.createDataChannel("oai-events");
-      this.dataChannel = dc;
-
-      // Pass selectedInstructions so tools can be injected on open
-      this.setupDataChannelHandlers(
-        dc,
-        onMessage,
-        onAssistantSpeaking,
-        selectedInstructions
-      );
-
-      this.setupSpeechRecognition(selectedLanguage, onMessage);
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      const model = "gpt-4o-realtime-preview-2025-06-03";
-      const sdpRes = await fetch(
-        `https://api.openai.com/v1/realtime?model=${model}`,
-        {
-          method: "POST",
-          body: offer.sdp,
-          headers: {
-            Authorization: `Bearer ${EPHEMERAL_KEY}`,
-            "Content-Type": "application/sdp",
-          },
-        }
-      );
-
-      const answer: RTCSessionDescriptionInit = {
-        type: "answer",
-        sdp: await sdpRes.text(),
-      };
-      await pc.setRemoteDescription(answer);
-
-      return dc;
-    } catch (error) {
-      console.error("Failed to start session:", error);
-      throw error;
+    if (this.dataChannel.readyState !== "open") {
+      console.error("Data channel not open:", this.dataChannel.readyState);
+      return;
     }
-  }
-
-  // ------------------ Data Channel Handlers ------------------
-
-  private setupDataChannelHandlers(
-    dc: RTCDataChannel,
-    onMessage: (message: ChatMessage) => void,
-    onAssistantSpeaking: (speaking: boolean) => void,
-    selectedInstructions: string
-  ) {
-    let buffer = "";
-    const pendingArgs: Record<string, string> = {};
-
-    dc.onopen = () => {
-      console.log("🟢 Data channel opened");
-      // Inject tools + instructions once channel is ready
-      this.injectRealtimeTools(dc, selectedInstructions);
-      // Trigger initial greeting
-      setTimeout(() => {
-        dc.send(JSON.stringify({ type: "response.create" }));
-      }, 300);
-    };
-
-    dc.onmessage = async (e) => {
-      try {
-        const event = JSON.parse(e.data);
-
-        // ── Text streaming ──
-        if (event.type === "response.output_text.delta" && event.delta) {
-          buffer += event.delta;
-          onAssistantSpeaking(true);
-          onMessage({
-            role: "assistant",
-            text: buffer,
-            timestamp: new Date().toLocaleTimeString(),
-          });
-          return;
-        }
-
-        // ── Audio playing ──
-        if (event.type === "response.audio.delta") {
-          onAssistantSpeaking(true);
-          return;
-        }
-
-        // ── Response finished ──
-        if (event.type === "response.stop") {
-          onAssistantSpeaking(false);
-          buffer = "";
-          return;
-        }
-
-        // ── Tool call argument streaming ──
-        if (event.type === "response.function_call_arguments.delta") {
-          if (!pendingArgs[event.call_id]) {
-            pendingArgs[event.call_id] = "";
-          }
-          pendingArgs[event.call_id] += event.delta;
-          return;
-        }
-
-        // ── Tool call complete ──
-        if (event.type === "response.function_call_arguments.done") {
-          const callId = event.call_id;
-          const functionName = event.name || "";
-
-          console.log(`🛠 Tool called: ${functionName}`);
-
-          let result: any = {};
-
-          if (functionName === "get_live_gold_price") {
-            result = await this.handleGetMalabarGoldPrice();
-          } else {
-            result = { error: `Unknown function: ${functionName}` };
-          }
-
-          // Send result back to OpenAI Realtime
-          dc.send(
-            JSON.stringify({
-              type: "conversation.item.create",
-              item: {
-                type: "function_call_output",
-                call_id: callId,
-                output: JSON.stringify(result),
-              },
-            })
-          );
-
-          // Trigger assistant to speak the response
-          dc.send(JSON.stringify({ type: "response.create" }));
-
-          delete pendingArgs[callId];
-          return;
-        }
-      } catch (err) {
-        console.error("❌ Failed to parse Realtime event:", err, e.data);
-      }
-    };
-  }
-
-  // ------------------ Speech Recognition ------------------
-
-  private setupSpeechRecognition(
-    selectedLanguage: LanguageConfig,
-    onMessage: (message: ChatMessage) => void
-  ) {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
-
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.lang = selectedLanguage.speechLang;
-      recognition.continuous = true;
-      recognition.interimResults = false;
-
-      recognition.onresult = (event: any) => {
-        const transcript =
-          event.results[event.results.length - 1][0].transcript.trim();
-        if (transcript) {
-          const msg: ChatMessage = {
-            role: "user",
-            text: transcript,
-            timestamp: new Date().toLocaleTimeString(),
-          };
-          onMessage(msg);
-          this.sendMessage(transcript);
-        }
-      };
-
-      recognition.onerror = (e: any) =>
-        console.error("Speech recognition error:", e);
-
-      recognition.onend = () => {
-        if (this.dataChannel) recognition.start();
-      };
-
-      recognition.start();
-      this.recognition = recognition;
-    }
-  }
-
-  // ------------------ Send Text Message ------------------
-
-  sendMessage(text: string) {
-    if (!this.dataChannel) return;
 
     this.dataChannel.send(
       JSON.stringify({
@@ -644,25 +386,229 @@ class VoiceSessionService {
         item: {
           type: "message",
           role: "user",
-          content: [{ type: "input_text", text }],
+          content: [
+            {
+              type: "input_text",
+              text: message,
+            },
+          ],
         },
-      })
+      }),
     );
-    this.dataChannel.send(JSON.stringify({ type: "response.create" }));
+
+    this.dataChannel.send(
+      JSON.stringify({
+        type: "response.create",
+      }),
+    );
   }
 
-  // ------------------ Stop Session ------------------
+  async startSession(
+    assistantId: string,
+    selectedLanguage: any,
+    selectedInstructions: string,
+    onMessage: (message: any) => void,
+    onAssistantSpeaking: (speaking: boolean) => void,
+    navigate: (path: string) => void,
+    voicemode: string,
+  ): Promise<RTCDataChannel> {
+    this.stopSession();
+
+    try {
+      const EPHEMERAL_KEY = await this.getEphemeralToken(
+        selectedInstructions,
+        assistantId,
+        voicemode,
+      );
+
+      console.log("EPHEMERAL KEY:", EPHEMERAL_KEY);
+
+      const pc = new RTCPeerConnection();
+
+      this.peerConnection = pc;
+
+      pc.onconnectionstatechange = () => {
+        console.log("Connection State:", pc.connectionState);
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log("ICE Connection State:", pc.iceConnectionState);
+      };
+
+      const audioEl = document.createElement("audio");
+      audioEl.autoplay = true;
+
+      pc.ontrack = (event) => {
+        console.log("Audio track received");
+        audioEl.srcObject = event.streams[0];
+      };
+
+      this.micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
+      this.micStream.getTracks().forEach((track) => {
+        pc.addTrack(track, this.micStream!);
+      });
+
+      const dc = pc.createDataChannel("oai-events");
+
+      this.dataChannel = dc;
+
+      this.setupDataChannelHandlers(dc, onMessage, onAssistantSpeaking);
+
+      const offer = await pc.createOffer();
+
+      await pc.setLocalDescription(offer);
+
+      console.log("Creating SDP request...");
+
+      const sdpRes = await fetch("https://api.openai.com/v1/realtime/calls", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${EPHEMERAL_KEY}`,
+          "Content-Type": "application/sdp",
+        },
+        body: offer.sdp,
+      });
+
+      if (!sdpRes.ok) {
+        const errorText = await sdpRes.text();
+
+        console.error("SDP Error Response:", errorText);
+
+        throw new Error(errorText);
+      }
+
+      const sdpText = await sdpRes.text();
+
+      console.log("SDP Answer Received");
+
+      const answer: RTCSessionDescriptionInit = {
+        type: "answer",
+        sdp: sdpText,
+      };
+
+      await pc.setRemoteDescription(answer);
+
+      console.log("Realtime session connected");
+
+      return dc;
+    } catch (error) {
+      console.error("Failed to start session:", error);
+
+      this.stopSession();
+
+      throw error;
+    }
+  }
+
+  private setupDataChannelHandlers(
+    dc: RTCDataChannel,
+    onMessage: (message: any) => void,
+    onAssistantSpeaking: (speaking: boolean) => void,
+  ) {
+    let assistantText = "";
+
+    dc.onopen = () => {
+      console.log("🟢 Data channel opened");
+
+      dc.send(
+        JSON.stringify({
+          type: "session.update",
+          session: {
+            modalities: ["audio", "text"],
+            voice: "shimmer",
+          },
+        }),
+      );
+    };
+
+    dc.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        console.log("Realtime Event:", data);
+
+        switch (data.type) {
+          case "response.output_text.delta":
+            assistantText += data.delta || "";
+
+            onMessage({
+              role: "assistant",
+              text: assistantText,
+              timestamp: new Date().toLocaleTimeString(),
+            });
+            break;
+
+          case "response.output_text.done":
+            assistantText = "";
+            break;
+
+          case "input_audio_buffer.speech_started":
+            onAssistantSpeaking(false);
+            break;
+
+          case "response.audio.delta":
+            onAssistantSpeaking(true);
+            break;
+
+          case "response.audio.done":
+            onAssistantSpeaking(false);
+            break;
+
+          case "conversation.item.input_audio_transcription.completed":
+            if (data.transcript) {
+              onMessage({
+                role: "user",
+                text: data.transcript,
+                timestamp: new Date().toLocaleTimeString(),
+              });
+            }
+            break;
+
+          case "error":
+            console.error("Realtime Error:", data);
+            break;
+
+          default:
+            console.log("Unhandled Event:", data.type);
+            break;
+        }
+      } catch (err) {
+        console.error("Failed to parse realtime event:", err);
+      }
+    };
+
+    dc.onclose = () => {
+      console.log("🔴 Data channel closed");
+    };
+
+    dc.onerror = (err) => {
+      console.error("Data channel error:", err);
+    };
+  }
 
   stopSession() {
-    this.dataChannel?.close();
-    this.micStream?.getTracks().forEach((t) => t.stop());
-    this.peerConnection?.close();
-    this.recognition?.stop();
+    try {
+      this.dataChannel?.close();
+
+      if (this.micStream) {
+        this.micStream.getTracks().forEach((track) => track.stop());
+      }
+
+      this.peerConnection?.close();
+    } catch (err) {
+      console.error(err);
+    }
 
     this.dataChannel = null;
     this.micStream = null;
     this.peerConnection = null;
-    this.recognition = null;
   }
 }
 
