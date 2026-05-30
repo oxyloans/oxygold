@@ -30,12 +30,12 @@ export interface LanguageConfig {
 // }
 
 export const LANGUAGES: LanguageConfig[] = [
-  {
-    code: "mr",
-    name: "Marathi",
-    nativeName: "मराठी",
+   {
+    code: "te",
+    name: "Telugu",
+    nativeName: "తెలుగు",
     flag: "🇮🇳",
-    speechLang: "mr-IN",
+    speechLang: "te-IN",
     imageUrl:
       "https://th.bing.com/th/id/OIP.-ixiQp5esJ7JRIHJdHf-jgHaEc?w=202&h=121&c=7&r=0&o=7&dpr=1.5&pid=1.7&rm=3",
     assistantName: "Vedika",

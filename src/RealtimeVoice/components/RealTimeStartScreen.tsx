@@ -2,11 +2,13 @@ import React from "react";
 import { Play } from "lucide-react";
 import { LanguageConfig } from "../types/types";
 
+
 interface StartScreenProps {
   selectedLanguage: LanguageConfig;
   isConnecting: boolean;
   onStartSession: () => void;
 }
+
 
 export default function StartScreen({ 
   selectedLanguage, 
@@ -29,6 +31,7 @@ export default function StartScreen({
         />
       </div>
 
+
       {/* Animated Lines */}
       <div className="fixed inset-0 pointer-events-none opacity-5 z-0">
         <div className="w-full h-px bg-cyan-400 animate-pulse absolute top-1/4"></div>
@@ -42,19 +45,20 @@ export default function StartScreen({
         ></div>
       </div>
 
+
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-8 min-h-screen pt-24">
         <div className="text-center space-y-6">
           <div className="text-8xl animate-bounce">
             {selectedLanguage.flag}
           </div>
           <h2 className="text-3xl font-bold text-white">
-            {selectedLanguage.code === "mr" && "मराठी गोल्ड व्हॉइस असिस्टंट"}
+            {selectedLanguage.code === "te" && "తెలుగు గోల్డ్ వాయిస్ అసిస్టెంట్"}
             {selectedLanguage.code === "en" && "English Voice Assistant"}
             {selectedLanguage.code === "hi" && "हिन्दी वॉयस असिस्टेंट"}
           </h2>
           <p className="text-gray-300 text-lg max-w-md mx-auto">
-            {selectedLanguage.code === "mr" &&
-              "आपल्या गोल्ड व्हॉइस असिस्टंटसोबत संवाद सुरू करा"}
+            {selectedLanguage.code === "te" &&
+              "మీ గోల్డ్ వాయిస్ అసిస్టెంట్‌తో సంభాషణ ప్రారంభించండి"}
             {selectedLanguage.code === "en" &&
               "Start your conversation with the voice assistant"}
             {selectedLanguage.code === "hi" &&
@@ -69,7 +73,7 @@ export default function StartScreen({
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 <span>
-                  {selectedLanguage.code === "mr" && "कनेक्ट होत आहे..."}
+                  {selectedLanguage.code === "te" && "కనెక్ట్ అవుతోంది..."}
                   {selectedLanguage.code === "en" && "Connecting..."}
                   {selectedLanguage.code === "hi" && "कनेक्ट हो रहा है..."}
                 </span>
@@ -78,7 +82,7 @@ export default function StartScreen({
               <div className="flex items-center gap-2">
                 <Play size={20} />
                 <span>
-                  {selectedLanguage.code === "mr" && "संवाद सुरू करा"}
+                  {selectedLanguage.code === "te" && "సంభాషణ ప్రారంభించండి"}
                   {selectedLanguage.code === "en" && "Start Conversation"}
                   {selectedLanguage.code === "hi" && "बातचीत शुरू करें"}
                 </span>

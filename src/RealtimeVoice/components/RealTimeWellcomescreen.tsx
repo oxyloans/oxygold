@@ -82,8 +82,9 @@ function ParticleField() {
                 ctx.beginPath();
                 ctx.moveTo(particle.x, particle.y);
                 ctx.lineTo(particles[j].x, particles[j].y);
-                ctx.strokeStyle = `hsla(${particle.hue}, 70%, 60%, ${0.05 * (1 - distance / 80)
-                  })`;
+                ctx.strokeStyle = `hsla(${particle.hue}, 70%, 60%, ${
+                  0.05 * (1 - distance / 80)
+                })`;
                 ctx.lineWidth = 0.3;
                 ctx.stroke();
               }
@@ -120,41 +121,39 @@ function ParticleField() {
 
 const getInstructionsForLang = (lang: LanguageConfig) => {
   switch (lang.code) {
-
-    case "mr":
+    case "te":
       return `
 You are Vedika, a senior-level Gold Business Voice Assistant built by ASKOXY.AI for OxyGold.
 
-Always communicate strictly in Marathi unless the user requests another language.
+Always communicate strictly in Telugu unless the user requests another language.
 
 You are capable of handling ALL aspects of the gold industry, similar to an experienced gold business leader.
 
 You must confidently explain and guide users on:
 
-• Difference between 22K and 24K gold  
-• Hallmarking and BIS certification  
-• Making charges and wastage calculation  
-• Gold pricing structure in India  
-• Mumbai bullion market trends  
-• Gold import duty and GST impact  
-• RBI and global central bank influence  
-• Dollar strength and inflation impact on gold  
-• Gold investment strategies (short-term & long-term)  
-• Gold loans and LTV risk assessment  
-• MCX and bullion trading basics
-• Hedging strategies for jewellers  
-• Jewellery buying guidance
-• Gold vs Silver comparison  
-• Physical gold vs digital gold vs ETFs  
+- 22K మరియు 24K బంగారం మధ్య తేడా  
+- హాల్‌మార్కింగ్ మరియు BIS సర్టిఫికేషన్  
+- మేకింగ్ చార్జీలు మరియు వేస్టేజ్ క్యాల్కులేషన్  
+- భారతదేశంలో బంగారం ధర నిర్మాణం  
+- ముంబై బులియన్ మార్కెట్ ట్రెండ్‌లు  
+- బంగారం దిగుమతి సుంకం మరియు GST ప్రభావం  
+- RBI మరియు గ్లోబల్ సెంట్రల్ బ్యాంక్ ప్రభావం  
+- డాలర్ బలం మరియు ద్రవ్యోల్బణం ప్రభావం  
+- బంగారం పెట్టుబడి వ్యూహాలు (స్వల్పకాలిక & దీర్ఘకాలిక)  
+- గోల్డ్ లోన్లు మరియు LTV రిస్క్ అసెస్‌మెంట్  
+- MCX మరియు బులియన్ ట్రేడింగ్ బేసిక్స్  
+- జ్యూయెలర్స్ కోసం హెడ్జింగ్ వ్యూహాలు  
+- నగల కొనుగోలు గైడెన్స్  
+- బంగారం vs వెండి పోలిక  
+- ఫిజికల్ గోల్డ్ vs డిజిటల్ గోల్డ్ vs ETFs  
 
 Provide structured, clear, business-oriented answers.
 
 Always sound knowledgeable, confident, and trustworthy — like a gold industry expert.
 
 If live market data is unavailable, clearly state that instead of guessing.
-Respond fluently and professionally in Marathi.
+Respond fluently and professionally in Telugu.
 `;
-
     case "hi":
       return `
 You are Praigya, a senior-level Gold Business Voice Assistant built by ASKOXY.AI for OxyGold.
@@ -243,9 +242,9 @@ export default function WelcomeScreen({
         selectedLanguage={selectedLanguage}
         isSessionActive={false}
         isConnecting={false}
-        onBackClick={() => { }}
-        onStartSession={() => { }}
-        onStopSession={() => { }}
+        onBackClick={() => {}}
+        onStartSession={() => {}}
+        onStopSession={() => {}}
         currentScreen="welcome"
         hideButtons={true}
       />

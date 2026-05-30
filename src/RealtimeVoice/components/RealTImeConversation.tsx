@@ -133,7 +133,7 @@ export default function ConversationScreen({
         <div className="w-3/5 flex flex-col h-full">
           <div className="px-3 py-2 border-b border-cyan-500/20 flex-shrink-0 mt-8">
             <h3 className="text-sm font-medium text-cyan-400">
-              {selectedLanguage.code === "ben" && "বেঙ্গলি কথোপকথন"}
+              {selectedLanguage.code === "te" && "తెలుగు సంభాషణ"}
               {selectedLanguage.code === "en" && "English Conversation"}
               {selectedLanguage.code === "hi" && "हिन्दी बातचीत"}
             </h3>
@@ -151,8 +151,8 @@ export default function ConversationScreen({
                     <Mic className="text-white" size={24} />
                   </div>
                   <p className="text-gray-300 text-lg">
-                    {selectedLanguage.code === "ben" &&
-                      "কথা বলা শুরু করুন…"}
+                    {selectedLanguage.code === "te" &&
+                      "మాట్లాడడం ప్రారంభించండి..."}
                     {selectedLanguage.code === "en" && "Start speaking..."}
                     {selectedLanguage.code === "hi" && "बोलना शुरू करें..."}
                   </p>
@@ -202,8 +202,8 @@ export default function ConversationScreen({
               <input
                 className="flex-1 bg-gray-800/50 backdrop-blur-md border border-cyan-500/30 rounded-full px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400 transition-colors"
                 placeholder={
-                  selectedLanguage.code === "ben"
-                    ? "আপনার বার্তা এখানে লিখুন…"
+                  selectedLanguage.code === "te"
+                    ? "మీ సందేశాన్ని ఇక్కడ టైప్ చేయండి..."
                     : selectedLanguage.code === "hi"
                     ? "अपना संदेश यहाँ टाइप करें..."
                     : "Type your message here..."
@@ -218,7 +218,7 @@ export default function ConversationScreen({
               >
                 <Send size={16} />
                 <span className="font-semibold">
-                  {selectedLanguage.code === "ben" && "পাঠানো"}
+                  {selectedLanguage.code === "te" && "పంపు"}
                   {selectedLanguage.code === "en" && "Send"}
                   {selectedLanguage.code === "hi" && "भेजें"}
                 </span>
