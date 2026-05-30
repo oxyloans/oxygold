@@ -639,16 +639,18 @@ const ProfilePage: React.FC = () => {
                             </p>
                         </div>
                     </div>
-                    <button
-                        onClick={() => {
-                            setSearchParams({ tab: "info" });
-                            patch({ activeTab: "info", isEditingProfile: true });
-                        }}
-                        className="inline-flex items-center justify-center gap-1.5 border border-[#E8E0D5] rounded-lg px-3.5 py-1.5 text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition shrink-0 w-full sm:w-auto"
-                    >
-                        <Pencil className="h-3 w-3" />
-                        Edit Profile
-                    </button>
+                    {s.activeTab === 'info' && (
+                        <button
+                            onClick={() => {
+                                setSearchParams({ tab: "info" });
+                                patch({ activeTab: "info", isEditingProfile: true });
+                            }}
+                            className="inline-flex items-center justify-center gap-1.5 border border-[#E8E0D5] rounded-lg px-3.5 py-1.5 text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition shrink-0 w-full sm:w-auto"
+                        >
+                            <Pencil className="h-3 w-3" />
+                            Edit Profile
+                        </button>
+                    )}
                 </div>
 
                 {/* Tabs */}

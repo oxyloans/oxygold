@@ -180,10 +180,10 @@ The user details are: ${age}, ${gender}, ${skinTone}, ${event}.
         prev.map((msg, index) =>
           index === prev.length - 1 && msg.isCreating
             ? {
-                ...msg,
-                content: "Your video is being created...",
-                videoId: videoId,
-              }
+              ...msg,
+              content: "Your video is being created...",
+              videoId: videoId,
+            }
             : msg,
         ),
       );
@@ -209,11 +209,11 @@ The user details are: ${age}, ${gender}, ${skinTone}, ${event}.
               prev.map((msg) =>
                 msg.videoId === videoId
                   ? {
-                      ...msg,
-                      content: "🎉 Your video has been created successfully!",
-                      videoUrl: videoUrl,
-                      isCreating: false,
-                    }
+                    ...msg,
+                    content: "🎉 Your video has been created successfully!",
+                    videoUrl: videoUrl,
+                    isCreating: false,
+                  }
                   : msg,
               ),
             );
@@ -223,11 +223,11 @@ The user details are: ${age}, ${gender}, ${skinTone}, ${event}.
               prev.map((msg) =>
                 msg.videoId === videoId
                   ? {
-                      ...msg,
-                      content:
-                        "❌ Video creation failed. Please try again with a different prompt.",
-                      isCreating: false,
-                    }
+                    ...msg,
+                    content:
+                      "❌ Video creation failed. Please try again with a different prompt.",
+                    isCreating: false,
+                  }
                   : msg,
               ),
             );
@@ -240,11 +240,11 @@ The user details are: ${age}, ${gender}, ${skinTone}, ${event}.
             prev.map((msg) =>
               msg.videoId === videoId
                 ? {
-                    ...msg,
-                    content:
-                      "❌ Something went wrong while creating your video. Please try again.",
-                    isCreating: false,
-                  }
+                  ...msg,
+                  content:
+                    "❌ Something went wrong while creating your video. Please try again.",
+                  isCreating: false,
+                }
                 : msg,
             ),
           );
@@ -262,10 +262,10 @@ The user details are: ${age}, ${gender}, ${skinTone}, ${event}.
         prev.map((msg, index) =>
           index === prev.length - 1 && msg.isCreating
             ? {
-                ...msg,
-                content: "❌ Failed to create video. Please try again.",
-                isCreating: false,
-              }
+              ...msg,
+              content: "❌ Failed to create video. Please try again.",
+              isCreating: false,
+            }
             : msg,
         ),
       );
@@ -303,7 +303,7 @@ The user details are: ${age}, ${gender}, ${skinTone}, ${event}.
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center" style={{ marginLeft: '-12px' }}>
-              <img src={OxyGoldLogo} alt="OxyGold" className="h-10 w-auto" />
+              <img src={OxyGoldLogo} alt="OxyGold" className="h-7 w-auto" />
             </div>
 
             <div className="flex items-center gap-3">
@@ -399,11 +399,10 @@ The user details are: ${age}, ${gender}, ${skinTone}, ${event}.
                   style={{ animationDelay: `${idx * 0.05}s` }}
                 >
                   <div
-                    className={`max-w-[95%] rounded-2xl p-5 ${
-                      msg.role === "user"
+                    className={`max-w-[95%] rounded-2xl p-5 ${msg.role === "user"
                         ? "bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-black dark:text-white"
                         : "bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 text-black dark:text-white shadow-md"
-                    }`}
+                      }`}
                   >
                     <p className="text-sm leading-relaxed mb-2 text-black dark:text-white">
                       {msg.content}

@@ -1034,7 +1034,7 @@ const ProductDetailsPage: React.FC = () => {
           </div>
 
           {/* ── Related Products ── */}
-          {relatedProducts.length > 0 && (
+          { /* {relatedProducts.length > 0 && (
             <div className="mt-8">
               <h3 className="font-serif text-[17px] font-bold text-[#1A1A1A] mb-4">You May Also Like</h3>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1049,7 +1049,7 @@ const ProductDetailsPage: React.FC = () => {
                 ))}
               </div>
             </div>
-          )}
+          )} */ }
 
         </div>
 

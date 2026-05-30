@@ -73,12 +73,14 @@ function AppContent() {
     '/sell-success',
     '/',
     "/select-gold",
-    "/bis-certificate"
-  ].includes(location.pathname) || 
-  location.pathname.startsWith("/physical-gold") || 
-  location.pathname.startsWith("/admin") || 
-  location.pathname.startsWith("/partner") || 
-  location.pathname.startsWith("/voiceAssistant");
+    "/bis-certificate",
+    "/imageCreation",
+    "/videoCreation"
+  ].includes(location.pathname) ||
+    location.pathname.startsWith("/physical-gold") ||
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/partner") ||
+    location.pathname.startsWith("/voiceAssistant");
   const handleDataPass = (data: any) => {
     setTransactionData(data);
   };

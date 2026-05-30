@@ -9,7 +9,7 @@ const Footer: React.FC = () => {
   return (
     <footer style={{ backgroundColor: "hsl(20, 30%, 10%)", color: "hsl(30, 15%, 70%)" }}>
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* Brand */}
           <div>
             <h3 className="font-heading text-2xl font-bold mb-4 text-gradient-gold">
@@ -19,7 +19,7 @@ const Footer: React.FC = () => {
               Your trusted destination for authentic 22K hallmarked gold jewellery.
               Crafted with precision, delivered with care.
             </p>
-            <div className="flex gap-3 mt-4">
+            {/* <div className="flex gap-3 mt-4">
               <button className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-[#C29B27]" style={{ backgroundColor: "hsl(20, 20%, 15%)", color: "hsl(30, 15%, 70%)" }}>
                 <Facebook size={16} />
               </button>
@@ -29,11 +29,11 @@ const Footer: React.FC = () => {
               <button className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-[#C29B27]" style={{ backgroundColor: "hsl(20, 20%, 15%)", color: "hsl(30, 15%, 70%)" }}>
                 <Twitter size={16} />
               </button>
-            </div>
+            </div> */}
           </div>
 
           {/* Quick Links */}
-          <div>
+          {/* <div>
             <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider" style={{ color: "hsl(38, 80%, 55%)" }}>
               Quick Links
             </h4>
@@ -43,7 +43,7 @@ const Footer: React.FC = () => {
               <li><a href="#" className="transition-colors hover:text-[#C29B27]" style={{ color: "hsl(30, 15%, 70%)" }}>Certifications</a></li>
               <li><a href="#" className="transition-colors hover:text-[#C29B27]" style={{ color: "hsl(30, 15%, 70%)" }}>Blog</a></li>
             </ul>
-          </div>
+          </div> */}
 
           {/* Policies */}
           <div>

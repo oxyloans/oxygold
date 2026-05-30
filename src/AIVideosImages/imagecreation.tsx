@@ -47,7 +47,7 @@ const MarkdownRenderer: React.FC<MarkdownProps> = memo(
       ...props
     }: ComponentPropsWithoutRef<"code"> & { inline?: boolean }) => {
       const preRef = useRef<HTMLPreElement>(null);
-      const BASE_URL = API_BASE_URL+"/oxygold-api";
+      const BASE_URL = API_BASE_URL + "/oxygold-api";
       return inline ? (
         <code className="rounded bg-gray-100 dark:bg-gray-800 text-pink-600 dark:text-pink-300 px-1 py-0.5 text-sm font-mono">
           {children}
@@ -351,7 +351,7 @@ const ImageCreation: React.FC = () => {
     messageHistory: { role: string; content: string; isImage?: boolean }[],
   ) => {
     const response = await axios.post(
-      `http://65.0.147.157/api/student-service/user/chat1`,
+      `${API_BASE_URL}/student-service/user/chat1`,
       messageHistory,
       { headers: { "Content-Type": "application/json" } },
     );
@@ -372,16 +372,16 @@ const ImageCreation: React.FC = () => {
     const userContextRaw = sessionStorage.getItem("userJewelryContext");
     let enhancedPrompt = prompt;
 
-  if (userContextRaw) {
-  const gender = userContextRaw.match(/Gender:\s*([^,]+)/)?.[1]?.trim();
-  const age = userContextRaw.match(/Age:\s*([^,]+)/)?.[1]?.trim();
-  const skinTone = userContextRaw.match(/Skin Tone:\s*([^,]+)/)?.[1]?.trim();
-  const event = userContextRaw.match(/Event:\s*([^,]+)/)?.[1]?.trim();
+    if (userContextRaw) {
+      const gender = userContextRaw.match(/Gender:\s*([^,]+)/)?.[1]?.trim();
+      const age = userContextRaw.match(/Age:\s*([^,]+)/)?.[1]?.trim();
+      const skinTone = userContextRaw.match(/Skin Tone:\s*([^,]+)/)?.[1]?.trim();
+      const event = userContextRaw.match(/Event:\s*([^,]+)/)?.[1]?.trim();
 
-  let genderStyle = "";
+      let genderStyle = "";
 
-  if (gender?.toLowerCase() === "male") {
-    genderStyle = `
+      if (gender?.toLowerCase() === "male") {
+        genderStyle = `
 Masculine jewelry styling.
 Use bold, thick, royal, minimal traditional men's jewelry.
 Gold chain, bracelet.
@@ -389,19 +389,19 @@ Strong facial structure.
 No feminine ornaments.
 Avoid bridal necklace sets, long earrings, heavy makeup.
 `;
-  }
+      }
 
-  if (gender?.toLowerCase() === "female") {
-    genderStyle = `
+      if (gender?.toLowerCase() === "female") {
+        genderStyle = `
 Elegant feminine jewelry styling.
 Detailed, decorative, graceful design.
 Bridal or festive necklace set, matching earrings, bangles.
 Soft features, natural makeup.
 Avoid thick masculine chains or kada-style jewelry.
 `;
-  }
+      }
 
-  enhancedPrompt = `
+      enhancedPrompt = `
 ${prompt}
 
 User Details:
@@ -414,7 +414,7 @@ ${genderStyle}
 
 Ultra realistic, photorealistic, 4K, high detail, professional lighting.
 `;
-}
+    }
 
     const userMessage: ChatMessage = { role: "user", content: prompt };
     setMessages((prev) => [...prev, userMessage]);
@@ -444,34 +444,45 @@ Ultra realistic, photorealistic, 4K, high detail, professional lighting.
         { role: "user", content: enhancedPrompt },
       ];
 
-      const apiResponse = await createImage(enhancedPrompt, requestBody);
+    const apiResponse = await createImage(enhancedPrompt, requestBody);
 
-      const assistantReply =
-        apiResponse?.assistant_reply ||
-        apiResponse?.content ||
-        apiResponse ||
-        "";
-      const replyText =
-        typeof assistantReply === "string"
-          ? assistantReply
-          : JSON.stringify(assistantReply);
-      const isImg = detectIsImageUrl(replyText);
+let replyText = "";
+let isImg = false;
 
-      setMessages((prev) =>
-        prev.map((msg, index) =>
-          index === prev.length - 1 && msg.isCreating
-            ? {
-                ...msg,
-                content: isImg
-                  ? "🎉 Your image has been created successfully!"
-                  : replyText,
-                imageUrl: isImg ? replyText : undefined,
-                isCreating: false,
-                isText: !isImg,
-              }
-            : msg,
-        ),
-      );
+// Base64 image response
+if (apiResponse?.image) {
+  replyText = `data:image/png;base64,${apiResponse.image}`;
+  isImg = true;
+} else {
+  const assistantReply =
+    apiResponse?.assistant_reply ||
+    apiResponse?.content ||
+    apiResponse ||
+    "";
+
+  replyText =
+    typeof assistantReply === "string"
+      ? assistantReply
+      : JSON.stringify(assistantReply);
+
+  isImg = detectIsImageUrl(replyText);
+}
+
+setMessages((prev) =>
+  prev.map((msg, index) =>
+    index === prev.length - 1 && msg.isCreating
+      ? {
+          ...msg,
+          content: isImg
+            ? "🎉 Your image has been created successfully!"
+            : replyText,
+          imageUrl: isImg ? replyText : undefined,
+          isCreating: false,
+          isText: !isImg,
+        }
+      : msg
+  )
+);
     } catch {
       notification.error({
         message: "Request Failed",
@@ -481,10 +492,10 @@ Ultra realistic, photorealistic, 4K, high detail, professional lighting.
         prev.map((msg, index) =>
           index === prev.length - 1 && msg.isCreating
             ? {
-                ...msg,
-                content: "❌ Failed to process your request. Please try again.",
-                isCreating: false,
-              }
+              ...msg,
+              content: "❌ Failed to process your request. Please try again.",
+              isCreating: false,
+            }
             : msg,
         ),
       );
@@ -525,8 +536,8 @@ Ultra realistic, photorealistic, 4K, high detail, professional lighting.
       <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 shadow-sm flex-shrink-0">
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center" style={{ marginLeft: '-12px' }}>
-              <img src={OxyGoldLogo} alt="OxyGold" className="h-10 w-auto" />
+            <div style={{ marginLeft: '-12px' }}>
+              <img src={OxyGoldLogo} alt="OxyGold" className="h-7 w-auto" />
             </div>
 
             <div className="flex items-center gap-3">
@@ -614,11 +625,10 @@ Ultra realistic, photorealistic, 4K, high detail, professional lighting.
                   style={{ animationDelay: `${idx * 0.05}s` }}
                 >
                   <div
-                    className={`max-w-[95%] rounded-2xl p-5 ${
-                      msg.role === "user"
-                        ? "bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-black dark:text-white"
-                        : "bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 text-black dark:text-white shadow-md"
-                    }`}
+                    className={`max-w-[95%] rounded-2xl p-5 ${msg.role === "user"
+                      ? "bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-black dark:text-white"
+                      : "bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 text-black dark:text-white shadow-md"
+                      }`}
                   >
                     {/* User message — plain text */}
                     {msg.role === "user" && (
@@ -720,7 +730,7 @@ Ultra realistic, photorealistic, 4K, high detail, professional lighting.
 
               {canSend && (
                 <button
-                  onClick={()=>handleSend()}
+                  onClick={() => handleSend()}
                   disabled={!input.trim() || loading}
                   className="w-8 h-8 bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-black rounded-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
