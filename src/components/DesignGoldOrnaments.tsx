@@ -35,6 +35,7 @@ const PersonaliseModal: React.FC<PersonaliseModalProps> = ({ route, onClose }) =
   };
 
   const handleSkip = () => {
+    sessionStorage.removeItem("userJewelryContext");
     onClose();
     navigate(route);
   };

@@ -251,6 +251,17 @@ export const updateProductStatus = async (productId: number | string, data: any)
     return response.json();
 }
 
+export const updateCategoryStatus = async (categoryId: number | string, status: string) => {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/categories/status?categoryId=${categoryId}&status=${status}`, {
+        method: 'PATCH'
+    });
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || "Failed to update category status");
+    }
+    return response.json();
+}
+
 // --- Product Variants API ---
 
 export const getAllVariants = async (productId: number | string) => {

@@ -457,6 +457,7 @@ const ProfilePage: React.FC = () => {
             profile.lastName = profileForm.lastName;
             profile.email = profileForm.email;
             profile.alternativeNumber = profileForm.alternativeNumber;
+            profile.whatsappNumber = profileForm.whatsappNumber;
             profile.gender = profileForm.gender;
             profile.panNumber = profileForm.panNumber.toUpperCase();
             profile.panVerified = true;

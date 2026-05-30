@@ -33,7 +33,7 @@ const CatalogUpload: React.FC = () => {
     const [selectedViewType, setSelectedViewType] = useState('FRONT');
 
     // Confirm Toggle State
-    const [confirmToggle, setConfirmToggle] = useState<{ open: boolean; item: any | null; type?: 'variant' | 'product' }>({ open: false, item: null });
+    const [confirmToggle, setConfirmToggle] = useState<{ open: boolean; item: any | null; type?: 'variant' | 'product' | 'category' }>({ open: false, item: null });
 
     // Form State
     const [formData, setFormData] = useState<any>({});
@@ -269,6 +269,17 @@ const CatalogUpload: React.FC = () => {
         }
     };
 
+    const handleCategoryStatusToggle = async (item: any) => {
+        const newStatus = item.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+        try {
+            await adminService.updateCategoryStatus(item.id, newStatus);
+            fetchData();
+            setToast({ message: `Category status updated to ${newStatus === 'ACTIVE' ? 'Active' : 'Inactive'}`, type: 'success' });
+        } catch (error) {
+            setToast({ message: "Status update failed", type: 'error' });
+        }
+    };
+
     // Table Columns Configuration
     const getColumns = () => {
         const common: any[] = [
@@ -303,6 +314,21 @@ const CatalogUpload: React.FC = () => {
                             <Switch
                                 checked={val === 'ACTIVE'}
                                 onChange={() => setConfirmToggle({ open: true, item, type: 'product' })}
+                            />
+                        </div>
+                    )
+                });
+            } else if (level < 2) {
+                // Add status column for categories (level 0 and 1)
+                common.push({
+                    header: 'Status',
+                    key: 'status',
+                    width: '100px',
+                    render: (val: string, item: any) => (
+                        <div onClick={e => e.stopPropagation()}>
+                            <Switch
+                                checked={val === 'ACTIVE'}
+                                onChange={() => setConfirmToggle({ open: true, item, type: 'category' })}
                             />
                         </div>
                     )
@@ -614,6 +640,7 @@ const CatalogUpload: React.FC = () => {
                         <Button onClick={(e) => {
                             e.stopPropagation();
                             if (confirmToggle.type === 'product') handleProductStatusToggle(confirmToggle.item);
+                            else if (confirmToggle.type === 'category') handleCategoryStatusToggle(confirmToggle.item);
                             else handleStatusToggle(confirmToggle.item);
                             setConfirmToggle({ open: false, item: null });
                         }}>
