@@ -45,9 +45,12 @@ const CatalogUpload: React.FC = () => {
             const currentParent = path.length > 0 ? path[path.length - 1] : null;
 
             if (level === 0) {
-                result = await adminService.fetchMainCategories();
+                const data = await adminService.fetchMainCategories();
+                result = data.data;
+                console.log(result);
             } else if (level === 1) {
-                result = await adminService.fetchSubCategories(currentParent!.id);
+                const data = await adminService.fetchSubCategories(currentParent!.id);
+                result = data.data
             } else if (level === 2) {
                 result = await adminService.getAllProducts(currentParent!.id);
             } else if (level === 3) {

@@ -96,13 +96,13 @@ const adminAuthenticatedFetch = async (url: string, options: RequestInit = {}): 
 // --- API Functions ---
 
 export const fetchMainCategories = async () => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/categories/parents`);
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/categories/category-management/parent-categories`);
     if (!response.ok) throw new Error("Failed to fetch main categories");
     return response.json();
 };
 
 export const fetchSubCategories = async (parentId: number | string) => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/categories/${parentId}/subcategories`);
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/categories/category-management/sub-categories?parentId=${parentId}`);
     if (!response.ok) throw new Error("Failed to fetch sub-categories");
     return response.json();
 };
@@ -422,8 +422,11 @@ export const getAllOrders = async (): Promise<AdminOrder[]> => {
     return data.data || [];
 };
 
-export const viewAllUsers = async (page: number, size: number) => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/auth/viewAllUsers?page=${page}&size=${size}`);
+export const viewAllUsers = async (page: number, size: number, name?: string, phoneNumber?: string) => {
+    let url = `${BASE_URL}/auth/viewAllUsers?page=${page}&size=${size}`;
+    if (name) url += `&name=${encodeURIComponent(name)}`;
+    if (phoneNumber) url += `&phoneNumber=${encodeURIComponent(phoneNumber)}`;
+    const response = await adminAuthenticatedFetch(url);
     if (!response.ok) throw new Error("Failed to fetch users");
     return response.json();
 };
