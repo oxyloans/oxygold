@@ -1,87 +1,32 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as adminService from '../services/adminService';
+import adminGoldBg from '../../assets/admin_gold_bg.png';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [sessionId, setSessionId] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resendTimer, setResendTimer] = useState(0);
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  useEffect(() => {
-    if (resendTimer <= 0) return;
-    const t = setTimeout(() => setResendTimer(r => r - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendTimer]);
-
-  const handleSendOtp = async () => {
+  const handleLogin = async () => {
     setError('');
-    if (!/^[6-9]\d{9}$/.test(phone)) { setError('Enter a valid 10-digit mobile number'); return; }
-    setLoading(true);
-    try {
-      const data = await adminService.loginOrRegister({
-        phoneNumber: phone,
-        registrationType: 'mobile',
-        userType: 'Login',
-        userRole: 'admin',
-        whatsappNumber: '',
-      });
-      setSessionId(data?.mobileOtpSessionId || data?.data?.mobileOtpSessionId || '');
-      setStep('otp');
-      setResendTimer(30);
-      setTimeout(() => otpRefs.current[0]?.focus(), 100);
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return;
     }
-  };
-
-  const handleVerifyOtp = async () => {
-    setError('');
-    const otpValue = otp.join('');
-    if (otpValue.length < 6) { setError('Enter the 6-digit OTP'); return; }
     setLoading(true);
     try {
-      const data = await adminService.loginOrRegister({
-        phoneNumber: phone,
-        registrationType: 'mobile',
-        userType: 'Login',
-        mobileOtpSessionId: sessionId,
-        mobileOtpValue: otpValue,
-        userRole: 'admin',
-        whatsappNumber: ''
-      });
-
-      localStorage.setItem('admin', JSON.stringify({ phone, isLoggedIn: true, ...data }));
+      const data = await adminService.adminLogin(email, password);
+      const token = data?.token || data?.data?.token || data?.result?.token || data?.accessToken || data?.data?.accessToken || '';
+      localStorage.setItem('admin', JSON.stringify({ email, isLoggedIn: true, token, role: 'admin', ...data }));
       navigate('/admin/dashboard');
     } catch (err: any) {
-      setError(err.message || 'OTP verification failed. Please try again.');
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleOtpChange = (i: number, val: string) => {
-    if (!/^\d?$/.test(val)) return;
-    const next = [...otp]; next[i] = val; setOtp(next); setError('');
-    if (val && i < 5) otpRefs.current[i + 1]?.focus();
-  };
-  const handleOtpKeyDown = (i: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
-  };
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length === 6) { setOtp(pasted.split('')); otpRefs.current[5]?.focus(); }
-    e.preventDefault();
-  };
-  const handleResend = () => {
-    setOtp(['', '', '', '', '', '']); setError(''); handleSendOtp();
   };
 
   return (
@@ -127,9 +72,12 @@ const AdminLogin = () => {
         .lg-left-img {
           position: absolute;
           inset: 0;
-          background:
-            linear-gradient(to bottom, rgba(8,6,2,0.72) 0%, rgba(8,6,2,0.45) 40%, rgba(8,6,2,0.82) 100%),
-            url('https://images.unsplash.com/photo-1624365168968-f283d506c6b6?w=700&q=80') center/cover no-repeat;
+          background-image:
+            linear-gradient(to bottom, rgba(8,6,2,0.45) 0%, rgba(8,6,2,0.2) 40%, rgba(8,6,2,0.7) 100%),
+            url('${adminGoldBg}');
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
         }
         .lg-left-content {
           position: relative;
@@ -217,119 +165,24 @@ const AdminLogin = () => {
           margin-bottom: 6px;
         }
 
-        .lg-phone-wrap {
-          display: flex;
-          align-items: center;
+        .lg-input {
+          width: 100%;
+          padding: 10px 13px;
           border: 1.5px solid #ede9e2;
           border-radius: 10px;
-          overflow: hidden;
-          background: #faf8f5;
-          transition: border-color 0.15s, box-shadow 0.15s;
-        }
-        .lg-phone-wrap:focus-within {
-          border-color: #c9993a;
-          box-shadow: 0 0 0 3px rgba(201,153,58,0.1);
-          background: #fff;
-        }
-        .lg-phone-prefix {
-          padding: 10px 12px;
-          font-size: 0.82rem;
-          font-weight: 600;
-          color: #888;
-          border-right: 1.5px solid #ede9e2;
-          background: #f5f1eb;
-          flex-shrink: 0;
-        }
-        .lg-phone-input {
-          flex: 1;
-          padding: 10px 13px;
-          border: none;
-          outline: none;
           font-family: 'Outfit', sans-serif;
           font-size: 0.875rem;
-          color: #12100a;
-          background: transparent;
-          -moz-appearance: textfield;
-        }
-        .lg-phone-input::-webkit-outer-spin-button,
-        .lg-phone-input::-webkit-inner-spin-button { -webkit-appearance: none; }
-        .lg-phone-input::placeholder { color: #d0cabc; }
-
-        /* OTP */
-        .lg-otp-row {
-          display: flex;
-          gap: 7px;
-          margin-bottom: 8px;
-          width: 100%;
-        }
-        .lg-otp-box {
-          width: 0;
-          flex: 1;
-          min-width: 0;
-          height: 42px;
-          padding: 0;
-          border: 1.5px solid #ede9e2;
-          border-radius: 10px;
-          text-align: center;
-          font-family: 'Outfit', sans-serif;
-          font-size: 1rem;
-          font-weight: 600;
           color: #12100a;
           background: #faf8f5;
           outline: none;
           transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
-          -moz-appearance: textfield;
         }
-        .lg-otp-box::-webkit-outer-spin-button,
-        .lg-otp-box::-webkit-inner-spin-button { -webkit-appearance: none; }
-        .lg-otp-box:focus {
+        .lg-input:focus {
           border-color: #c9993a;
           box-shadow: 0 0 0 3px rgba(201,153,58,0.1);
           background: #fff;
         }
-        .lg-otp-box.filled {
-          border-color: #c9993a;
-          background: #fdf8ee;
-        }
-
-        .lg-otp-hint {
-          font-size: 0.7rem;
-          color: #b8b0a4;
-          margin-top: 8px;
-          margin-bottom: 14px;
-          font-weight: 300;
-        }
-        .lg-otp-hint span { font-weight: 600; color: #12100a; }
-        .lg-resend-btn {
-          background: none;
-          border: none;
-          cursor: pointer;
-          font-family: 'Outfit', sans-serif;
-          font-size: inherit;
-          color: #c9993a;
-          font-weight: 600;
-          transition: color 0.14s;
-        }
-        .lg-resend-btn:disabled { color: #d0cabc; cursor: default; }
-        .lg-resend-btn:not(:disabled):hover { color: #a37828; }
-
-        .lg-change-phone {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 0.72rem;
-          color: #b8b0a4;
-          background: #f5f1eb;
-          border: 1px solid #ede9e2;
-          border-radius: 20px;
-          padding: 4px 12px;
-          cursor: pointer;
-          font-family: 'Outfit', sans-serif;
-          margin-bottom: 20px;
-          transition: color 0.14s, background 0.14s;
-          font-weight: 400;
-        }
-        .lg-change-phone:hover { color: #555; background: #ede9e2; }
+        .lg-input::placeholder { color: #d0cabc; }
 
         .lg-error {
           font-size: 0.72rem;
@@ -369,29 +222,46 @@ const AdminLogin = () => {
           display: flex;
           align-items: center;
           gap: 10px;
-          margin: 16px 0 0;
+          margin: 20px 0;
         }
         .lg-divider-line { flex: 1; height: 1px; background: #ede9e2; }
         .lg-divider-txt { font-size: 0.65rem; color: #d0cabc; }
 
         .lg-footer {
-          margin-top: 12px;
+          margin-top: 16px;
           text-align: center;
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           color: #b8b0a4;
           font-weight: 300;
         }
         .lg-link {
           color: #c9993a;
           font-weight: 600;
-          background: none;
-          border: none;
-          cursor: pointer;
-          font-family: 'Outfit', sans-serif;
-          font-size: inherit;
+          text-decoration: none;
           transition: color 0.14s;
         }
         .lg-link:hover { color: #a37828; }
+
+        .lg-security-note {
+          margin-top: 16px;
+          padding: 10px 12px;
+          background: #fffbf0;
+          border: 1px solid #f0e5c9;
+          border-radius: 8px;
+          font-size: 0.7rem;
+          color: #7a6b4e;
+          line-height: 1.5;
+          display: flex;
+          gap: 8px;
+          align-items: flex-start;
+        }
+        .lg-security-icon {
+          flex-shrink: 0;
+          width: 16px;
+          height: 16px;
+          color: #c9993a;
+          margin-top: 1px;
+        }
 
         @keyframes spin { to { transform: rotate(360deg); } }
         .lg-spin {
@@ -436,92 +306,53 @@ const AdminLogin = () => {
 
           {/* RIGHT — Form Panel */}
           <div className="lg-right">
+            <div className="lg-animate">
+              <div className="lg-form-title">Admin Sign In</div>
+              <div className="lg-form-sub">Sign in with your email and password</div>
 
-            {step === 'phone' && (
-              <div className="lg-animate">
-                <div className="lg-form-title">Admin Sign In</div>
-                <div className="lg-form-sub">Sign in with your mobile number</div>
+              <div className="lg-field">
+                <label className="lg-lbl">Email Address</label>
+                <input
+                  className="lg-input"
+                  type="email"
+                  placeholder="admin@example.com"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                />
+              </div>
 
-                <div className="lg-field">
-                  <label className="lg-lbl">Mobile Number</label>
-                  <div className="lg-phone-wrap">
-                    <span className="lg-phone-prefix">+91</span>
-                    <input
-                      className="lg-phone-input"
-                      type="number"
-                      placeholder="98765 43210"
-                      value={phone}
-                      onChange={(e) => { setPhone(e.target.value.slice(0, 10)); setError(''); }}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSendOtp()}
-                    />
-                  </div>
-                </div>
+              <div className="lg-field">
+                <label className="lg-lbl">Password</label>
+                <input
+                  className="lg-input"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                />
+              </div>
 
-                {error && <div className="lg-error">{error}</div>}
+              {error && <div className="lg-error">{error}</div>}
 
-                <button className="lg-btn" onClick={handleSendOtp} disabled={loading}>
-                  {loading ? <span className="lg-spin" /> : 'Send OTP →'}
-                </button>
+              <button className="lg-btn" onClick={handleLogin} disabled={loading}>
+                {loading ? <span className="lg-spin" /> : 'Sign In →'}
+              </button>
 
-                <div className="lg-divider">
-                  <div className="lg-divider-line" />
-                  <span className="lg-divider-txt">OR</span>
-                  <div className="lg-divider-line" />
-                </div>
-                <div className="lg-footer">
-                  No admin account?{' '}
-                  <button className="lg-link" onClick={() => navigate('/admin/register')}>Register</button>
+              <div className="lg-security-note">
+                <svg className="lg-security-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <div>
+                  <strong>Security Notice:</strong> After 5 failed login attempts, your account will be temporarily locked for 30 minutes to protect against unauthorized access.
                 </div>
               </div>
-            )}
 
-            {step === 'otp' && (
-              <div className="lg-animate">
-                <div className="lg-form-title">Verify OTP</div>
-                <div className="lg-form-sub">Code sent to your mobile</div>
-
-                <button className="lg-change-phone" onClick={() => { setStep('phone'); setOtp(['', '', '', '', '', '']); setError(''); }}>
-                  ← +91 {phone}
-                </button>
-
-                <div className="lg-field">
-                  <label className="lg-lbl">Enter 6-digit OTP</label>
-                  <div className="lg-otp-row" onPaste={handleOtpPaste}>
-                    {otp.map((d, i) => (
-                      <input
-                        key={i}
-                        ref={el => { otpRefs.current[i] = el; }}
-                        className={`lg-otp-box ${d ? 'filled' : ''}`}
-                        type="number"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={d}
-                        onChange={e => handleOtpChange(i, e.target.value.slice(-1))}
-                        onKeyDown={e => handleOtpKeyDown(i, e)}
-                      />
-                    ))}
-                  </div>
-                  <div className="lg-otp-hint">
-                    Didn't receive it?{' '}
-                    {resendTimer > 0
-                      ? <>Resend in <span>{resendTimer}s</span></>
-                      : <button className="lg-resend-btn" onClick={handleResend}>Resend OTP</button>
-                    }
-                  </div>
-                </div>
-
-                {error && <div className="lg-error">{error}</div>}
-
-                <button
-                  className="lg-btn"
-                  onClick={handleVerifyOtp}
-                  disabled={loading || otp.join('').length < 6}
-                >
-                  {loading ? <span className="lg-spin" /> : 'Verify & Sign In →'}
-                </button>
+              <div className="lg-footer">
+                Secure admin access only
               </div>
-            )}
-
+            </div>
           </div>
         </div>
       </div>

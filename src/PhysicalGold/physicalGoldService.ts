@@ -662,3 +662,10 @@ const getEmojiForCategory = (name: string): string => {
     if (lowerName.includes("digital")) return "📱";
     return "✨";
 };
+
+export const fetchProductRecommendations = async (productId: string) => {
+    const response = await authenticatedFetch(`${BASE_URL}/products/${productId}/recommendations`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || "Failed to fetch recommendations");
+    return data;
+};

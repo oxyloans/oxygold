@@ -147,7 +147,7 @@ const Users: React.FC = () => {
             )
         },
         {
-            header: 'Date of Birth',
+            header: 'Date of Joining',
             key: 'dob',
             render: (val: string) => (
                 <div className="flex items-center gap-1.5 text-slate-600">

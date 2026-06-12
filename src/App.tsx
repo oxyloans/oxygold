@@ -1,8 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import ProtectedRoute from './components/ProtectedRoute';
-// import './styles/App.css';
-// import './index.css';
 import { GoldPriceProvider } from './context/GoldPriceContext';
 import { PurchaseProvider } from './context/PurchaseContext';
 import Header from './components/Header';
@@ -45,7 +43,6 @@ import CookiePolicy from './PhysicalGold/CookiePolicy';
 import CancellationPolicy from './PhysicalGold/CancellationPolicy';
 import AdminLayout from './physical-gold-admin/components/layout/AdminLayout';
 import AdminLogin from './physical-gold-admin/pages/AdminLogin';
-import AdminRegister from './physical-gold-admin/pages/AdminRegister';
 import PartnerLayout from './physical-gold-partner/components/layout/PartnerLayout';
 import PartnerLogin from './physical-gold-partner/pages/PartnerLogin';
 import PartnerRegister from './physical-gold-partner/pages/PartnerRegister';
@@ -160,7 +157,6 @@ function AppContent() {
 
           {/* Admin */}
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/register" element={<AdminRegister />} />
           <Route path="/admin/*" element={<AdminLayout />} />
 
           {/* Partner */}

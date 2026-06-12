@@ -17,6 +17,7 @@ const CatalogUpload: React.FC = () => {
     // Hierarchical Navigation State
     const [level, setLevel] = useState(0); // 0: Main Cat, 1: Sub Cat, 2: Products, 3: Variants
     const [path, setPath] = useState<{ id: number; name: string; level: number }[]>([]);
+    const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
 
     const [data, setData] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -45,7 +46,7 @@ const CatalogUpload: React.FC = () => {
             const currentParent = path.length > 0 ? path[path.length - 1] : null;
 
             if (level === 0) {
-                const data = await adminService.fetchMainCategories();
+                const data = await adminService.fetchMainCategories(statusFilter);
                 result = data.data;
                 console.log(result);
             } else if (level === 1) {
@@ -84,7 +85,7 @@ const CatalogUpload: React.FC = () => {
 
     useEffect(() => {
         fetchData();
-    }, [level, path]);
+    }, [level, path, statusFilter]);
 
     // Navigation Handlers
     const handleDrillDown = (item: any) => {
@@ -453,10 +454,36 @@ const CatalogUpload: React.FC = () => {
                         ))}
                     </div>
                 </div>
-                <Button onClick={openCreateModal} className="flex items-center gap-2">
-                    <Plus size={16} />
-                    <span>Create {level === 0 ? 'Category' : level === 1 ? 'Sub-category' : level === 2 ? 'Product' : 'Variant'}</span>
-                </Button>
+                <div className="flex items-center gap-2">
+                    {level === 0 && (
+                        <div className="flex gap-1 p-0.5 bg-slate-100 rounded-lg">
+                            <button
+                                onClick={() => setStatusFilter('ACTIVE')}
+                                className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
+                                    statusFilter === 'ACTIVE'
+                                        ? 'bg-white text-emerald-600 shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                            >
+                                Active
+                            </button>
+                            <button
+                                onClick={() => setStatusFilter('INACTIVE')}
+                                className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
+                                    statusFilter === 'INACTIVE'
+                                        ? 'bg-white text-red-600 shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                            >
+                                Inactive
+                            </button>
+                        </div>
+                    )}
+                    <Button onClick={openCreateModal} className="flex items-center gap-2">
+                        <Plus size={16} />
+                        <span>Create {level === 0 ? 'Category' : level === 1 ? 'Sub-category' : level === 2 ? 'Product' : 'Variant'}</span>
+                    </Button>
+                </div>
             </div>
 
             <Table
@@ -553,34 +580,38 @@ const CatalogUpload: React.FC = () => {
                                 </>
                             )}
                             <div className="space-y-4">
-                                <div className="space-y-1">
-                                    <label className="text-[11px] font-semibold text-slate-500 uppercase">Image View Type</label>
-                                    <Select
-                                        options={[
-                                            { label: 'Front View', value: 'FRONT' },
-                                            { label: 'Back View', value: 'BACK' },
-                                            { label: 'Left View', value: 'LEFT' },
-                                            { label: 'Right View', value: 'RIGHT' },
-                                            { label: 'Top View', value: 'TOP' },
-                                            { label: 'Bottom View', value: 'BOTTOM' },
-                                        ]}
-                                        value={selectedViewType}
-                                        onChange={val => setSelectedViewType(val as string)}
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[11px] font-semibold text-slate-500 uppercase">Upload {selectedViewType.toLowerCase().replace('_', ' ')}</label>
-                                    <div
-                                        className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer bg-slate-50/50 hover:bg-slate-100/50 border-slate-200`}
-                                        onClick={() => document.getElementById('file-up')?.click()}
-                                    >
-                                        <div className="flex flex-col items-center">
-                                            <UploadCloud size={20} className="text-emerald-500 mb-1" />
-                                            <span className="text-xs text-slate-500 font-medium">{isUploading ? 'Uploading...' : 'Click to upload image'}</span>
+                                {isEditing && (
+                                    <>
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-semibold text-slate-500 uppercase">Image View Type</label>
+                                            <Select
+                                                options={[
+                                                    { label: 'Front View', value: 'FRONT' },
+                                                    { label: 'Back View', value: 'BACK' },
+                                                    { label: 'Left View', value: 'LEFT' },
+                                                    { label: 'Right View', value: 'RIGHT' },
+                                                    { label: 'Top View', value: 'TOP' },
+                                                    { label: 'Bottom View', value: 'BOTTOM' },
+                                                ]}
+                                                value={selectedViewType}
+                                                onChange={val => setSelectedViewType(val as string)}
+                                            />
                                         </div>
-                                    </div>
-                                    <input id="file-up" type="file" className="hidden" onChange={handleImageUpload} accept="image/*" />
-                                </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-semibold text-slate-500 uppercase">Upload {selectedViewType.toLowerCase().replace('_', ' ')}</label>
+                                            <div
+                                                className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer bg-slate-50/50 hover:bg-slate-100/50 border-slate-200`}
+                                                onClick={() => document.getElementById('file-up')?.click()}
+                                            >
+                                                <div className="flex flex-col items-center">
+                                                    <UploadCloud size={20} className="text-emerald-500 mb-1" />
+                                                    <span className="text-xs text-slate-500 font-medium">{isUploading ? 'Uploading...' : 'Click to upload image'}</span>
+                                                </div>
+                                            </div>
+                                            <input id="file-up" type="file" className="hidden" onChange={handleImageUpload} accept="image/*" />
+                                        </div>
+                                    </>
+                                )}
 
                                 {isEditing && currentItem?.imageData && (
                                     <div className="space-y-2 pt-2">

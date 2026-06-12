@@ -19,7 +19,7 @@ import AIModelPreviewModal from "./components/AIModelPreviewModal";
 import VirtualTryOnModal from "./components/VirtualTryOnModal";
 
 import { PhysicalGoldProduct, ProductVariant } from "./physicalGoldData";
-import { fetchProductVariants, fetchProducts, generateModelImage, generateVirtualTryOn } from "./physicalGoldService";
+import { fetchProductVariants, fetchProducts, generateModelImage, generateVirtualTryOn, fetchProductRecommendations } from "./physicalGoldService";
 import { useCart } from "./CartContext";
 import { useWishlist } from "./WishlistContext";
 import {
@@ -49,6 +49,8 @@ const ProductDetailsPage: React.FC = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [relatedProducts, setRelatedProducts] = useState<PhysicalGoldProduct[]>([]);
+  const [similarProducts, setSimilarProducts] = useState<PhysicalGoldProduct[]>([]);
+  const [exploreMoreProducts, setExploreMoreProducts] = useState<PhysicalGoldProduct[]>([]);
   const [inCart, setInCart] = useState(false);
   const [isTryOnOpen, setIsTryOnOpen] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
@@ -114,6 +116,38 @@ const ProductDetailsPage: React.FC = () => {
           setSelectedWeight(v[0].weight.toString());
           setSelectedSize(v[0].size || "");
         }
+        
+        // Fetch recommendations
+        try {
+          const recommendations = await fetchProductRecommendations(id);
+          if (recommendations.similarProducts) {
+            setSimilarProducts(recommendations.similarProducts.map((item: any) => ({
+              id: item.id.toString(),
+              productName: item.name,
+              imageUrl: item.frontViewurl || "",
+              priceRange: item.priceRange || `₹${item.price?.toLocaleString('en-IN')}`,
+              description: item.description,
+              subCategoryId: item.categoryId?.toString(),
+              categoryName: item.categoryName,
+              status: item.status,
+            })));
+          }
+          if (recommendations.exploreMoreProducts) {
+            setExploreMoreProducts(recommendations.exploreMoreProducts.map((item: any) => ({
+              id: item.id.toString(),
+              productName: item.name,
+              imageUrl: item.frontViewurl || "",
+              priceRange: item.priceRange || `₹${item.price?.toLocaleString('en-IN')}`,
+              description: item.description,
+              subCategoryId: item.categoryId?.toString(),
+              categoryName: item.categoryName,
+              status: item.status,
+            })));
+          }
+        } catch (error) {
+          console.error("Failed to load recommendations:", error);
+        }
+        
         if (p?.subCategoryId) {
           const related = await fetchProducts(p.subCategoryId);
           setRelatedProducts(related.filter((rp) => rp.id !== id).slice(0, 4));
@@ -1033,7 +1067,43 @@ const ProductDetailsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* ── Related Products ── */}
+          {/* ── Similar Products ── */}
+          {similarProducts.length > 0 && (
+            <div className="mt-10">
+              <h3 className="font-serif text-[17px] font-bold text-[#1A1A1A] mb-4">Similar Products</h3>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {similarProducts.map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    onClick={() => navigate(`/physical-gold/product/${p.id}`, {
+                      state: { categoryId, categoryName, subCategoryId, subCategoryName: finalSubCategoryName }
+                    })}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Explore More ── */}
+          {exploreMoreProducts.length > 0 && (
+            <div className="mt-10">
+              <h3 className="font-serif text-[17px] font-bold text-[#1A1A1A] mb-4">Explore More</h3>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {exploreMoreProducts.slice(0, 8).map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    onClick={() => navigate(`/physical-gold/product/${p.id}`, {
+                      state: { categoryId, categoryName, subCategoryId, subCategoryName: finalSubCategoryName }
+                    })}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Related Products (fallback) ── */}
           { /* {relatedProducts.length > 0 && (
             <div className="mt-8">
               <h3 className="font-serif text-[17px] font-bold text-[#1A1A1A] mb-4">You May Also Like</h3>

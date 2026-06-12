@@ -95,8 +95,11 @@ const adminAuthenticatedFetch = async (url: string, options: RequestInit = {}): 
 
 // --- API Functions ---
 
-export const fetchMainCategories = async () => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/categories/category-management/parent-categories`);
+export const fetchMainCategories = async (status?: 'ACTIVE' | 'INACTIVE') => {
+    const url = status 
+        ? `${BASE_URL}/admin/categories/category-management/parent-categories?status=${status}`
+        : `${BASE_URL}/admin/categories/category-management/parent-categories`;
+    const response = await adminAuthenticatedFetch(url);
     if (!response.ok) throw new Error("Failed to fetch main categories");
     return response.json();
 };
@@ -313,6 +316,19 @@ export const updateVariantPrice = async (variantId: number | string, price: numb
     return response.json();
 };
 
+export const adminLogin = async (email: string, password: string) => {
+    const response = await fetch(`${BASE_URL}/auth/adminLogin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data?.message || data?.error || 'Login failed');
+    }
+    return data;
+};
+
 export const loginOrRegister = async (params: any) => {
     const response = await fetch(`${BASE_URL}/auth/userLoginOrRegister`, {
         method: 'POST',
@@ -429,5 +445,35 @@ export const viewAllUsers = async (page: number, size: number, name?: string, ph
     const response = await adminAuthenticatedFetch(url);
     if (!response.ok) throw new Error("Failed to fetch users");
     return response.json();
+};
+
+export const exportOrdersPDF = async (filters?: {
+    search?: string;
+    paymentStatus?: string;
+    orderStatus?: string;
+    fromDate?: string;
+    toDate?: string;
+}) => {
+    const token = getAdminAuthToken();
+    const queryParams = new URLSearchParams();
+    
+    if (filters?.search) queryParams.append('search', filters.search);
+    if (filters?.paymentStatus) queryParams.append('paymentStatus', filters.paymentStatus);
+    if (filters?.orderStatus) queryParams.append('orderStatus', filters.orderStatus);
+    if (filters?.fromDate) queryParams.append('fromDate', filters.fromDate);
+    if (filters?.toDate) queryParams.append('toDate', filters.toDate);
+    
+    const url = queryParams.toString() 
+        ? `${BASE_URL}/order/export/pdf?${queryParams.toString()}`
+        : `${BASE_URL}/order/export/pdf`;
+    
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    if (!response.ok) throw new Error("Failed to export orders");
+    return response.blob();
 };
 

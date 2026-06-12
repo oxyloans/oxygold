@@ -1,16 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import Table from '../components/ui/Table';
-import { ShoppingBag, Search, User, Phone, Mail, CreditCard, Calendar, Box } from 'lucide-react';
+import { ShoppingBag, Search, User, Phone, Mail, CreditCard, Calendar, Box, Filter } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
-import { fetchActiveOrders, AdminOrder } from '../services/adminService';
+import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import { fetchActiveOrders, AdminOrder, exportOrdersPDF } from '../services/adminService';
 
 const Orders: React.FC = () => {
     const [orders, setOrders] = useState<AdminOrder[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [exportFilters, setExportFilters] = useState({
+        search: '',
+        paymentStatus: '',
+        orderStatus: '',
+        fromDate: '',
+        toDate: ''
+    });
 
     useEffect(() => {
         loadOrders();
@@ -110,6 +120,30 @@ const Orders: React.FC = () => {
         setIsModalOpen(true);
     };
 
+    const handleExportOrders = async () => {
+        try {
+            const filters = {
+                search: exportFilters.search || undefined,
+                paymentStatus: exportFilters.paymentStatus || undefined,
+                orderStatus: exportFilters.orderStatus || undefined,
+                fromDate: exportFilters.fromDate || undefined,
+                toDate: exportFilters.toDate || undefined
+            };
+            const blob = await exportOrdersPDF(filters);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'Orders_Report.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            setIsFilterModalOpen(false);
+        } catch (error) {
+            console.error('Failed to export orders:', error);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-row items-center justify-between">
@@ -124,7 +158,7 @@ const Orders: React.FC = () => {
                     <Button variant="outline" size="md" onClick={loadOrders}>
                         Refresh
                     </Button>
-                    <Button variant="primary" size="md">
+                    <Button variant="primary" size="md" onClick={() => setIsFilterModalOpen(true)}>
                         Export Orders
                     </Button>
                 </div>
@@ -307,6 +341,84 @@ const Orders: React.FC = () => {
                         </div>
                     </div>
                 )}
+            </Modal>
+
+            {/* Export Filters Modal */}
+            <Modal
+                isOpen={isFilterModalOpen}
+                onClose={() => setIsFilterModalOpen(false)}
+                title="Export Orders - Apply Filters"
+                size="md"
+            >
+                <div className="space-y-4">
+                    <Input
+                        label="Search"
+                        placeholder="Search by order ID, name or phone..."
+                        value={exportFilters.search}
+                        onChange={(e) => setExportFilters({ ...exportFilters, search: e.target.value })}
+                    />
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <Select
+                            label="Payment Status"
+                            options={[
+                                { label: 'All', value: '' },
+                                { label: 'Success', value: 'SUCCESS' },
+                                { label: 'Pending', value: 'PENDING' },
+                                { label: 'Failed', value: 'FAILED' },
+                            ]}
+                            value={exportFilters.paymentStatus}
+                            onChange={(val) => setExportFilters({ ...exportFilters, paymentStatus: val as string })}
+                            placeholder="Select status..."
+                        />
+                        
+                        <Select
+                            label="Order Status"
+                            options={[
+                                { label: 'All', value: '' },
+                                { label: 'Confirmed', value: 'CONFIRMED' },
+                                { label: 'Processing', value: 'PROCESSING' },
+                                { label: 'Completed', value: 'COMPLETED' },
+                                { label: 'Cancelled', value: 'CANCELLED' },
+                            ]}
+                            value={exportFilters.orderStatus}
+                            onChange={(val) => setExportFilters({ ...exportFilters, orderStatus: val as string })}
+                            placeholder="Select status..."
+                        />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="From Date"
+                            type="date"
+                            value={exportFilters.fromDate}
+                            onChange={(e) => setExportFilters({ ...exportFilters, fromDate: e.target.value })}
+                        />
+                        
+                        <Input
+                            label="To Date"
+                            type="date"
+                            value={exportFilters.toDate}
+                            onChange={(e) => setExportFilters({ ...exportFilters, toDate: e.target.value })}
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4">
+                        <Button variant="outline" size="md" onClick={() => setIsFilterModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="md" 
+                            onClick={() => setExportFilters({ search: '', paymentStatus: '', orderStatus: '', fromDate: '', toDate: '' })}
+                        >
+                            Clear Filters
+                        </Button>
+                        <Button variant="primary" size="md" onClick={handleExportOrders}>
+                            Export PDF
+                        </Button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginOrRegister } from './physicalGoldService';
+import adminGoldBg from '../assets/admin_gold_bg.png';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -127,9 +128,12 @@ const Login = () => {
         .lg-left-img {
           position: absolute;
           inset: 0;
-          background:
-            linear-gradient(to bottom, rgba(8,6,2,0.72) 0%, rgba(8,6,2,0.45) 40%, rgba(8,6,2,0.82) 100%),
-            url('https://images.unsplash.com/photo-1624365168968-f283d506c6b6?w=700&q=80') center/cover no-repeat;
+          background-image:
+            linear-gradient(to bottom, rgba(8,6,2,0.45) 0%, rgba(8,6,2,0.2) 40%, rgba(8,6,2,0.7) 100%),
+            url('${adminGoldBg}');
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
         }
         .lg-left-content {
           position: relative;
