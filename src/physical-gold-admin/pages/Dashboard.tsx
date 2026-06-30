@@ -1,9 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { LayoutDashboard, ShoppingBag, Banknote, CreditCard, Wallet, CalendarDays } from 'lucide-react';
 import Button from '../components/ui/Button';
-import { DateRange } from 'react-date-range';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
 import {
     fetchPaymentModeSummary,
     fetchActiveOrders,
@@ -12,37 +9,40 @@ import {
 } from '../services/adminService';
 import { formatCurrency } from '../helpers';
 
+const getTodayYMD = () => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
+const getDaysAgoYMD = (days: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() - days);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
 const Dashboard: React.FC = () => {
-    const [showRangePicker, setShowRangePicker] = useState(false);
     const [loading, setLoading] = useState(false);
     const [summary, setSummary] = useState<PaymentModeSummary | null>(null);
     const [orders, setOrders] = useState<AdminOrder[]>([]);
-    const [range, setRange] = useState([
-        {
-            startDate: new Date(new Date().setDate(new Date().getDate() - 30)),
-            endDate: new Date(),
-            key: 'selection'
-        }
-    ]);
-
-    const formatYMD = (date: Date) => {
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-    };
+    const [startDate, setStartDate] = useState(getDaysAgoYMD(30));
+    const [endDate, setEndDate] = useState(getTodayYMD());
 
     const loadDashboard = async () => {
+        if (startDate > endDate) return;
         setLoading(true);
         try {
-            const startDate = formatYMD(range[0].startDate as Date);
-            const endDate = formatYMD(range[0].endDate as Date);
             const [summaryRes, ordersRes] = await Promise.all([
                 fetchPaymentModeSummary(startDate, endDate),
-                fetchActiveOrders()
+                fetchActiveOrders(0, 5)
             ]);
             setSummary(summaryRes);
-            setOrders((ordersRes || []).slice(0, 5));
+            setOrders(ordersRes.content || []);
         } catch (error) {
             console.error('Dashboard load failed:', error);
             setSummary(null);
@@ -69,37 +69,45 @@ const Dashboard: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-row items-center justify-between">
-                <div className="flex flex-col">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex flex-col w-full sm:w-auto">
                     <div className="flex items-center gap-2">
-                        <LayoutDashboard className="text-emerald-600" size={22} />
+                        <LayoutDashboard className="text-emerald-600 shrink-0" size={22} />
                         <h1 className="text-xl font-bold text-slate-800 tracking-tight">Dashboard</h1>
                     </div>
                     <p className="text-[13px] text-slate-400 font-medium mt-0.5 tracking-tight">Live payment summary and recent orders overview</p>
                 </div>
-                <div className="relative">
-                    <Button variant="outline" onClick={() => setShowRangePicker(v => !v)}>
-                        <span className="inline-flex items-center gap-2">
-                            <CalendarDays size={16} />
-                            {formatYMD(range[0].startDate as Date)} to {formatYMD(range[0].endDate as Date)}
-                        </span>
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[12px] font-medium text-slate-500 cursor-pointer hover:border-emerald-200 transition-all flex-1 sm:flex-none min-w-0">
+                        <CalendarDays size={14} className="text-emerald-600 shrink-0" />
+                        <input
+                            type="date"
+                            value={startDate}
+                            max={endDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="border-none outline-none bg-transparent text-slate-700 font-semibold cursor-pointer w-full min-w-0"
+                        />
+                    </label>
+                    <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[12px] font-medium text-slate-500 cursor-pointer hover:border-emerald-200 transition-all flex-1 sm:flex-none min-w-0">
+                        <CalendarDays size={14} className="text-emerald-600 shrink-0" />
+                        <input
+                            type="date"
+                            value={endDate}
+                            min={startDate}
+                            max={getTodayYMD()}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="border-none outline-none bg-transparent text-slate-700 font-semibold cursor-pointer w-full min-w-0"
+                        />
+                    </label>
+                    <Button variant="outline" onClick={loadDashboard} disabled={startDate > endDate} className="w-full sm:w-auto">
+                        Apply
                     </Button>
-                    {showRangePicker && (
-                        <div className="absolute right-0 mt-2 z-30 bg-white border border-slate-200 rounded-xl shadow-lg p-2">
-                            <DateRange
-                                ranges={range}
-                                onChange={(item: any) => setRange([item.selection])}
-                                moveRangeOnFirstSelection={false}
-                                maxDate={new Date()}
-                            />
-                            <div className="flex justify-end gap-2 p-2">
-                                <Button variant="outline" onClick={() => setShowRangePicker(false)}>Close</Button>
-                                <Button onClick={() => { setShowRangePicker(false); loadDashboard(); }}>Apply</Button>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
+
+            {startDate > endDate && (
+                <p className="text-[13px] text-rose-500 font-medium">Start date must be on or before end date.</p>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((stat, index) => (
@@ -148,14 +156,12 @@ const Dashboard: React.FC = () => {
                                         <td className="px-5 py-3 text-[13px] text-slate-600">{order.userName || order.userEmail || '-'}</td>
                                         <td className="px-5 py-3 text-[13px] text-slate-700">{order.paymentMode}</td>
                                         <td className="px-5 py-3 text-[13px] text-slate-700">
-                                            {order.paymentExpiry
-                                                ? new Date(order.paymentExpiry).toLocaleString('en-IN', {
+                                            {order.createdAt
+                                                ? new Date(order.createdAt).toLocaleString('en-IN', {
                                                     day: '2-digit',
                                                     month: 'short',
                                                     year: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                    hour12: true
+                                                  
                                                 })
                                                 : '—'}
                                         </td>

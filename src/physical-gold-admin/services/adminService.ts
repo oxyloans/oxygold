@@ -381,6 +381,8 @@ export interface OrderItem {
     productId: number;
     quantity: number;
     subtotal: number;
+    productName?: string;
+    variant?: string;
 }
 
 export interface AdminOrder {
@@ -398,7 +400,34 @@ export interface AdminOrder {
     userEmail: string | null;
     userId: number;
     userName: string | null;
+    createdAt?: string;
     items: OrderItem[];
+}
+
+export interface PaginatedOrders {
+    content: AdminOrder[];
+    totalElements: number;
+    totalPages: number;
+    number: number;
+    size: number;
+    first: boolean;
+    last: boolean;
+    empty: boolean;
+}
+
+export interface DayScoreCard {
+    date: string;
+    totalOrders: number;
+    totalRevenue: number;
+    averageOrderValue: number;
+    successOrders: number;
+    pendingOrders: number;
+    failedOrders: number;
+    deliveredOrders: number | null;
+    newOrders: number | null;
+    cashfreeRevenue: number | null;
+    codRevenue: number | null;
+    walletRevenue: number | null;
 }
 
 export interface PaymentModeSummaryItem {
@@ -415,11 +444,20 @@ export interface PaymentModeSummary {
     allModes: PaymentModeSummaryItem[];
 }
 
-export const fetchActiveOrders = async (): Promise<AdminOrder[]> => {
-    const response = await adminAuthenticatedFetch(`${BASE_URL}/order/active`);
+export const fetchActiveOrders = async (page = 0, size = 10): Promise<PaginatedOrders> => {
+    const response = await adminAuthenticatedFetch(
+        `${BASE_URL}/order/active-orders?page=${page}&size=${size}`
+    );
     if (!response.ok) throw new Error("Failed to fetch active orders");
-    const data = await response.json();
-    return data.data;
+    return response.json();
+};
+
+export const fetchDayScoreCard = async (date: string): Promise<DayScoreCard> => {
+    const response = await adminAuthenticatedFetch(
+        `${BASE_URL}/order/dashboard/day-score-card?date=${encodeURIComponent(date)}`
+    );
+    if (!response.ok) throw new Error("Failed to fetch day score card");
+    return response.json();
 };
 
 export const fetchPaymentModeSummary = async (startDate: string, endDate: string): Promise<PaymentModeSummary> => {

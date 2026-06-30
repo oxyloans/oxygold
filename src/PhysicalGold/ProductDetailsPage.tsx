@@ -1086,7 +1086,7 @@ const ProductDetailsPage: React.FC = () => {
           )}
 
           {/* ── Explore More ── */}
-          {exploreMoreProducts.length > 0 && (
+          {/* {exploreMoreProducts.length > 0 && (
             <div className="mt-10">
               <h3 className="font-serif text-[17px] font-bold text-[#1A1A1A] mb-4">Explore More</h3>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1101,7 +1101,7 @@ const ProductDetailsPage: React.FC = () => {
                 ))}
               </div>
             </div>
-          )}
+          )} */}
 
           {/* ── Related Products (fallback) ── */}
           { /* {relatedProducts.length > 0 && (

@@ -419,33 +419,33 @@ const CatalogUpload: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-row items-center justify-between">
-                <div className="flex flex-col">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex flex-col w-full sm:w-auto min-w-0">
                     <div className="flex items-center gap-2">
                         {level > 0 && (
-                            <button onClick={handleBack} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 mr-1">
+                            <button onClick={handleBack} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 mr-1 shrink-0">
                                 <ChevronLeft size={20} />
                             </button>
                         )}
-                        <div className="p-2 bg-emerald-50 rounded-lg">
+                        <div className="p-2 bg-emerald-50 rounded-lg shrink-0">
                             {level < 2 ? <Layers className="text-emerald-600" size={20} /> : <Package className="text-emerald-600" size={20} />}
                         </div>
-                        <h1 className="text-lg font-bold text-slate-800 tracking-tight">
+                        <h1 className="text-lg font-bold text-slate-800 tracking-tight truncate">
                             {level === 0 ? 'Catalog' : path[path.length - 1].name}
                         </h1>
                     </div>
-                    <div className="flex items-center gap-1 mt-1.5">
+                    <div className="flex items-center gap-1 mt-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
                         <span
-                            className={`text-[11px] font-bold uppercase tracking-wider cursor-pointer transition-colors ${level === 0 ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+                            className={`text-[11px] font-bold uppercase tracking-wider cursor-pointer transition-colors shrink-0 ${level === 0 ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
                             onClick={resetToHome}
                         >
                             Catalog
                         </span>
                         {path.map((p, i) => (
                             <React.Fragment key={p.id}>
-                                <ChevronRight size={10} className="text-slate-300" />
+                                <ChevronRight size={10} className="text-slate-300 shrink-0" />
                                 <span
-                                    className={`text-[11px] font-bold uppercase tracking-wider cursor-pointer whitespace-nowrap transition-colors ${i === path.length - 1 ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+                                    className={`text-[11px] font-bold uppercase tracking-wider cursor-pointer whitespace-nowrap shrink-0 transition-colors ${i === path.length - 1 ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
                                     onClick={() => jumpToPath(i)}
                                 >
                                     {p.name}
@@ -454,7 +454,7 @@ const CatalogUpload: React.FC = () => {
                         ))}
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     {level === 0 && (
                         <div className="flex gap-1 p-0.5 bg-slate-100 rounded-lg">
                             <button
@@ -479,9 +479,9 @@ const CatalogUpload: React.FC = () => {
                             </button>
                         </div>
                     )}
-                    <Button onClick={openCreateModal} className="flex items-center gap-2">
+                    <Button onClick={openCreateModal} className="flex items-center gap-2 w-full sm:w-auto justify-center">
                         <Plus size={16} />
-                        <span>Create {level === 0 ? 'Category' : level === 1 ? 'Sub-category' : level === 2 ? 'Product' : 'Variant'}</span>
+                        <span className="whitespace-nowrap">Create {level === 0 ? 'Category' : level === 1 ? 'Sub-category' : level === 2 ? 'Product' : 'Variant'}</span>
                     </Button>
                 </div>
             </div>
@@ -534,7 +534,7 @@ const CatalogUpload: React.FC = () => {
                             />
                             {modalType === 'product' && (
                                 <>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <Select
                                             label="Product Type"
                                             options={[
@@ -645,15 +645,15 @@ const CatalogUpload: React.FC = () => {
                         // Variant Form
                         <div className="space-y-4">
                             <Input label="SKU" value={formData.sku || ''} onChange={e => setFormData({ ...formData, sku: e.target.value })} />
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Input label="Size" value={formData.size || ''} onChange={e => setFormData({ ...formData, size: e.target.value })} />
                                 <Input label="Purity" value={formData.purity || ''} placeholder="e.g. 22KT" onChange={e => setFormData({ ...formData, purity: e.target.value })} />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Input label="Weight (g)" type="number" value={formData.weight || 0} onChange={e => setFormData({ ...formData, weight: Number(e.target.value) })} />
                                 <Input label="Stock" type="number" value={formData.stockQuantity || 0} onChange={e => setFormData({ ...formData, stockQuantity: Number(e.target.value) })} />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Input label="Price (₹)" type="number" value={formData.price || 0} onChange={e => setFormData({ ...formData, price: Number(e.target.value) })} />
                                 <Input label="MRP (₹)" type="number" value={formData.mrp || 0} onChange={e => setFormData({ ...formData, mrp: Number(e.target.value) })} />
                             </div>
