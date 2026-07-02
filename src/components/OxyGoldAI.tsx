@@ -24,6 +24,7 @@ import LandingHeader from "../pages/LandingpageHeader";
 import IBJAPartnerSection from "./Ibjapage";
 import OxyEcosystem from "./OxyPlatforms";
 import TrackTrace from "./TracknTrace";
+import OurTeam from "./OurTeam";
 
 import BackgroundSystem from "./backgrounds/BackgroundSystem";
 import HeroLocalPattern from "./backgrounds/HeroLocalPattern";
@@ -294,6 +295,11 @@ export default function OxyGoldLandingPage({ assets }: Props) {
         {/* ✅ Design Jewellery */}
         <section id="design-jewellery" className="py-0 sm:py-8 lg:py-12">
           <DesignGoldOrnaments />
+        </section>
+
+        {/* ✅ Leadership Team */}
+        <section id="leadership" className="py-2 sm:py-8 lg:py-12">
+          <OurTeam />
         </section>
 
         {/* MAIN CONTENT SECTIONS */}
