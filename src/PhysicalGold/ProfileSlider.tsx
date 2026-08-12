@@ -22,6 +22,16 @@ import {
     Wallet,
     Settings,
     Trash2,
+    HelpCircle,
+    MessageSquare,
+    Send,
+    Clock,
+    CheckCheck,
+    Paperclip,
+    X,
+    AlertTriangle,
+    Star,
+    ImagePlus,
 } from "lucide-react";
 import {
     addAddress,
@@ -36,8 +46,20 @@ import {
     fetchUserOrders,
     getInvoicePreviewUrl,
     verifyPan,
+    writeQuery,
+    getAllQueries,
+    cancelQuery,
+    uploadQueryScreenshot,
+    createRating,
+    updateRating,
+    fetchMyRatings,
+    fetchRating,
+    fetchRatingMedia,
+    uploadRatingMedia,
+    type ProductReview,
+    type HelpdeskQuery,
 } from "./physicalGoldService";
-import { Order } from "./physicalGoldData";
+import { Order, OrderItem } from "./physicalGoldData";
 import PhysicalGoldHeader from "./components/Header";
 import Toast, { ToastType } from "./components/Toast";
 import Dropdown from "./components/Dropdown";
@@ -65,7 +87,7 @@ interface Address {
     latitude: string;
 }
 
-type Tab = "info" | "address" | "wallet" | "orders";
+type Tab = "info" | "address" | "wallet" | "orders" | "support";
 
 interface PageState {
     activeTab: Tab;
@@ -112,6 +134,17 @@ interface PageState {
     expandedOrderId: number | null;
     toast: { message: string; type: ToastType } | null;
     deleteConfirmation: { show: boolean; addressId: string | null };
+    // Support/Helpdesk
+    queries: HelpdeskQuery[];
+    isQueriesLoading: boolean;
+    isSubmittingQuery: boolean;
+    queryForm: { query: string; comments: string; file: File | null; };
+    queryFormErrors: Record<string, string>;
+    queryStatusFilter: string;
+    showQueryForm: boolean;
+    isUploadingFile: boolean;
+    cancellingQueryId: number | null;
+    profileIncompleteModal: boolean;
 }
 
 /* ────────────────────────────────────────────────────────── */
@@ -151,6 +184,12 @@ const inputCls =
     "w-full border border-[#E8E0D5] rounded-lg px-3 py-2 text-[13px] text-[#1A1A1A] bg-white placeholder-[#BEB5AA] outline-none focus:border-[#8B6914] focus:ring-2 focus:ring-[#8B6914]/10 transition";
 
 const labelCls = "block text-[11px] font-semibold text-[#8A8A8A] mb-1";
+const REVIEW_TITLE_MIN = 3;
+const REVIEW_TEXT_MIN = 10;
+const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+const VIDEO_MAX_BYTES = 50 * 1024 * 1024;
+const REVIEW_MEDIA_TYPES = ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm"];
+const REVIEW_RATING_LABELS = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
 
 /* ────────────────────────────────────────────────────────── */
 /*  InfoRow — used for read-only profile fields               */
@@ -169,8 +208,18 @@ const ProfilePage: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const initialTab = (searchParams.get("tab") as Tab) || "info";
+    const returnTo = searchParams.get("returnTo");
 
     const [user, setUser] = useState<any>(GET_USER_DATA());
+    const [reviews, setReviews] = useState<ProductReview[]>([]);
+    const [reviewItem, setReviewItem] = useState<OrderItem | null>(null);
+    const [editingReview, setEditingReview] = useState<ProductReview | null>(null);
+    const [reviewRating, setReviewRating] = useState(0);
+    const [reviewTitle, setReviewTitle] = useState("");
+    const [reviewText, setReviewText] = useState("");
+    const [reviewFile, setReviewFile] = useState<File | null>(null);
+    const [reviewError, setReviewError] = useState("");
+    const [isSavingReview, setIsSavingReview] = useState(false);
 
     const [s, setS] = useState<PageState>({
         activeTab: initialTab,
@@ -211,6 +260,16 @@ const ProfilePage: React.FC = () => {
         expandedOrderId: null,
         toast: null,
         deleteConfirmation: { show: false, addressId: null },
+        queries: [],
+        isQueriesLoading: false,
+        isSubmittingQuery: false,
+        queryForm: { query: '', comments: '', file: null },
+        queryFormErrors: {},
+        queryStatusFilter: 'PENDING',
+        showQueryForm: false,
+        isUploadingFile: false,
+        cancellingQueryId: null,
+        profileIncompleteModal: false,
     });
 
     const patch = useCallback(
@@ -342,8 +401,12 @@ const ProfilePage: React.FC = () => {
         if (!uid) return;
         patch({ isOrdersLoading: true });
         try {
-            const data = await fetchUserOrders(uid);
+            const [data, ratingData] = await Promise.all([
+                fetchUserOrders(uid),
+                fetchMyRatings().catch(() => ({ content: [] as ProductReview[] })),
+            ]);
             patch({ orders: data });
+            setReviews(ratingData.content || []);
         } catch (err) {
             console.error("Failed to fetch orders:", err);
         } finally {
@@ -356,6 +419,7 @@ const ProfilePage: React.FC = () => {
         if (s.activeTab === "address") loadAddresses();
         if (s.activeTab === "wallet") fetchWalletInfo();
         if (s.activeTab === "orders") loadOrders();
+        if (s.activeTab === "support") loadQueries();
     }, [s.activeTab, fetchProfile, loadAddresses, fetchWalletInfo, loadOrders]);
 
     /* ── actions ── */
@@ -464,6 +528,8 @@ const ProfilePage: React.FC = () => {
             localStorage.setItem("user", JSON.stringify(updatedUser));
             setUser(updatedUser);
             patch({ isEditingProfile: false, toast: { message: "Profile updated successfully", type: "success" } });
+            if (returnTo === "cart") { setTimeout(() => navigate("/physical-gold/cart"), 800); }
+            else if (returnTo === "support") { setTimeout(() => { setSearchParams({ tab: "support" }); patch({ activeTab: "support" }); }, 800); }
         } catch (err) {
             console.error("Failed to save profile:", err);
             patch({ toast: { message: "Failed to save profile. Please try again.", type: "error" } });
@@ -536,26 +602,57 @@ const ProfilePage: React.FC = () => {
 
     const fetchCurrentLocation = () => {
         if (!navigator.geolocation) {
-            patch({ toast: { message: "Geolocation is not supported by your browser", type: "error" } });
+            patch({
+                isFetchingLocation: false,
+                toast: { message: "Geolocation is not supported by your browser", type: "error" }
+            });
             return;
         }
 
         patch({ isFetchingLocation: true, locationError: "" });
+        let completed = false;
+        const finish = (updates: Partial<PageState>) => {
+            if (completed) return;
+            completed = true;
+            window.clearTimeout(safetyTimer);
+            patch({ ...updates, isFetchingLocation: false });
+        };
+        const safetyTimer = window.setTimeout(() => {
+            finish({
+                locationError: "Location request timed out",
+                toast: { message: "Location request timed out. Check your device location settings and try again.", type: "error" }
+            });
+        }, 16000);
+
         navigator.geolocation.getCurrentPosition(
             (position) => {
+                if (completed) return;
                 patchAddrForm({
                     latitude: position.coords.latitude.toString(),
                     longitude: position.coords.longitude.toString(),
                 });
-                patch({ isFetchingLocation: false, toast: { message: "Location captured successfully", type: "success" } });
+                finish({
+                    locationError: "",
+                    toast: { message: "Location captured successfully", type: "success" }
+                });
             },
             (error) => {
                 console.error("Geolocation error:", error);
-                patch({
-                    isFetchingLocation: false,
-                    locationError: "Unable to fetch location",
-                    toast: { message: "Failed to get location. Please enable location access.", type: "error" }
+                const messages: Record<number, string> = {
+                    1: "Location permission was denied. Allow location access in your browser settings.",
+                    2: "Your current location is unavailable. Check your device location settings.",
+                    3: "Location request timed out. Move to an area with a better GPS signal and try again.",
+                };
+                const message = messages[error.code] || "Failed to get your current location. Please try again.";
+                finish({
+                    locationError: message,
+                    toast: { message, type: "error" }
                 });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 30000,
             }
         );
     };
@@ -563,6 +660,7 @@ const ProfilePage: React.FC = () => {
     const cancelAddrForm = () =>
         patch({
             isAddingAddress: false, editingAddress: null, addrErrors: {},
+            isFetchingLocation: false, locationError: "",
             addrForm: { flatNo: "", landMark: "", address: "", pinCode: "", state: "", type: "Home", latitude: "", longitude: "", typeDropdownOpen: false },
         });
 
@@ -588,6 +686,177 @@ const ProfilePage: React.FC = () => {
         patch({ expandedOrderId: s.expandedOrderId === orderId ? null : orderId });
     };
 
+    const openProductReview = async (item: OrderItem) => {
+        const existing = reviews.find((review) => review.productId === item.productId);
+        setReviewItem(item);
+        setEditingReview(existing || null);
+        setReviewRating(existing?.rating || 0);
+        setReviewTitle(existing?.title || "");
+        setReviewText(existing?.reviewText || "");
+        setReviewFile(null);
+        setReviewError("");
+        if (existing) {
+            try {
+                const [freshReview, media] = await Promise.all([
+                    fetchRating(existing.id),
+                    fetchRatingMedia(existing.id).catch(() => existing.media || []),
+                ]);
+                const completeReview = { ...freshReview, media };
+                setEditingReview(completeReview);
+                setReviewRating(completeReview.rating);
+                setReviewTitle(completeReview.title || "");
+                setReviewText(completeReview.reviewText || "");
+            } catch {
+                setReviewError("We could not refresh this review, but you can still edit the saved version below.");
+            }
+        }
+    };
+
+    const selectReviewFile = (file: File | null) => {
+        setReviewError("");
+        if (!file) { setReviewFile(null); return; }
+        if (!REVIEW_MEDIA_TYPES.includes(file.type)) {
+            setReviewFile(null); setReviewError("Use a JPG, PNG, WebP, MP4, or WebM file."); return;
+        }
+        const maxBytes = file.type.startsWith("video/") ? VIDEO_MAX_BYTES : IMAGE_MAX_BYTES;
+        if (file.size > maxBytes) {
+            setReviewFile(null); setReviewError(file.type.startsWith("video/") ? "Video must be 50 MB or smaller." : "Image must be 10 MB or smaller."); return;
+        }
+        setReviewFile(file);
+    };
+
+    const closeProductReview = () => {
+        if (isSavingReview) return;
+        setReviewItem(null); setEditingReview(null); setReviewError("");
+    };
+
+    const saveProductReview = async () => {
+        if (!reviewItem || reviewRating < 1) { setReviewError("Please select a star rating."); return; }
+        if (reviewTitle.trim().length < REVIEW_TITLE_MIN) { setReviewError(`Review title must be at least ${REVIEW_TITLE_MIN} characters.`); return; }
+        if (reviewText.trim().length < REVIEW_TEXT_MIN) { setReviewError(`Review must be at least ${REVIEW_TEXT_MIN} characters.`); return; }
+        const orderItemId = reviewItem.orderItemId ?? reviewItem.id;
+        if (!editingReview && !orderItemId) { setReviewError("Order item information is unavailable. Refresh My Orders and try again."); return; }
+        try {
+            setIsSavingReview(true); setReviewError("");
+            const saved = editingReview
+                ? await updateRating(editingReview.id, { rating: reviewRating, title: reviewTitle.trim(), reviewText: reviewText.trim() })
+                : await createRating({ orderItemId: orderItemId!, rating: reviewRating, title: reviewTitle.trim(), reviewText: reviewText.trim() });
+            let mediaUploadFailed = false;
+            if (reviewFile) {
+                try { await uploadRatingMedia(saved.id, reviewFile, saved.media?.length || 0); }
+                catch { mediaUploadFailed = true; }
+            }
+            const refreshed = await fetchMyRatings().catch(() => null);
+            setReviews(refreshed?.content || [saved, ...reviews.filter((review) => review.id !== saved.id)]);
+            setReviewItem(null); setEditingReview(null);
+            patch({ toast: { message: mediaUploadFailed ? "Review saved, but the media upload failed. You can edit the review and try again." : editingReview ? "Review updated successfully" : "Thank you! Your review was submitted for moderation.", type: mediaUploadFailed ? "error" : "success" } });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Unable to save your review.";
+            setReviewError(message.includes("has not been delivered") ? "You can review this product after the order has been delivered." : message);
+        } finally { setIsSavingReview(false); }
+    };
+
+    const loadQueries = useCallback(async (statusOverride?: string) => {
+        const userData = GET_USER_DATA();
+        const uid = userData?.data?.userId;
+        if (!uid) return;
+        patch({ isQueriesLoading: true });
+        try {
+            const res = await getAllQueries({
+                userId: uid,
+                queryStatus: statusOverride ?? s.queryStatusFilter,
+                page: 0,
+                size: 20,
+            });
+            const queries = Array.isArray(res?.data)
+                ? res.data
+                : res?.data?.content || res?.content || [];
+            patch({ queries });
+        } catch (err) {
+            console.error('Failed to fetch queries:', err);
+        } finally {
+            patch({ isQueriesLoading: false });
+        }
+    }, [patch, s.queryStatusFilter]);
+
+    const handleSubmitQuery = async () => {
+        const userData = GET_USER_DATA();
+        const uid = userData?.data?.userId;
+        if (!uid) return;
+
+        const errors: Record<string, string> = {};
+        const query = s.queryForm.query.trim();
+        if (!s.profileForm.email?.trim()) errors.email = 'Email is required.';
+        else if (!validateEmail(s.profileForm.email)) errors.email = 'Enter a valid email address.';
+        if (!s.profileForm.mobileNumber?.trim()) errors.mobileNumber = 'Mobile number is required.';
+        else if (!validateMobileNumber(s.profileForm.mobileNumber)) errors.mobileNumber = 'Enter a valid 10-digit mobile number.';
+        if (!query) errors.query = 'Please describe your issue or question.';
+        else if (query.length < 10) errors.query = 'Query must contain at least 10 characters.';
+
+        if (Object.keys(errors).length > 0) {
+            patch({ queryFormErrors: errors, toast: { message: 'Please correct the highlighted fields.', type: 'error' } });
+            return;
+        }
+
+        patch({ isSubmittingQuery: true, queryFormErrors: {} });
+        try {
+            const result = await writeQuery({
+                userId: uid,
+                query,
+                email: s.profileForm.email,
+            });
+
+            let attachmentUploaded = true;
+            if (s.queryForm.file) {
+                patch({ isUploadingFile: true });
+                try {
+                    // The upload API calls this queryId, but it expects writeQuery's ticketId.
+                    await uploadQueryScreenshot(uid, result.ticketId, s.queryForm.file);
+                } catch (uploadErr) {
+                    console.error('File upload failed:', uploadErr);
+                    attachmentUploaded = false;
+                } finally {
+                    patch({ isUploadingFile: false });
+                }
+            }
+
+            patch({
+                queryForm: { query: '', comments: '', file: null },
+                queryFormErrors: {},
+                showQueryForm: false,
+                queryStatusFilter: 'PENDING',
+                toast: attachmentUploaded
+                    ? { message: s.queryForm.file ? `Query ${result.randomTicketId || `#${result.ticketId}`} and attachment submitted successfully!` : `Query ${result.randomTicketId || `#${result.ticketId}`} submitted successfully!`, type: 'success' }
+                    : { message: 'Query submitted, but the attachment could not be uploaded. Please keep your ticket number and try again later.', type: 'error' },
+            });
+            // Newly raised queries are pending, so refresh that list explicitly.
+            await loadQueries('PENDING');
+        } catch (err) {
+            console.error('Failed to submit query:', err);
+            patch({ toast: { message: 'Failed to submit query. Please try again.', type: 'error' } });
+        } finally {
+            patch({ isSubmittingQuery: false });
+        }
+    };
+
+    const handleCancelQuery = async (queryId: number) => {
+        const userData = GET_USER_DATA();
+        const uid = userData?.data?.userId;
+        if (!uid) return;
+
+        patch({ cancellingQueryId: queryId });
+        try {
+            await cancelQuery(queryId, uid);
+            patch({ toast: { message: 'Query cancelled successfully.', type: 'success' } });
+            await loadQueries();
+        } catch (err) {
+            console.error('Failed to cancel query:', err);
+            patch({ toast: { message: 'Failed to cancel query. Please try again.', type: 'error' } });
+        } finally {
+            patch({ cancellingQueryId: null });
+        }
+    };
+
     const displayName = user
         ? `${user.data?.body?.firstName || user.firstName || ""} ${user.data?.body?.lastName || user.lastName || ""}`.trim() || "My Account"
         : "My Account";
@@ -600,6 +869,7 @@ const ProfilePage: React.FC = () => {
         { id: "orders", label: "My Orders", icon: Package },
         { id: "address", label: "Addresses", icon: MapPin },
         { id: "wallet", label: "Wallet", icon: Wallet },
+        { id: "support", label: "Contact Support", icon: HelpCircle },
     ];
 
     return (
@@ -663,6 +933,14 @@ const ProfilePage: React.FC = () => {
                                 <button
                                     key={id}
                                     onClick={() => {
+                                                        if (id === "support") {
+                                            const p = s.profileForm;
+                                            const isProfileFilled = p.firstName.trim() && p.lastName.trim() && p.email.trim() && p.mobileNumber.trim();
+                                            if (!isProfileFilled) {
+                                                patch({ profileIncompleteModal: true });
+                                                return;
+                                            }
+                                        }
                                         setSearchParams({ tab: id });
                                         patch({ activeTab: id, isAddingAddress: false, isEditingProfile: false });
                                     }}
@@ -1263,6 +1541,16 @@ const ProfilePage: React.FC = () => {
                                                                                 {item.quantity} × {DISPLAY_INR(item.price)}
                                                                             </p>
                                                                         )}
+                                                                        {order.orderStatus?.toUpperCase() === "DELIVERED" && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => openProductReview(item)}
+                                                                                className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-[#8B6914] hover:text-[#5f470d]"
+                                                                            >
+                                                                                <Star className="h-3 w-3" />
+                                                                                {reviews.some((review) => review.productId === item.productId) ? "Edit rating" : "Rate product"}
+                                                                            </button>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -1299,8 +1587,374 @@ const ProfilePage: React.FC = () => {
                             )}
                         </div>
                     )}
+                    {/* ── SUPPORT TAB ── */}
+                    {s.activeTab === "support" && (
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-[18px] font-semibold text-[#1A1A1A]">Help & Support</h3>
+                                {!s.showQueryForm && (
+                                    <button
+                                        onClick={() => patch({ showQueryForm: true, queryFormErrors: {} })}
+                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8B6914] text-white text-[11px] font-medium hover:bg-[#7A5C10] transition"
+                                    >
+                                        <Plus className="h-3 w-3" strokeWidth={2.5} /> New Query
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Status Filter */}
+                            {!s.showQueryForm && (
+                                <div className="mb-5 max-w-xs">
+                                    <label htmlFor="query-status" className={labelCls}>Query status</label>
+                                    <div className="relative">
+                                        <select
+                                            id="query-status"
+                                            value={s.queryStatusFilter}
+                                            onChange={(event) => {
+                                                const status = event.target.value;
+                                                patch({ queryStatusFilter: status, queries: [] });
+                                                loadQueries(status);
+                                            }}
+                                            className={`${inputCls} appearance-none pr-9 font-medium cursor-pointer`}
+                                        >
+                                            <option value="PENDING">Pending</option>
+                                            <option value="COMPLETED">Completed</option>
+                                            <option value="CANCELLED">Cancelled</option>
+                                        </select>
+                                        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A8A8A]" />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* New Query Form */}
+                            {s.showQueryForm && (
+                                <div className="border border-[#E8E0D5] rounded-xl p-5 mb-5 space-y-4 bg-[#FAFAF8]">
+                                    <h4 className="text-[13px] font-semibold text-[#1A1A1A]">Submit a New Query</h4>
+
+                                    {/* Auto-filled contact info */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className={labelCls}>Email <span className="text-rose-500">*</span></label>
+                                            <input
+                                                type="email"
+                                                value={s.profileForm.email || ''}
+                                                disabled={!!s.profileForm.email && validateEmail(s.profileForm.email)}
+                                                onChange={(e) => {
+                                                    patchProfile({ email: e.target.value });
+                                                    patch({ queryFormErrors: { ...s.queryFormErrors, email: '' } });
+                                                }}
+                                                placeholder="Enter your email"
+                                                className={`${inputCls} ${s.profileForm.email && validateEmail(s.profileForm.email) ? 'bg-[#F5F2EE] cursor-not-allowed opacity-70' : !s.profileForm.email ? 'border-amber-300 focus:border-amber-500' : ''}`}
+                                            />
+                                            {s.queryFormErrors.email && <p className="text-[11px] text-rose-500 mt-1">{s.queryFormErrors.email}</p>}
+                                        </div>
+                                        <div>
+                                            <label className={labelCls}>Mobile Number <span className="text-rose-500">*</span></label>
+                                            <input
+                                                type="tel"
+                                                value={s.profileForm.mobileNumber || ''}
+                                                disabled={!!s.profileForm.mobileNumber && validateMobileNumber(s.profileForm.mobileNumber)}
+                                                onChange={(e) => {
+                                                    const val = formatMobileNumber(e.target.value);
+                                                    if (val.length <= 10) {
+                                                        patchProfile({ mobileNumber: val });
+                                                        patch({ queryFormErrors: { ...s.queryFormErrors, mobileNumber: '' } });
+                                                    }
+                                                }}
+                                                placeholder="Enter 10-digit mobile number"
+                                                maxLength={10}
+                                                className={`${inputCls} ${s.profileForm.mobileNumber && validateMobileNumber(s.profileForm.mobileNumber) ? 'bg-[#F5F2EE] cursor-not-allowed opacity-70' : !s.profileForm.mobileNumber ? 'border-amber-300 focus:border-amber-500' : ''}`}
+                                            />
+                                            {s.queryFormErrors.mobileNumber && <p className="text-[11px] text-rose-500 mt-1">{s.queryFormErrors.mobileNumber}</p>}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className={labelCls}>Your Query <span className="text-rose-500">*</span></label>
+                                        <textarea
+                                            value={s.queryForm.query}
+                                            onChange={(e) => patch({
+                                                queryForm: { ...s.queryForm, query: e.target.value },
+                                                queryFormErrors: { ...s.queryFormErrors, query: '' },
+                                            })}
+                                            placeholder="Describe your issue or question..."
+                                            className={`${inputCls} resize-none`}
+                                            rows={3}
+                                        />
+                                        {s.queryFormErrors.query && <p className="text-[11px] text-rose-500 mt-1">{s.queryFormErrors.query}</p>}
+                                    </div>
+
+                                    {/* File Upload (optional) */}
+                                    <div>
+                                        <label className={labelCls}>Attach Screenshot <span className="text-[#BEB5AA]">(optional)</span></label>
+                                        {s.queryForm.file ? (
+                                            <div className="flex items-center gap-2 px-3 py-2 border border-[#E8E0D5] rounded-lg bg-white">
+                                                <Paperclip className="h-3.5 w-3.5 text-[#8B6914] shrink-0" />
+                                                <span className="text-[12px] text-[#1A1A1A] flex-1 truncate">{s.queryForm.file.name}</span>
+                                                <button
+                                                    onClick={() => patch({ queryForm: { ...s.queryForm, file: null } })}
+                                                    className="text-[#8A8A8A] hover:text-rose-500 transition"
+                                                >
+                                                    <X className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-[#E8E0D5] rounded-lg bg-white cursor-pointer hover:border-[#8B6914] transition">
+                                                <Paperclip className="h-3.5 w-3.5 text-[#8A8A8A]" />
+                                                <span className="text-[12px] text-[#8A8A8A]">Click to attach a file</span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0] || null;
+                                                        if (!file) return;
+                                                        const allowed = file.type.startsWith('image/');
+                                                        if (!allowed) {
+                                                            patch({ queryFormErrors: { ...s.queryFormErrors, file: 'Only image files are allowed.' } });
+                                                            e.target.value = '';
+                                                            return;
+                                                        }
+                                                        if (file.size > 5 * 1024 * 1024) {
+                                                            patch({ queryFormErrors: { ...s.queryFormErrors, file: 'Attachment must be 5 MB or smaller.' } });
+                                                            e.target.value = '';
+                                                            return;
+                                                        }
+                                                        patch({
+                                                            queryForm: { ...s.queryForm, file },
+                                                            queryFormErrors: { ...s.queryFormErrors, file: '' },
+                                                        });
+                                                    }}
+                                                />
+                                            </label>
+                                        )}
+                                        {s.queryFormErrors.file && <p className="text-[11px] text-rose-500 mt-1">{s.queryFormErrors.file}</p>}
+                                    </div>
+
+                                    <div className="flex gap-3 pt-1">
+                                        <button
+                                            onClick={() => patch({ showQueryForm: false, queryForm: { query: '', comments: '', file: null }, queryFormErrors: {} })}
+                                            className="px-4 py-2 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleSubmitQuery}
+                                            disabled={s.isSubmittingQuery || s.isUploadingFile}
+                                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-60"
+                                        >
+                                            {s.isUploadingFile ? (
+                                                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading...</>
+                                            ) : s.isSubmittingQuery ? (
+                                                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Submitting...</>
+                                            ) : (
+                                                <><Send className="h-3.5 w-3.5" /> Submit Query</>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Queries List */}
+                            {!s.showQueryForm && (s.isQueriesLoading ? (
+                                <div className="flex items-center justify-center py-16 gap-2 text-[#8A8A8A]">
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    <span className="text-[12px]">Loading queries...</span>
+                                </div>
+                            ) : s.queries.length === 0 ? (
+                                <div className="text-center py-16">
+                                    <MessageSquare className="h-8 w-8 text-[#D1C7BB] mx-auto mb-3" />
+                                    <p className="text-[13px] font-semibold text-[#1A1A1A] mb-1">No queries yet</p>
+                                    <p className="text-[12px] text-[#8A8A8A]">Submit a query and our team will get back to you</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {s.queries.map((q) => (
+                                        <div key={q.id} className="border border-[#E8E0D5] rounded-xl bg-white overflow-hidden">
+                                            <div className="px-4 py-4">
+                                                <div className="flex items-start justify-between gap-3 mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-semibold text-[#8A8A8A] uppercase tracking-wider">
+                                                            #{q.randomTicketId || q.ticketId}
+                                                        </span>
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                                                            q.queryStatus === 'COMPLETED'
+                                                                ? 'bg-emerald-50 text-emerald-700'
+                                                                : q.queryStatus === 'PENDING'
+                                                                ? 'bg-amber-50 text-amber-700'
+                                                                : q.queryStatus === 'CANCELLED'
+                                                                ? 'bg-rose-50 text-rose-700'
+                                                                : 'bg-blue-50 text-blue-700'
+                                                        }`}>
+                                                            {q.queryStatus}
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-[11px] text-[#8A8A8A] shrink-0">
+                                                        {q.createdAt ? new Date(q.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[13px] font-medium text-[#1A1A1A] mb-1">{q.query}</p>
+                                                {q.comments && (
+                                                    <p className="text-[12px] text-[#8A8A8A]">{q.comments}</p>
+                                                )}
+                                                {q.resolvedBy && (
+                                                    <div className="mt-3 pt-3 border-t border-[#F0EBE1] flex items-center gap-2">
+                                                        <CheckCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                                        <p className="text-[12px] text-emerald-700 font-medium">Resolved by {q.resolvedBy}</p>
+                                                    </div>
+                                                )}
+                                                {/* User Documents */}
+                                                {q.userDocuments?.length > 0 && (
+                                                    <div className="mt-3 pt-3 border-t border-[#F0EBE1]">
+                                                        <p className="text-[10px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-2">Attachments</p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {q.userDocuments.map((doc: any) => {
+                                                                const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(doc.fileName || '');
+                                                                return (
+                                                                    <a
+                                                                        key={doc.userDocumentId}
+                                                                        href={doc.filePath}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="group relative"
+                                                                    >
+                                                                        {isImage ? (
+                                                                            <div className="h-16 w-16 rounded-lg border border-[#E8E0D5] overflow-hidden bg-[#F5F2EE]">
+                                                                                <img
+                                                                                    src={doc.filePath}
+                                                                                    alt={doc.fileName}
+                                                                                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                                                />
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 border border-[#E8E0D5] rounded-lg bg-white hover:bg-[#F5F2EE] transition">
+                                                                                <Paperclip className="h-3 w-3 text-[#8A8A8A]" />
+                                                                                <span className="text-[11px] text-[#1A1A1A] max-w-[100px] truncate">{doc.fileName}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </a>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {q.queryStatus?.toUpperCase() === 'PENDING' && (
+                                                    <div className="mt-3 pt-3 border-t border-[#F0EBE1]">
+                                                        <div className="flex justify-end">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleCancelQuery(q.id)}
+                                                                disabled={s.cancellingQueryId === q.id}
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 transition disabled:opacity-60"
+                                                            >
+                                                                {s.cancellingQueryId === q.id
+                                                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                                    : <X className="h-3.5 w-3.5" />}
+                                                                Cancel Query
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {q.userPendingQueries?.length > 0 && (
+                                                    <div className="mt-3 pt-3 border-t border-[#F0EBE1] space-y-2">
+                                                        {q.userPendingQueries.map((pq) => (
+                                                            <div key={pq.id} className="bg-[#FAFAF8] rounded-lg px-3 py-2">
+                                                                <p className="text-[12px] text-[#1A1A1A]">{pq.message || pq.pendingComments}</p>
+                                                                <p className="text-[10px] text-[#8A8A8A] mt-1">{pq.createdAt}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </main>
+
+            {reviewItem && (
+                <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 sm:items-center sm:px-4" onMouseDown={closeProductReview}>
+                    <div className="w-full rounded-t-3xl bg-white p-4 shadow-2xl sm:max-w-md sm:rounded-2xl sm:p-5" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="review-title">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h3 id="review-title" className="text-[18px] font-semibold text-[#1A1A1A]">{editingReview ? "Edit your review" : "Write a product review"}</h3>
+                                <p className="mt-1 text-[12px] text-[#8A8A8A]">Help other customers make a confident choice.</p>
+                            </div>
+                            <button type="button" onClick={closeProductReview} aria-label="Close review form" className="rounded-lg p-1 text-[#8A8A8A] hover:bg-[#F5F2EE]"><X className="h-4 w-4" /></button>
+                        </div>
+                        <div className="mt-3 rounded-lg border border-[#EFE7DC] bg-[#FCFAF7] px-3 py-2">
+                            <p className="truncate text-[13px] font-semibold text-[#1A1A1A]">{reviewItem.productName || `Product #${reviewItem.productId}`}</p>
+                            <p className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700"><CheckCircle2 className="h-3 w-3" /> Verified purchase</p>
+                        </div>
+                        <div className="my-3 text-center" aria-label="Choose rating">
+                            <p className="mb-1 text-[11px] font-semibold text-[#4A443E]">How would you rate this product?</p>
+                            <div className="flex justify-center gap-2">{[1, 2, 3, 4, 5].map((value) => (
+                                <button type="button" key={value} onClick={() => { setReviewRating(value); setReviewError(""); }} aria-label={`${value} star${value > 1 ? "s" : ""}`} className="rounded-lg p-1 focus:outline-none focus:ring-2 focus:ring-[#C9A84C]/30">
+                                    <Star className="h-7 w-7 transition-transform hover:scale-110" fill={value <= reviewRating ? "#F5B301" : "none"} stroke={value <= reviewRating ? "#F5B301" : "#D1C7BB"} />
+                                </button>
+                            ))}</div>
+                            <p className={`mt-1 min-h-4 text-[11px] font-semibold ${reviewRating ? "text-[#8B6914]" : "text-[#A59B90]"}`}>{reviewRating ? REVIEW_RATING_LABELS[reviewRating] : "Tap a star to rate"}</p>
+                        </div>
+                        <label className={labelCls}>Add a headline <span className="text-rose-500">*</span></label>
+                        <input value={reviewTitle} onChange={(event) => { setReviewTitle(event.target.value); setReviewError(""); }} minLength={REVIEW_TITLE_MIN} maxLength={80} placeholder="What stood out most?" className={inputCls} />
+                        <p className="mb-2 mt-0.5 flex justify-between text-[9px] text-[#8A8A8A]"><span>Minimum {REVIEW_TITLE_MIN} characters</span><span>{reviewTitle.length}/80</span></p>
+                        <label className={labelCls}>Share your experience <span className="text-rose-500">*</span></label>
+                        <textarea value={reviewText} onChange={(event) => { setReviewText(event.target.value); setReviewError(""); }} minLength={REVIEW_TEXT_MIN} maxLength={1000} rows={3} placeholder="Share your experience with quality, fit and packaging" className={`${inputCls} resize-none`} />
+                        <p className="mt-0.5 flex justify-between text-[9px] text-[#8A8A8A]"><span>Minimum {REVIEW_TEXT_MIN} characters</span><span>{reviewText.length}/1000</span></p>
+                        <label className="mt-3 flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-[#D1C7BB] px-3 py-3 text-[12px] font-medium text-[#6B6B6B] hover:bg-[#FAFAF8]">
+                            <ImagePlus className="h-4 w-4 text-[#8B6914]" />
+                            <span className="min-w-0 truncate">{reviewFile ? reviewFile.name : "Add photo or video (optional)"}</span>
+                            <input type="file" accept=".jpg,.jpeg,.png,.webp,.mp4,.webm" className="hidden" onChange={(event) => selectReviewFile(event.target.files?.[0] || null)} />
+                        </label>
+                        {reviewFile && <button type="button" onClick={() => setReviewFile(null)} className="mt-2 text-[11px] font-semibold text-rose-600 hover:underline">Remove selected file</button>}
+                        <p className="mt-1 text-[10px] text-[#8A8A8A]">Images up to 10 MB · Videos up to 50 MB</p>
+                        {reviewError && <p role="alert" className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-600">{reviewError}</p>}
+                        <button type="button" onClick={saveProductReview} disabled={isSavingReview} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#8B6914] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#7A5C10] disabled:opacity-60">
+                            {isSavingReview && <Loader2 className="h-4 w-4 animate-spin" />}
+                            {isSavingReview ? "Saving..." : editingReview ? "Update review" : "Submit review"}
+                        </button>
+                        <p className="mt-1 text-center text-[9px] text-[#8A8A8A]">Your review will be visible after moderation.</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Profile Incomplete Modal */}
+            {s.profileIncompleteModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="h-10 w-10 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+                                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                            </div>
+                            <h3 className="text-[15px] font-semibold text-[#1A1A1A]">Complete Your Profile</h3>
+                        </div>
+                        <p className="text-[13px] text-[#6B6B6B] mb-5 leading-relaxed">
+                            We need your profile details (name, email, mobile) before you can raise a support query.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => patch({ profileIncompleteModal: false })}
+                                className="flex-1 px-4 py-2.5 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#6B6B6B] hover:bg-[#F5F2EE] transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    patch({ profileIncompleteModal: false, activeTab: "info", isEditingProfile: true });
+                                    setSearchParams({ tab: "info", returnTo: "support" });
+                                }}
+                                className="flex-1 px-4 py-2.5 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition"
+                            >
+                                Complete Profile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Delete Confirmation Modal */}
             {s.deleteConfirmation.show && (

@@ -14,7 +14,7 @@ const Switch: React.FC<SwitchProps> = ({ checked, onChange, label, disabled }) =
             <button
                 onClick={() => !disabled && onChange(!checked)}
                 disabled={disabled}
-                className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${checked ? 'bg-emerald-500' : 'bg-slate-200'
+                className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${checked ? 'bg-[#8B6914]' : 'bg-slate-200'
                     } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
                 <span

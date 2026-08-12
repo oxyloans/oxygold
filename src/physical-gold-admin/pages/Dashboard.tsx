@@ -138,24 +138,24 @@ const Dashboard: React.FC = () => {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-slate-50">
+                        <table className="w-full text-center">
+                            <thead className="bg-[#FBF7EC]">
                                 <tr>
-                                    <th className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 px-5 py-3">Order</th>
-                                    <th className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 px-5 py-3">Customer</th>
-                                    <th className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 px-5 py-3">Payment Mode</th>
-                                    <th className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 px-5 py-3">Order Date</th>
-                                    <th className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 px-5 py-3">Status</th>
-                                    <th className="text-right text-[11px] font-bold uppercase tracking-wider text-slate-400 px-5 py-3">Amount</th>
+                                    <th className="text-center text-[11px] font-bold uppercase tracking-wider text-[#8B6914] px-5 py-3">Order</th>
+                                    <th className="text-center text-[11px] font-bold uppercase tracking-wider text-[#8B6914] px-5 py-3">Customer</th>
+                                    <th className="text-center text-[11px] font-bold uppercase tracking-wider text-[#8B6914] px-5 py-3">Payment Mode</th>
+                                    <th className="text-center text-[11px] font-bold uppercase tracking-wider text-[#8B6914] px-5 py-3">Order Date</th>
+                                    <th className="text-center text-[11px] font-bold uppercase tracking-wider text-[#8B6914] px-5 py-3">Status</th>
+                                    <th className="text-center text-[11px] font-bold uppercase tracking-wider text-[#8B6914] px-5 py-3">Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {orders.map((order) => (
                                     <tr key={order.orderId} className="border-t border-slate-100">
-                                        <td className="px-5 py-3 text-[13px] font-semibold text-slate-700">{order.orderNumber}</td>
-                                        <td className="px-5 py-3 text-[13px] text-slate-600">{order.userName || order.userEmail || '-'}</td>
-                                        <td className="px-5 py-3 text-[13px] text-slate-700">{order.paymentMode}</td>
-                                        <td className="px-5 py-3 text-[13px] text-slate-700">
+                                        <td className="px-5 py-3 text-center text-[13px] font-semibold text-slate-700">{order.orderNumber}</td>
+                                        <td className="px-5 py-3 text-center text-[13px] text-slate-600">{order.userName || order.userEmail || '-'}</td>
+                                        <td className="px-5 py-3 text-center text-[13px] text-slate-700">{order.paymentMode}</td>
+                                        <td className="px-5 py-3 text-center text-[13px] text-slate-700">
                                             {order.createdAt
                                                 ? new Date(order.createdAt).toLocaleString('en-IN', {
                                                     day: '2-digit',
@@ -165,8 +165,8 @@ const Dashboard: React.FC = () => {
                                                 })
                                                 : '—'}
                                         </td>
-                                        <td className="px-5 py-3 text-[12px] font-semibold text-slate-500">{order.paymentStatus}</td>
-                                        <td className="px-5 py-3 text-right text-[13px] font-bold text-slate-800">{formatCurrency(order.totalAmount)}</td>
+                                        <td className="px-5 py-3 text-center text-[12px] font-semibold text-slate-500">{order.paymentStatus}</td>
+                                        <td className="px-5 py-3 text-center text-[13px] font-bold text-slate-800">{formatCurrency(order.totalAmount)}</td>
                                     </tr>
                                 ))}
                             </tbody>

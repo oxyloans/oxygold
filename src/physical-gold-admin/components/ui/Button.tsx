@@ -18,11 +18,11 @@ const Button: React.FC<ButtonProps> = ({
     const baseClasses = 'inline-flex items-center justify-center cursor-pointer font-semibold transition-all gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed rounded-md';
 
     const variantClasses = {
-        primary: 'bg-[#146e4d] text-white hover:bg-[#0f5a3e]', // Darker emerald for Add Product
-        secondary: 'bg-[#1fd477] text-white hover:bg-[#1bc06b]', // Brighter emerald for Sync
+        primary: 'bg-[#8B6914] text-white hover:bg-[#74570F] shadow-sm shadow-[#D4AF37]/20',
+        secondary: 'bg-[#D4AF37] text-[#3F310B] hover:bg-[#C49D2E]',
         danger: 'bg-red-500 text-white hover:bg-red-600',
         ghost: 'bg-transparent text-slate-600 hover:bg-slate-100',
-        outline: 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+        outline: 'border border-[#E8D8A8] bg-white text-[#74570F] hover:bg-[#FBF7EC]',
     };
 
     const sizeClasses = {

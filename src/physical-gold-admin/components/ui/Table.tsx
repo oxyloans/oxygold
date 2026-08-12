@@ -28,14 +28,14 @@ function Table<T>({
 }: TableProps<T>) {
     return (
         <div className={`overflow-x-auto rounded-lg border border-slate-100 bg-white ${className}`}>
-            <table className="w-full text-left border-collapse">
-                <thead className="bg-slate-50/50">
+            <table className="w-full text-center border-collapse">
+                <thead className="bg-[#FBF7EC]">
                     <tr>
                         {columns.map((column, index) => (
                             <th
                                 key={index}
-                                style={{ width: column.width, textAlign: column.align || 'left' }}
-                                className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100"
+                                style={{ width: column.width, textAlign: 'center' }}
+                                className="px-4 py-3 text-[10px] font-bold text-[#8B6914] uppercase tracking-wider border-b border-[#E8D8A8]"
                             >
                                 {column.header}
                             </th>
@@ -67,7 +67,7 @@ function Table<T>({
                                     return (
                                         <td
                                             key={colIndex}
-                                            style={{ textAlign: column.align || 'left' }}
+                                            style={{ textAlign: 'center' }}
                                             className="px-4 py-3 text-[13px] text-slate-600 font-medium"
                                         >
                                             {column.render ? column.render(value, item) : value}

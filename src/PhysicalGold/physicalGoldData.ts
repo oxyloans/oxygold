@@ -59,8 +59,11 @@ export interface PhysicalGoldProduct {
   purity?: string;
 }
 export interface OrderItem {
+  id?: number;
+  orderItemId?: number;
   price: number;
   productId: number;
+  productName?: string;
   quantity: number;
   subtotal: number;
 }

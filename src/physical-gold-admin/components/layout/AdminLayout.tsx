@@ -9,6 +9,9 @@ import CatalogUpload from '../../pages/CatalogUpload';
 import Products from '../../pages/Products';
 import Settings from '../../pages/Settings';
 import Users from '../../pages/Users';
+import Helpdesk from '../../pages/Helpdesk';
+import DeliveryTeam from '../../pages/DeliveryTeam';
+import Reviews from '../../pages/Reviews';
 
 const AdminLayout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -18,7 +21,7 @@ const AdminLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+    <div className="admin-portal min-h-screen bg-[#FCFBF8] font-sans text-slate-900">
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -36,6 +39,9 @@ const AdminLayout: React.FC = () => {
               <Route path="products" element={<Products />} />
               <Route path="settings" element={<Settings />} />
               <Route path="users" element={<Users />} />
+              <Route path="helpdesk" element={<Helpdesk />} />
+              <Route path="delivery" element={<DeliveryTeam />} />
+              <Route path="reviews" element={<Reviews />} />
               <Route path="/" element={<Navigate to="dashboard" replace />} />
             </Routes>
           </div>

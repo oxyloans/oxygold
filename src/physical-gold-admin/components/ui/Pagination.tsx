@@ -34,7 +34,7 @@ const Pagination: React.FC<PaginationProps> = ({
                     key={i}
                     onClick={() => onPageChange(i)}
                     className={`px-3 py-1.5 min-w-[32px] rounded-md text-[13px] font-semibold transition-all ${currentPage === i
-                            ? 'bg-emerald-500 text-white shadow-sm'
+                            ? 'bg-[#8B6914] text-white shadow-sm'
                             : 'text-slate-600 hover:bg-slate-100'
                         }`}
                 >
@@ -80,7 +80,7 @@ const Pagination: React.FC<PaginationProps> = ({
                         <button
                             onClick={() => onPageChange(Math.max(0, currentPage - 1))}
                             disabled={currentPage === 0}
-                            className="relative inline-flex items-center px-2 py-1.5 rounded-md border border-transparent text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 disabled:cursor-not-allowed"
+                            className="relative inline-flex items-center px-2 py-1.5 rounded-md border border-transparent text-slate-400 hover:text-[#8B6914] hover:bg-[#FBF7EC] transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 disabled:cursor-not-allowed"
                         >
                             <span className="sr-only">Previous</span>
                             <ChevronLeft size={18} />
@@ -93,7 +93,7 @@ const Pagination: React.FC<PaginationProps> = ({
                         <button
                             onClick={() => onPageChange(Math.min(totalPages - 1, currentPage + 1))}
                             disabled={currentPage === totalPages - 1}
-                            className="relative inline-flex items-center px-2 py-1.5 rounded-md border border-transparent text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 disabled:cursor-not-allowed"
+                            className="relative inline-flex items-center px-2 py-1.5 rounded-md border border-transparent text-slate-400 hover:text-[#8B6914] hover:bg-[#FBF7EC] transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 disabled:cursor-not-allowed"
                         >
                             <span className="sr-only">Next</span>
                             <ChevronRight size={18} />

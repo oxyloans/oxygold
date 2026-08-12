@@ -1,12 +1,9 @@
 /* Admin Portal Global Styles */
 
 :root {
-    --admin-primary: #1e293b;
-    /* Dark Slate */
-    --admin-accent: #10b981;
-    /* Emerald Green */
-    --admin-bg: #f8fafc;
-    /* Light Greyish Blue */
+    --admin-primary: #8B6914;
+    --admin-accent: #D4AF37;
+    --admin-bg: #FCFBF8;
     --admin-card-bg: #ffffff;
     --admin-text-main: #0f172a;
     --admin-text-muted: #64748b;
@@ -292,12 +289,14 @@
     font-weight: 600;
     color: var(--admin-text-muted);
     border-bottom: 1px solid var(--admin-border);
+    text-align: center;
 }
 
 .admin-td {
     padding: 1rem;
     font-size: 0.875rem;
     border-bottom: 1px solid var(--admin-border);
+    text-align: center;
 }
 
 .admin-tr-clickable {

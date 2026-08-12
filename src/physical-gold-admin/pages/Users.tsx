@@ -88,7 +88,7 @@ const Users: React.FC = () => {
         key: "userId",
         width: "80px",
         render: (val: number) => (
-          <span className="flex items-center gap-1.5 font-bold text-slate-800">
+          <span className="flex items-center justify-center gap-1.5 font-bold text-slate-800">
             <Hash size={12} className="text-slate-400" />
             {val}
           </span>
@@ -98,7 +98,7 @@ const Users: React.FC = () => {
         header: "Name",
         key: "firstName",
         render: (_: any, item: UserData) => (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center gap-3 text-center">
             <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 uppercase font-bold text-xs">
               {item.firstName?.[0] || item.phoneNumber?.[0] || "U"}
             </div>
@@ -118,13 +118,13 @@ const Users: React.FC = () => {
         header: "Phone / Whatsapp",
         key: "phoneNumber",
         render: (val: string, item: UserData) => (
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5 text-slate-700">
+          <div className="space-y-0.5 text-center">
+            <div className="flex items-center justify-center gap-1.5 text-slate-700">
               <Phone size={12} className="text-slate-400" />
               {val}
             </div>
             {item.whatsappNumber && (
-              <div className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+              <div className="text-[11px] text-emerald-600 font-semibold flex items-center justify-center gap-1">
                 <span>WA: {item.whatsappNumber}</span>
               </div>
             )}
@@ -135,7 +135,7 @@ const Users: React.FC = () => {
         header: "Email",
         key: "email",
         render: (val: string) => (
-          <div className="flex items-center gap-1.5 text-slate-600">
+          <div className="flex items-center justify-center gap-1.5 text-slate-600">
             <Mail size={12} className="text-slate-400" />
             {val || "No Email"}
           </div>
@@ -155,7 +155,7 @@ const Users: React.FC = () => {
         header: "Date of Joining",
         key: "createdAt",
         render: (val: string) => (
-          <div className="flex items-center gap-1.5 text-slate-600">
+          <div className="flex items-center justify-center gap-1.5 text-slate-600">
             <Calendar size={12} className="text-slate-400" />
             {val
               ? new Date(val).toLocaleDateString("en-GB", {

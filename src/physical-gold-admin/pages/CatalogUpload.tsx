@@ -313,8 +313,9 @@ const CatalogUpload: React.FC = () => {
                     header: 'Status',
                     key: 'status',
                     width: '100px',
+                    align: 'center' as const,
                     render: (val: string, item: any) => (
-                        <div onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-center" onClick={e => e.stopPropagation()}>
                             <Switch
                                 checked={val === 'ACTIVE'}
                                 onChange={() => setConfirmToggle({ open: true, item, type: 'product' })}
@@ -328,8 +329,9 @@ const CatalogUpload: React.FC = () => {
                     header: 'Status',
                     key: 'status',
                     width: '100px',
+                    align: 'center' as const,
                     render: (val: string, item: any) => (
-                        <div onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-center" onClick={e => e.stopPropagation()}>
                             <Switch
                                 checked={val === 'ACTIVE'}
                                 onChange={() => setConfirmToggle({ open: true, item, type: 'category' })}
@@ -349,11 +351,14 @@ const CatalogUpload: React.FC = () => {
                 header: 'Status',
                 key: 'status',
                 width: '100px',
+                align: 'center' as const,
                 render: (val: string, item: any) => (
-                    <Switch
-                        checked={val === 'ACTIVE'}
-                        onChange={() => setConfirmToggle({ open: true, item, type: 'variant' })}
-                    />
+                    <div className="flex justify-center" onClick={e => e.stopPropagation()}>
+                        <Switch
+                            checked={val === 'ACTIVE'}
+                            onChange={() => setConfirmToggle({ open: true, item, type: 'variant' })}
+                        />
+                    </div>
                 )
             });
         }
@@ -369,9 +374,9 @@ const CatalogUpload: React.FC = () => {
             header: 'Actions',
             key: 'id',
             width: '120px',
-            align: 'right' as const,
+            align: 'center' as const,
             render: (_: any, item: any) => (
-                <div className="flex justify-end gap-1">
+                <div className="flex justify-center gap-1">
                     {level === 3 && (
                         <>
                             <button

@@ -1,57 +1,95 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import ProtectedRoute from './components/ProtectedRoute';
 import { GoldPriceProvider } from './context/GoldPriceContext';
 import { PurchaseProvider } from './context/PurchaseContext';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import Landing from './pages/Landing';
-import HowItWorks from './pages/HowItWorks';
-import BuyGold from './pages/BuyGold';
-import SellGold from './pages/SellGold';
-import OrderSummary from './pages/OrderSummary';
-import PaymentMethod from './pages/PaymentMethod';
-import PaymentProcessing from './pages/PaymentProcessing';
-import PaymentSuccess from './pages/PaymentSuccess';
-import PaymentDetails from './pages/PaymentDetails';
-import SellSummary from './pages/SellSummary';
-import SellProcessing from './pages/SellProcessing';
-import SellSuccess from './pages/SellSuccess';
-import BankAccount from './pages/BankAccount';
-import TermsConditions from './pages/TermsConditions';
-import Portfolio from './pages/Portfolio';
-import FAQ from './pages/FAQ';
-import OxyGoldAI from './components/OxyGoldAI';
-import VideoCreationPage from './AIVideosImages/VideoCreation';
-import ImageCreation from './AIVideosImages/imagecreation';
-import RealtimeVoice from './RealtimeVoice/components/RealTimeMainscreen';
-import PhysicalGoldPage from './PhysicalGold/PhysicalGoldPageNew';
-import CartPage from './PhysicalGold/CartSlider';
-import ProfilePage from './PhysicalGold/ProfileSlider';
-import PaymentStatusPage from './PhysicalGold/PaymentStatus';
-import WishlistPage from './PhysicalGold/WishlistPage';
-import ProductDetailsPage from './PhysicalGold/ProductDetailsPage';
 import { CartProvider } from './PhysicalGold/CartContext';
 import { WishlistProvider } from './PhysicalGold/WishlistContext';
-import PhysicalGoldLayout from './PhysicalGold/components/PhysicalGoldLayout';
-import PrivacyPolicy from './PhysicalGold/PrivacyPolicy';
-import TermsConditionsPhysical from './PhysicalGold/TermsConditions';
-import ShippingPolicy from './PhysicalGold/ShippingPolicy';
-import ReturnRefundPolicy from './PhysicalGold/ReturnRefundPolicy';
-import FAQPage from './PhysicalGold/FAQPage';
-import CookiePolicy from './PhysicalGold/CookiePolicy';
-import CancellationPolicy from './PhysicalGold/CancellationPolicy';
-import AdminLayout from './physical-gold-admin/components/layout/AdminLayout';
-import AdminLogin from './physical-gold-admin/pages/AdminLogin';
-import PartnerLayout from './physical-gold-partner/components/layout/PartnerLayout';
-import PartnerLogin from './physical-gold-partner/pages/PartnerLogin';
-import PartnerRegister from './physical-gold-partner/pages/PartnerRegister';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import APITest from './pages/APITest';
-import ReviewOrder from './pages/ReviewOrder';
-import GoldSelection from './pages/GoldSelection';
-import BISCertificate from './pages/BISCertificate';
+import oxygoldLogo from './assets/oxygoldlogo.png';
+
+// Eagerly loaded (critical path)
+import Header from './components/Header';
+import Footer from './components/Footer';
+import Home from './Verified';
+
+// Lazy loaded pages
+const Landing = lazy(() => import('./pages/Landing'));
+const HowItWorks = lazy(() => import('./pages/HowItWorks'));
+const BuyGold = lazy(() => import('./pages/BuyGold'));
+const SellGold = lazy(() => import('./pages/SellGold'));
+const OrderSummary = lazy(() => import('./pages/OrderSummary'));
+const PaymentMethod = lazy(() => import('./pages/PaymentMethod'));
+const PaymentProcessing = lazy(() => import('./pages/PaymentProcessing'));
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
+const PaymentDetails = lazy(() => import('./pages/PaymentDetails'));
+const SellSummary = lazy(() => import('./pages/SellSummary'));
+const SellProcessing = lazy(() => import('./pages/SellProcessing'));
+const SellSuccess = lazy(() => import('./pages/SellSuccess'));
+const BankAccount = lazy(() => import('./pages/BankAccount'));
+const TermsConditions = lazy(() => import('./pages/TermsConditions'));
+const Portfolio = lazy(() => import('./pages/Portfolio'));
+const FAQ = lazy(() => import('./pages/FAQ'));
+const OxyGoldAI = lazy(() => import('./components/OxyGoldAI'));
+const VideoCreationPage = lazy(() => import('./AIVideosImages/VideoCreation'));
+const ImageCreation = lazy(() => import('./AIVideosImages/imagecreation'));
+const RealtimeVoice = lazy(() => import('./RealtimeVoice/components/RealTimeMainscreen'));
+const PhysicalGoldPage = lazy(() => import('./PhysicalGold/PhysicalGoldPageNew'));
+const CartPage = lazy(() => import('./PhysicalGold/CartSlider'));
+const ProfilePage = lazy(() => import('./PhysicalGold/ProfileSlider'));
+const PaymentStatusPage = lazy(() => import('./PhysicalGold/PaymentStatus'));
+const WishlistPage = lazy(() => import('./PhysicalGold/WishlistPage'));
+const ProductDetailsPage = lazy(() => import('./PhysicalGold/ProductDetailsPage'));
+const PhysicalGoldLayout = lazy(() => import('./PhysicalGold/components/PhysicalGoldLayout'));
+const PrivacyPolicy = lazy(() => import('./PhysicalGold/PrivacyPolicy'));
+const TermsConditionsPhysical = lazy(() => import('./PhysicalGold/TermsConditions'));
+const ShippingPolicy = lazy(() => import('./PhysicalGold/ShippingPolicy'));
+const ReturnRefundPolicy = lazy(() => import('./PhysicalGold/ReturnRefundPolicy'));
+const FAQPage = lazy(() => import('./PhysicalGold/FAQPage'));
+const CookiePolicy = lazy(() => import('./PhysicalGold/CookiePolicy'));
+const CancellationPolicy = lazy(() => import('./PhysicalGold/CancellationPolicy'));
+const AdminLayout = lazy(() => import('./physical-gold-admin/components/layout/AdminLayout'));
+const AdminLogin = lazy(() => import('./physical-gold-admin/pages/AdminLogin'));
+const PartnerLayout = lazy(() => import('./physical-gold-partner/components/layout/PartnerLayout'));
+const PartnerLogin = lazy(() => import('./physical-gold-partner/pages/PartnerLogin'));
+const PartnerRegister = lazy(() => import('./physical-gold-partner/pages/PartnerRegister'));
+const DeliveryBoyLogin = lazy(() => import('./physical-gold-deliveryboy/pages/DeliveryBoyLogin'));
+const DeliveryBoyDashboard = lazy(() => import('./physical-gold-deliveryboy/pages/DeliveryBoyDashboard'));
+const DeliveryBoyOrders = lazy(() => import('./physical-gold-deliveryboy/pages/DeliveryBoyOrders'));
+const DeliveryBoyRoute = lazy(() => import('./physical-gold-deliveryboy/components/DeliveryBoyRoute'));
+const DeliveryBoyLayout = lazy(() => import('./physical-gold-deliveryboy/components/DeliveryBoyLayout'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const APITest = lazy(() => import('./pages/APITest'));
+const ReviewOrder = lazy(() => import('./pages/ReviewOrder'));
+const GoldSelection = lazy(() => import('./pages/GoldSelection'));
+const BISCertificate = lazy(() => import('./pages/BISCertificate'));
+
+// Global loading fallback
+function PageLoader() {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#07061A',
+      gap: 16
+    }}>
+      <img
+        src={oxygoldLogo}
+        alt="OxyGold"
+        style={{ width: 80, height: 80, objectFit: 'contain', animation: 'pulse 1.5s ease-in-out infinite' }}
+      />
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(0.95); }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 
 function AppContent() {
@@ -75,10 +113,12 @@ function AppContent() {
     "/videoCreation",
     "/imageCreation/",
     "/videoCreation/",
+    "/verified",
   ].includes(location.pathname) ||
     location.pathname.startsWith("/physical-gold") ||
     location.pathname.startsWith("/admin") ||
     location.pathname.startsWith("/partner") ||
+    location.pathname.startsWith("/delivery-boy") ||
     location.pathname.startsWith("/voiceAssistant");
   const handleDataPass = (data: any) => {
     setTransactionData(data);
@@ -88,7 +128,9 @@ function AppContent() {
     <div className="app">
       {!isAuthPage && !isTestPage && !isFullPageFlow && <Header />}
       <div className="flex-1">
-        <Routes>
+        <Suspense fallback={<PageLoader />}>
+        
+          <Routes>
           {/* Auth & Utility */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -107,7 +149,7 @@ function AppContent() {
           {/* AI Features */}
           <Route path="/imageCreation" element={<ImageCreation />} />
           <Route path="/videoCreation" element={<VideoCreationPage />} />
-
+            <Route path="/verified" element={<Home />} />
           {/* Main */}
           <Route path="/" element={<OxyGoldAI />} />
           <Route path="/oxygold-ai" element={<Landing />} />
@@ -154,7 +196,7 @@ function AppContent() {
             <Route path="/physical-gold/cookie-policy" element={<CookiePolicy />} />
             <Route path="/physical-gold/cancellation-policy" element={<CancellationPolicy />} />
           </Route>
-
+            
           {/* Admin */}
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/*" element={<AdminLayout />} />
@@ -163,8 +205,19 @@ function AppContent() {
           <Route path="/partner/login" element={<PartnerLogin />} />
           <Route path="/partner/register" element={<PartnerRegister />} />
           <Route path="/partner/*" element={<PartnerLayout />} />
+
+          {/* Delivery personnel — independent module */}
+          <Route path="/delivery-boy/login" element={<DeliveryBoyLogin />} />
+          <Route element={<DeliveryBoyRoute />}>
+            <Route element={<DeliveryBoyLayout />}>
+              <Route path="/delivery-boy/dashboard" element={<DeliveryBoyDashboard />} />
+              <Route path="/delivery-boy/deliveries" element={<DeliveryBoyOrders />} />
+            </Route>
+          </Route>
+          <Route path="/delivery-boy" element={<Navigate to="/delivery-boy/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          </Routes>
+        </Suspense>
       </div>
       {!isAuthPage && !isTestPage && !isFullPageFlow && <Footer />}
     </div>

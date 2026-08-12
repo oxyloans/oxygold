@@ -9,6 +9,9 @@ import {
   ShoppingBag,
   UploadCloud,
   LayoutDashboard,
+  HelpCircle,
+  Bike,
+  MessageSquareText,
   X,
 } from "lucide-react";
 import { logout } from "../../services/adminService";
@@ -23,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
 
   const menuItems = [
     {
-      title: "Dashboard",
+      title: "Dashboard Overview",
       icon: <LayoutDashboard size={18} />,
       path: "/admin/dashboard",
     },
@@ -32,8 +35,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
       icon: <UploadCloud size={18} />,
       path: "/admin/catalog-upload",
     },
-    { title: "Users", icon: <User size={18} />, path: "/admin/users" },
-    { title: "Orders", icon: <ShoppingBag size={18} />, path: "/admin/orders" },
+    { title: "Registered Users", icon: <User size={18} />, path: "/admin/users" },
+    { title: "Orders Management", icon: <ShoppingBag size={18} />, path: "/admin/orders" },
+    { title: "Delivery Boy List", icon: <Bike size={18} />, path: "/admin/delivery" },
+    { title: "Reviews & Ratings", icon: <MessageSquareText size={18} />, path: "/admin/reviews" },
+    { title: "All User Queries", icon: <HelpCircle size={18} />, path: "/admin/helpdesk" },
   ];
 
   const handleLogoutVerify = async () => {
@@ -102,12 +108,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
                   className={({ isActive }) =>
                     `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
                       isActive
-                        ? "bg-emerald-50 font-bold text-emerald-600"
+                        ? "bg-[#FBF7EC] font-bold text-[#8B6914] ring-1 ring-[#E8D8A8]"
                         : "font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                     }`
                   }
                 >
-                  <span className="shrink-0 transition-colors group-hover:text-emerald-500">
+                  <span className="shrink-0 transition-colors group-hover:text-[#B38B22]">
                     {item.icon}
                   </span>
                   <span className="min-w-0 flex-1 truncate">{item.title}</span>

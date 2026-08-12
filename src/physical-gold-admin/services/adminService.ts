@@ -383,6 +383,7 @@ export interface OrderItem {
     subtotal: number;
     productName?: string;
     variant?: string;
+    orderItemId?: number;
 }
 
 export interface AdminOrder {
@@ -401,7 +402,15 @@ export interface AdminOrder {
     userId: number;
     userName: string | null;
     createdAt?: string;
+    flatNo?: string | null;
+    address?: string | null;
+    landMark?: string | null;
+    state?: string | null;
+    pinCode?: string | null;
+    longitude?: string | number | null;
+    latitude?: string | number | null;
     items: OrderItem[];
+    delivery?: DeliveryTracking | null;
 }
 
 export interface PaginatedOrders {
@@ -452,6 +461,47 @@ export const fetchActiveOrders = async (page = 0, size = 10): Promise<PaginatedO
     return response.json();
 };
 
+const readAdminApiData = async <T>(response: Response): Promise<T> => {
+    const result = await response.json().catch(() => null);
+    if (!response.ok || result?.success === false) throw new Error(result?.message || `Request failed (${response.status})`);
+    return result?.data as T;
+};
+
+export interface AdminReviewMedia { id: number; mediaType: 'IMAGE' | 'VIDEO'; mediaUrl: string; displayOrder: number; }
+export interface AdminReview {
+    id: number; productId: number; productName: string; userId: number; userFullName: string; userEmail?: string;
+    orderId?: number; orderItemId?: number; rating: number; title: string; reviewText: string; verifiedPurchase: boolean;
+    moderationStatus: 'PENDING' | 'APPROVED' | 'REJECTED'; helpfulCount: number; notHelpfulCount: number;
+    media: AdminReviewMedia[]; createdAt: string; updatedAt: string;
+}
+export interface AdminReviewPage { content: AdminReview[]; page: number; size: number; totalElements: number; totalPages: number; first: boolean; last: boolean; }
+export interface ProductRatingSummary {
+    productId: number; averageRating: number; totalRatings: number;
+    oneStarCount: number; twoStarCount: number; threeStarCount: number; fourStarCount: number; fiveStarCount: number;
+    oneStarPercentage: number; twoStarPercentage: number; threeStarPercentage: number; fourStarPercentage: number; fiveStarPercentage: number;
+}
+
+export const adminFetchReviews = async (page = 0, size = 20) =>
+    readAdminApiData<AdminReviewPage>(await adminAuthenticatedFetch(`${BASE_URL}/ratings/admin/reviews?page=${Math.max(0, page)}&size=${Math.min(100, Math.max(1, size))}`));
+export const adminApproveReview = async (reviewId: number) =>
+    readAdminApiData<AdminReview>(await adminAuthenticatedFetch(`${BASE_URL}/ratings/admin/reviews/${reviewId}/approve`, { method: 'POST', body: '' }));
+export const adminRejectReview = async (reviewId: number, reason: string) => {
+    const cleanReason = reason.trim();
+    if (cleanReason.length < 3 || cleanReason.length > 500) throw new Error('Rejection reason must be between 3 and 500 characters.');
+    return readAdminApiData<AdminReview>(await adminAuthenticatedFetch(`${BASE_URL}/ratings/admin/reviews/${reviewId}/reject`, { method: 'POST', body: JSON.stringify({ reason: cleanReason }) }));
+};
+export const adminDeleteReview = async (reviewId: number) =>
+    readAdminApiData<null>(await adminAuthenticatedFetch(`${BASE_URL}/ratings/admin/reviews/${reviewId}`, { method: 'DELETE' }));
+export const adminFetchProductReviews = async (productId: number, params: { rating?: number; verifiedPurchase?: boolean; search?: string; page?: number; size?: number } = {}) => {
+    const query = new URLSearchParams({ page: String(params.page || 0), size: String(params.size || 20) });
+    if (params.rating) query.set('rating', String(params.rating));
+    if (params.verifiedPurchase !== undefined) query.set('verifiedPurchase', String(params.verifiedPurchase));
+    if (params.search?.trim()) query.set('search', params.search.trim());
+    return readAdminApiData<AdminReviewPage>(await adminAuthenticatedFetch(`${BASE_URL}/ratings/admin/reviews/products/${productId}/reviews?${query}`));
+};
+export const adminFetchProductRatingSummary = async (productId: number) =>
+    readAdminApiData<ProductRatingSummary>(await adminAuthenticatedFetch(`${BASE_URL}/ratings/admin/reviews/products/${productId}/rating-summary`));
+
 export const fetchDayScoreCard = async (date: string): Promise<DayScoreCard> => {
     const response = await adminAuthenticatedFetch(
         `${BASE_URL}/order/dashboard/day-score-card?date=${encodeURIComponent(date)}`
@@ -476,12 +526,231 @@ export const getAllOrders = async (): Promise<AdminOrder[]> => {
     return data.data || [];
 };
 
+// -- Delivery Management API --
+
+export interface DeliveryBoy {
+    id: number;
+    status: 'ACTIVE' | 'INACTIVE';
+    firstName: string;
+    lastName: string;
+    userId: number;
+    email: string;
+    phone: string;
+    alternateMobileNumber: string | null;
+}
+
+export interface AssignDeliveryPayload {
+    orderId: number;
+    orderNumber: string;
+    deliveryBoyId: number;
+    userId: number;
+    customerName: string;
+    customerPhone: string;
+    deliveryAddress: string;
+    customerLatitude: number;
+    customerLongitude: number;
+    notes: string;
+}
+
+export interface ReassignDeliveryPayload {
+    deliveryId: number;
+    newDeliveryBoyId: number;
+    reason: string;
+}
+
+export interface DeliveryTracking {
+    deliveryId?: number;
+    id?: number;
+    trackingNumber: string;
+    orderNumber: string;
+    orderId: number;
+    status: string;
+    statusLabel: string;
+    statusDescription: string;
+    deliveryBoy: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        vehicleNumber: string;
+        vehicleType: string;
+    } | null;
+    liveLocation: { latitude: number; longitude: number; updatedAt: string } | null;
+    deliveryAddress: string;
+    assignedAt: string | null;
+    acceptedAt: string | null;
+    pickedUpAt: string | null;
+    outForDeliveryAt: string | null;
+    deliveredAt: string | null;
+    timeline: Array<{ status: string; statusLabel: string; description: string; timestamp: string }>;
+}
+
+export interface AdminDeliveryAssignment {
+    id: number;
+    trackingNumber: string;
+    orderNumber: string;
+    status: string;
+    statusLabel: string;
+    customerName: string;
+    customerPhone: string;
+    deliveryAddress: string;
+    customerLatitude: number | null;
+    customerLongitude: number | null;
+    notes: string | null;
+    assignedAt: string | null;
+    acceptedAt: string | null;
+    pickedUpAt: string | null;
+    outForDeliveryAt: string | null;
+}
+
+const readDeliveryResponse = async <T>(response: Response, fallback: string): Promise<T> => {
+    const result = await response.json();
+    if (!response.ok || result.success === false) throw new Error(result.message || fallback);
+    return result.data;
+};
+
+export const fetchAdminDeliveryBoys = async (): Promise<DeliveryBoy[]> => {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/delivery/viewAllDeliveryBoys`, {
+        headers: { Accept: '*/*' },
+    });
+    return readDeliveryResponse<DeliveryBoy[]>(response, 'Failed to fetch delivery boys');
+};
+
+export const updateAdminDeliveryBoyStatus = async (id: number, status: 'ACTIVE' | 'INACTIVE') => {
+    const response = await adminAuthenticatedFetch(
+        `${BASE_URL}/admin/delivery/${id}/status?status=${status}`,
+        { method: 'PUT', headers: { Accept: '*/*' } },
+    );
+    return readDeliveryResponse<string>(response, 'Failed to update delivery-boy status');
+};
+
+export const assignAdminDelivery = async (payload: AssignDeliveryPayload) => {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/delivery/assign`, {
+        method: 'POST',
+        headers: { Accept: '*/*' },
+        body: JSON.stringify(payload),
+    });
+    return readDeliveryResponse<any>(response, 'Failed to assign delivery');
+};
+
+export const reassignAdminDelivery = async (payload: ReassignDeliveryPayload) => {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/delivery/reassign`, {
+        method: 'POST',
+        headers: { Accept: '*/*' },
+        body: JSON.stringify(payload),
+    });
+    return readDeliveryResponse<any>(response, 'Failed to reassign delivery');
+};
+
+export const trackAdminDelivery = async (trackingNumber: string, userId: number): Promise<DeliveryTracking> => {
+    const response = await adminAuthenticatedFetch(
+        `${BASE_URL}/admin/delivery/track?trackingNumber=${encodeURIComponent(trackingNumber)}`,
+        { headers: { Accept: '*/*', 'X-User-Id': String(userId) } },
+    );
+    return readDeliveryResponse<DeliveryTracking>(response, 'Failed to track delivery');
+};
+
+export const fetchAdminDeliveryByOrder = async (orderId: number, userId: number): Promise<DeliveryTracking> => {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/delivery/order/${orderId}`, {
+        headers: { Accept: '*/*', 'X-User-Id': String(userId) },
+    });
+    return readDeliveryResponse<DeliveryTracking>(response, 'Failed to fetch order delivery');
+};
+
+export const fetchAdminAssignedDeliveries = async (deliveryBoyId: number): Promise<AdminDeliveryAssignment[]> => {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/delivery/assigned`, {
+        headers: { Accept: '*/*', 'X-DeliveryBoy-Id': String(deliveryBoyId) },
+    });
+    return readDeliveryResponse<AdminDeliveryAssignment[]>(response, 'Failed to fetch assigned deliveries');
+};
+
 export const viewAllUsers = async (page: number, size: number, name?: string, phoneNumber?: string) => {
     let url = `${BASE_URL}/auth/viewAllUsers?page=${page}&size=${size}`;
     if (name) url += `&name=${encodeURIComponent(name)}`;
     if (phoneNumber) url += `&phoneNumber=${encodeURIComponent(phoneNumber)}`;
     const response = await adminAuthenticatedFetch(url);
     if (!response.ok) throw new Error("Failed to fetch users");
+    return response.json();
+};
+
+// -- Helpdesk API --
+
+export interface UserDocument {
+    userDocumentId: number;
+    userId: number;
+    filePath: string;
+    fileName: string;
+    createdDate: string;
+    adminDocumentId: number | null;
+    adminUploadedFileName: string | null;
+    adminUploadedFilePath: string | null;
+    adminUploadCreatedDate: string | null;
+    documentName?: string;
+    documentPath?: string;
+    uploadedAt?: string;
+}
+
+export interface HelpdeskQuery {
+    id: number;
+    ticketId?: number;
+    userId: number;
+    name: string;
+    query: string;
+    randomTicketId: string;
+    queryStatus: string;
+    email: string;
+    number: string;
+    comments: string | null;
+    resolvedBy: string | null;
+    projectType: string;
+    createdAt: string;
+    resolvedOn: string | null;
+    userDocuments: UserDocument[];
+    userPendingQueries?: Array<{
+        id: number;
+        pendingComments?: string;
+        message?: string;
+        createdAt?: string;
+        resolvedBy?: string | null;
+        resolvedOn?: string | null;
+    }>;
+}
+
+export interface HelpdeskQueryParams {
+    userId?: number;
+    queryStatus?: string;
+    page: number;
+    size: number;
+}
+
+export const adminGetAllQueries = async (params: HelpdeskQueryParams): Promise<{ content: HelpdeskQuery[]; totalElements: number; totalPages: number }> => {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/helpdesk/getAllQueries`, {
+        method: 'POST',
+        body: JSON.stringify(params),
+    });
+    if (!response.ok) throw new Error('Failed to fetch queries');
+    const result = await response.json();
+    return result.data ?? result;
+};
+
+export const adminUploadQueryScreenshot = async (adminId: number, queryId: number, file: File, fileType = 'IMAGE') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = getAdminAuthToken();
+    const response = await fetch(
+        `${BASE_URL}/helpdesk/multiUploadQueryScreenShot?adminId=${adminId}&queryId=${queryId}&fileType=${fileType}`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData }
+    );
+    if (!response.ok) throw new Error('Failed to upload screenshot');
+    return response.json();
+};
+
+export const adminResolveQuery = async (queryId: number, payload: { userId: number; queryStatus: string; comments: string }) => {
+    const response = await adminAuthenticatedFetch(`${BASE_URL}/helpdesk/adminResolveQuery/${queryId}`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error('Failed to resolve query');
     return response.json();
 };
 
