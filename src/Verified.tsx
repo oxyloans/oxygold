@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
-import Radha from "./assets/radha sir.png"
+import Radha from "./assets/radha sir.png";
+import OxyLogo from "./assets/oxygoldlogo.png";
 /*
  * Replace only the values in this object when the HUID, certified weight,
  * certificate number and product serial number are finalized.
@@ -195,17 +196,7 @@ export default function Home() {
                         className="group flex items-center gap-3"
                         aria-label="OXYGOLD.AI home"
                     >
-                        <span className="grid h-10 w-10 place-items-center rounded-full border border-amber-400/50 bg-gradient-to-br from-amber-200 via-amber-500 to-amber-800 text-sm font-black text-black shadow-[0_0_30px_rgba(245,180,55,0.15)]">
-                            OX
-                        </span>
-                        <span>
-                            <span className="block font-serif text-lg tracking-[0.15em] text-amber-300">
-                                OXYGOLD.AI
-                            </span>
-                            <span className="block text-[9px] font-semibold uppercase tracking-[0.28em] text-white/45">
-                                Silver Traceability
-                            </span>
-                        </span>
+                        <img src={OxyLogo} alt="OXYGOLD.AI" className="h-10 w-auto" />
                     </a>
                     <a
                         href="#identity"
@@ -369,7 +360,7 @@ export default function Home() {
                     </p>
                 </div>
 
-                <div className="mt-11 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mt-11 grid gap-3 sm:grid-cols-3">
                     {identityDetails.map((item) => (
                         <article
                             key={item.label}
@@ -459,7 +450,7 @@ export default function Home() {
                                 </div>
                             </div>
 
-                            <div className="flex flex-1 flex-col items-center justify-center text-center sm:items-start sm:text-left">
+                            <div className="flex flex-1 flex-col items-center justify-center text-center">
                                 <div className="relative mb-5">
                                     <div className="absolute inset-4 rounded-full bg-amber-300/15 blur-2xl" />
                                     <div className="relative overflow-hidden rounded-full border border-amber-300/35 bg-gradient-to-br from-[#f8d88c] via-[#c88f2f] to-[#4d2b0d] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
@@ -470,7 +461,15 @@ export default function Home() {
                                         />
                                     </div>
                                 </div>
-
+                                <a
+                                    href="https://www.linkedin.com/in/oxyradhakrishna/"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#0a66c2]/40 bg-[#0a66c2]/10 px-4 py-2 text-xs font-semibold text-[#7ab8f5] transition hover:bg-[#0a66c2]/20 hover:text-white"
+                                >
+                                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                                    LinkedIn
+                                </a>
                                 <p className="max-w-md font-serif text-2xl leading-tight text-white sm:text-3xl lg:text-[2rem]">
                                     {silverRecord.founder}
                                 </p>
@@ -585,13 +584,9 @@ export default function Home() {
 
             <footer className="relative z-10 border-t border-white/10 bg-black/40">
                 <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-12">
-                    <div>
-                        <p className="font-serif text-xl tracking-[0.12em] text-amber-300">
-                            OXYGOLD.AI
-                        </p>
-                        <p className="mt-2 text-xs text-white/35">
-                            Owned by {silverRecord.owner}
-                        </p>
+                    <div className="flex flex-col items-center gap-2 lg:items-start">
+                        <img src={OxyLogo} alt="OXYGOLD.AI" className="h-9 w-auto" />
+                        <p className="text-xs pl-6 text-white/35">Owned by {silverRecord.owner}</p>
                     </div>
                     <div className="flex flex-wrap gap-x-6 gap-y-3 text-xs font-semibold text-white/45">
                         <a
