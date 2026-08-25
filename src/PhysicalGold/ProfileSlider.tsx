@@ -491,7 +491,11 @@ const ProfilePage: React.FC = () => {
             if (!profileForm.panVerified) {
                 patch({ isVerifyingPan: true });
                 try {
-                    await verifyPan(profileForm.panNumber.toUpperCase());
+                    await verifyPan({
+                        pan: profileForm.panNumber.toUpperCase(),
+                        firstName: profileForm.firstName.trim(),
+                        lastName: profileForm.lastName.trim(),
+                    });
                     patch({ isVerifyingPan: false });
                 } catch (panErr: any) {
                     patch({

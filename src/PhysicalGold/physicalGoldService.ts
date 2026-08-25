@@ -764,10 +764,17 @@ export const getUserProfile = async (userId: number) => {
   return data;
 };
 
-export const verifyPan = async (pan: string) => {
-  const response = await authenticatedFetch(
-    `${BASE_URL}/auth/verifyPan?pan=${encodeURIComponent(pan)}`,
-  );
+export interface VerifyPanPayload {
+  pan: string;
+  firstName: string;
+  lastName: string;
+}
+
+export const verifyPan = async (payload: VerifyPanPayload) => {
+  const response = await authenticatedFetch(`${BASE_URL}/auth/verifyPan`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data?.message || "PAN verification failed");

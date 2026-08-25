@@ -18,7 +18,7 @@ interface Props {
 }
 
 const AssignDeliveryModal: React.FC<Props> = ({ order, isOpen, onClose, onSuccess }) => {
-    const existingDeliveryId = order?.delivery?.deliveryId || order?.delivery?.id;
+    const existingDeliveryId = order?.deliveryId || order?.delivery?.deliveryId || order?.delivery?.id;
     const [boys, setBoys] = useState<DeliveryBoy[]>([]);
     const [boyId, setBoyId] = useState('');
     const [notes, setNotes] = useState('');

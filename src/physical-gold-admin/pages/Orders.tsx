@@ -187,6 +187,12 @@ const Orders: React.FC = () => {
     setIsAssignModalOpen(true);
   };
 
+  const getDeliveryId = (order: AdminOrder) =>
+    order.deliveryId || order.delivery?.deliveryId || order.delivery?.id;
+
+  const getDeliveryStatus = (order: AdminOrder) =>
+    order.deliveryStatus || order.delivery?.status || "UNASSIGNED";
+
   const columns = [
     // {
     //   title: "S No.",
@@ -244,6 +250,31 @@ const Orders: React.FC = () => {
           </span>
         </div>
       ),
+    },
+    {
+      title: "Delivery",
+      dataIndex: "deliveryStatus",
+      key: "deliveryStatus",
+      width: 180,
+      render: (_: unknown, item: AdminOrder) => {
+        const deliveryId = getDeliveryId(item);
+        const deliveryStatus = getDeliveryStatus(item);
+        const deliveryBoy = item.deliveryBoyName || item.delivery?.deliveryBoy
+          ? item.deliveryBoyName || `${item.delivery?.deliveryBoy?.firstName || ""} ${item.delivery?.deliveryBoy?.lastName || ""}`.trim()
+          : "Not assigned";
+        const deliveryPhone = item.deliveryBoyPhone || item.delivery?.deliveryBoy?.phone;
+
+        return (
+          <div className="min-w-[160px] space-y-1 text-left text-[11px]">
+            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold ${getStatusColor(deliveryStatus)}`}>
+              {deliveryStatus}
+            </span>
+            <p className="font-bold text-slate-700">{deliveryBoy}</p>
+            {deliveryPhone && <p className="text-slate-500">{deliveryPhone}</p>}
+            {deliveryId && <p className="text-[9px] text-slate-400">Tracking: {item.trackingNumber || item.delivery?.trackingNumber || "—"}</p>}
+          </div>
+        );
+      },
     },
     {
       title: "Delivery Address",
@@ -309,7 +340,8 @@ const Orders: React.FC = () => {
       width: 105,
       fixed: "right" as const,
       render: (_: unknown, item: AdminOrder) => {
-        const assigned = !!(item.delivery?.deliveryId || item.delivery?.id);
+        const assigned = !!getDeliveryId(item);
+        const canReassign = assigned && getDeliveryStatus(item).toUpperCase() === "ASSIGNED";
         return (
           <div className="flex items-center justify-center gap-1.5">
             <button
@@ -325,12 +357,12 @@ const Orders: React.FC = () => {
               A
             </button>
             <button
-              disabled={!assigned}
+              disabled={!canReassign}
               onClick={(event) => {
                 event.stopPropagation();
                 openDeliveryAction(item);
               }}
-              title="Reassign delivery"
+              title={canReassign ? "Reassign delivery" : "Reassignment is available while delivery is assigned"}
               aria-label="Reassign delivery"
               className="h-8 min-w-8 rounded-lg border border-amber-200 bg-amber-50 px-2 text-[10px] font-bold text-amber-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
@@ -648,6 +680,33 @@ const Orders: React.FC = () => {
               </div>
             </div>
 
+            {/* Delivery Assignment */}
+            <div className="space-y-3">
+              <h3 className="text-[13px] font-bold text-slate-800">Delivery Assignment</h3>
+              <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-100 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Delivery Status</p>
+                  <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${getStatusColor(getDeliveryStatus(selectedOrder))}`}>
+                    {getDeliveryStatus(selectedOrder)}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Delivery Partner</p>
+                  <p className="mt-1 text-[12px] font-bold text-slate-700">
+                    {selectedOrder.deliveryBoyName || `${selectedOrder.delivery?.deliveryBoy?.firstName || ""} ${selectedOrder.delivery?.deliveryBoy?.lastName || ""}`.trim() || "Not assigned"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Partner Phone</p>
+                  <p className="mt-1 text-[12px] font-bold text-slate-700">{selectedOrder.deliveryBoyPhone || selectedOrder.delivery?.deliveryBoy?.phone || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tracking Number</p>
+                  <p className="mt-1 break-all text-[12px] font-bold text-slate-700">{selectedOrder.trackingNumber || selectedOrder.delivery?.trackingNumber || "—"}</p>
+                </div>
+              </div>
+            </div>
+
             {/* Order Items Table */}
             <div className="space-y-4">
               <h3 className="text-[13px] font-bold text-slate-800 flex items-center gap-2">
@@ -703,7 +762,7 @@ const Orders: React.FC = () => {
             </div>
 
             <div className="flex justify-end pt-4">
-              {!selectedOrder.delivery && (
+              {!getDeliveryId(selectedOrder) && (
                 <Button
                   variant="primary"
                   size="md"
@@ -711,6 +770,16 @@ const Orders: React.FC = () => {
                   className="mr-2"
                 >
                   Assign Delivery
+                </Button>
+              )}
+              {getDeliveryId(selectedOrder) && getDeliveryStatus(selectedOrder).toUpperCase() === "ASSIGNED" && (
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={() => setIsAssignModalOpen(true)}
+                  className="mr-2"
+                >
+                  Reassign Delivery
                 </Button>
               )}
               <Button

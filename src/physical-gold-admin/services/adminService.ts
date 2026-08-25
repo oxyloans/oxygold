@@ -409,6 +409,11 @@ export interface AdminOrder {
     pinCode?: string | null;
     longitude?: string | number | null;
     latitude?: string | number | null;
+    deliveryId?: number | null;
+    trackingNumber?: string | null;
+    deliveryStatus?: string | null;
+    deliveryBoyName?: string | null;
+    deliveryBoyPhone?: string | null;
     items: OrderItem[];
     delivery?: DeliveryTracking | null;
 }
