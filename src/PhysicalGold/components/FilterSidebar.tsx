@@ -25,52 +25,71 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, onFilterChange, 
     const [localMinWeight, setLocalMinWeight] = React.useState(filters.minWeight);
     const [localMaxWeight, setLocalMaxWeight] = React.useState(filters.maxWeight);
 
-    const [priceError, setPriceError] = React.useState<string>("");
-    const [weightError, setWeightError] = React.useState<string>("");
-
     // Sync local state when filters are cleared/reset externally
     React.useEffect(() => {
         setLocalMinPrice(filters.minPrice);
         setLocalMaxPrice(filters.maxPrice);
-        setPriceError("");
     }, [filters.minPrice, filters.maxPrice]);
 
     React.useEffect(() => {
         setLocalMinWeight(filters.minWeight);
         setLocalMaxWeight(filters.maxWeight);
-        setWeightError("");
     }, [filters.minWeight, filters.maxWeight]);
 
-    // --- Price ---
-    const bothPriceFilled = localMinPrice !== undefined && localMaxPrice !== undefined;
-    const priceValid = bothPriceFilled && localMaxPrice! > localMinPrice!;
-    const priceChanged = localMinPrice !== filters.minPrice || localMaxPrice !== filters.maxPrice;
-    const priceApplyEnabled = priceValid && priceChanged;
+    // --- Price validation ---
+    const priceMinGtMax =
+        localMinPrice !== undefined &&
+        localMaxPrice !== undefined &&
+        localMinPrice >= localMaxPrice;
+    const priceApplyEnabled =
+        localMinPrice !== undefined &&
+        localMaxPrice !== undefined &&
+        !priceMinGtMax &&
+        (localMinPrice !== filters.minPrice || localMaxPrice !== filters.maxPrice);
 
     const handleApplyPrice = () => {
-        if (!bothPriceFilled) return;
-        if (localMaxPrice! <= localMinPrice!) {
-            setPriceError("Max price must be greater than min price.");
-            return;
-        }
-        setPriceError("");
+        if (!priceApplyEnabled) return;
         onFilterChange({ minPrice: localMinPrice, maxPrice: localMaxPrice });
     };
 
-    // --- Weight ---
-    const bothWeightFilled = localMinWeight !== undefined && localMaxWeight !== undefined;
-    const weightValid = bothWeightFilled && localMaxWeight! > localMinWeight!;
-    const weightChanged = localMinWeight !== filters.minWeight || localMaxWeight !== filters.maxWeight;
-    const weightApplyEnabled = weightValid && weightChanged;
+    // --- Weight validation ---
+    const weightMinGtMax =
+        localMinWeight !== undefined &&
+        localMaxWeight !== undefined &&
+        localMinWeight >= localMaxWeight;
+    const weightApplyEnabled =
+        localMinWeight !== undefined &&
+        localMaxWeight !== undefined &&
+        !weightMinGtMax &&
+        (localMinWeight !== filters.minWeight || localMaxWeight !== filters.maxWeight);
 
     const handleApplyWeight = () => {
-        if (!bothWeightFilled) return;
-        if (localMaxWeight! <= localMinWeight!) {
-            setWeightError("Max weight must be greater than min weight.");
-            return;
-        }
-        setWeightError("");
+        if (!weightApplyEnabled) return;
         onFilterChange({ minWeight: localMinWeight, maxWeight: localMaxWeight });
+    };
+
+    // --- Purity checkboxes (multi-select) ---
+    const selectedPurities: string[] = filters.purity
+        ? filters.purity.split(",").filter(Boolean)
+        : [];
+
+    const togglePurity = (purity: string) => {
+        const next = selectedPurities.includes(purity)
+            ? selectedPurities.filter((p) => p !== purity)
+            : [...selectedPurities, purity];
+        onFilterChange({ purity: next.length > 0 ? next.join(",") : undefined });
+    };
+
+    // --- Size checkboxes (multi-select) ---
+    const selectedSizes: string[] = filters.size
+        ? filters.size.split(",").filter(Boolean)
+        : [];
+
+    const toggleSize = (size: string) => {
+        const next = selectedSizes.includes(size)
+            ? selectedSizes.filter((s) => s !== size)
+            : [...selectedSizes, size];
+        onFilterChange({ size: next.length > 0 ? next.join(",") : undefined });
     };
 
     return (
@@ -106,40 +125,36 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, onFilterChange, 
 
             {/* Price Range */}
             <div>
-                <label className="block text-[11px] font-semibold text-[#8A8A8A] mb-2">Price Range</label>
+                <label className="block text-[11px] font-semibold text-[#8A8A8A] mb-2">Price Range (₹)</label>
                 <div className="grid grid-cols-2 gap-2">
                     <input
                         type="number"
                         placeholder="Min"
+                        min={0}
                         value={localMinPrice ?? ""}
                         onChange={(e) => {
-                            setLocalMinPrice(e.target.value ? Number(e.target.value) : undefined);
-                            setPriceError("");
+                            const val = e.target.value ? Math.max(0, Number(e.target.value)) : undefined;
+                            setLocalMinPrice(val);
                         }}
-                        className={`border rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914] transition-colors ${priceError ? "border-red-400" : "border-[#E8E0D5]"
-                            }`}
+                        className={`border rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914] transition-colors ${priceMinGtMax ? "border-red-400" : "border-[#E8E0D5]"}`}
                     />
                     <input
                         type="number"
                         placeholder="Max"
+                        min={0}
                         value={localMaxPrice ?? ""}
                         onChange={(e) => {
-                            setLocalMaxPrice(e.target.value ? Number(e.target.value) : undefined);
-                            setPriceError("");
+                            const val = e.target.value ? Math.max(0, Number(e.target.value)) : undefined;
+                            setLocalMaxPrice(val);
                         }}
-                        className={`border rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914] transition-colors ${priceError ? "border-red-400" : "border-[#E8E0D5]"
-                            }`}
+                        className={`border rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914] transition-colors ${priceMinGtMax ? "border-red-400" : "border-[#E8E0D5]"}`}
                     />
                 </div>
-
-                {priceError ? (
-                    <p className="text-[10px] text-red-500 mt-1">{priceError}</p>
+                {priceMinGtMax ? (
+                    <p className="text-[10px] text-red-500 mt-1">Min price must be less than max price.</p>
                 ) : (
-                    <p className="text-[10px] text-[#8A8A8A] mt-1">
-                        Enter both values
-                    </p>
+                    <p className="text-[10px] text-[#8A8A8A] mt-1">Enter both min and max values</p>
                 )}
-
                 <button
                     onClick={handleApplyPrice}
                     disabled={!priceApplyEnabled}
@@ -160,35 +175,31 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, onFilterChange, 
                     <input
                         type="number"
                         placeholder="Min"
+                        min={0}
                         value={localMinWeight ?? ""}
                         onChange={(e) => {
-                            setLocalMinWeight(e.target.value ? Number(e.target.value) : undefined);
-                            setWeightError("");
+                            const val = e.target.value ? Math.max(0, Number(e.target.value)) : undefined;
+                            setLocalMinWeight(val);
                         }}
-                        className={`border rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914] transition-colors ${weightError ? "border-red-400" : "border-[#E8E0D5]"
-                            }`}
+                        className={`border rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914] transition-colors ${weightMinGtMax ? "border-red-400" : "border-[#E8E0D5]"}`}
                     />
                     <input
                         type="number"
                         placeholder="Max"
+                        min={0}
                         value={localMaxWeight ?? ""}
                         onChange={(e) => {
-                            setLocalMaxWeight(e.target.value ? Number(e.target.value) : undefined);
-                            setWeightError("");
+                            const val = e.target.value ? Math.max(0, Number(e.target.value)) : undefined;
+                            setLocalMaxWeight(val);
                         }}
-                        className={`border rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914] transition-colors ${weightError ? "border-red-400" : "border-[#E8E0D5]"
-                            }`}
+                        className={`border rounded-lg px-3 py-2 text-[12px] outline-none focus:border-[#8B6914] transition-colors ${weightMinGtMax ? "border-red-400" : "border-[#E8E0D5]"}`}
                     />
                 </div>
-
-                {weightError ? (
-                    <p className="text-[10px] text-red-500 mt-1">{weightError}</p>
+                {weightMinGtMax ? (
+                    <p className="text-[10px] text-red-500 mt-1">Min weight must be less than max weight.</p>
                 ) : (
-                    <p className="text-[10px] text-[#8A8A8A] mt-1">
-                        Enter both values
-                    </p>
+                    <p className="text-[10px] text-[#8A8A8A] mt-1">Enter both min and max values</p>
                 )}
-
                 <button
                     onClick={handleApplyWeight}
                     disabled={!weightApplyEnabled}
@@ -202,43 +213,37 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, onFilterChange, 
                 </button>
             </div>
 
-            {/* Purity */}
+            {/* Purity — checkboxes */}
             <div>
                 <label className="block text-[11px] font-semibold text-[#8A8A8A] mb-2">Purity</label>
                 <div className="space-y-2">
                     {purities.map((purity) => (
-                        <label key={purity} className="flex items-center gap-2 cursor-pointer">
+                        <label key={purity} className="flex items-center gap-2 cursor-pointer group">
                             <input
-                                type="radio"
-                                name="purity"
-                                checked={filters.purity === purity}
-                                onChange={() =>
-                                    onFilterChange({ purity: filters.purity === purity ? undefined : purity })
-                                }
-                                className="w-4 h-4 text-[#8B6914] focus:ring-[#8B6914]"
+                                type="checkbox"
+                                checked={selectedPurities.includes(purity)}
+                                onChange={() => togglePurity(purity)}
+                                className="w-4 h-4 rounded text-[#8B6914] border-[#D1C7BB] focus:ring-[#8B6914] accent-[#8B6914]"
                             />
-                            <span className="text-[12px] text-[#1A1A1A]">{purity}</span>
+                            <span className="text-[12px] text-[#1A1A1A] group-hover:text-[#8B6914] transition-colors">{purity}</span>
                         </label>
                     ))}
                 </div>
             </div>
 
-            {/* Size */}
+            {/* Size — checkboxes */}
             <div>
                 <label className="block text-[11px] font-semibold text-[#8A8A8A] mb-2">Size</label>
                 <div className="space-y-2">
                     {sizes.map((size) => (
-                        <label key={size} className="flex items-center gap-2 cursor-pointer">
+                        <label key={size} className="flex items-center gap-2 cursor-pointer group">
                             <input
-                                type="radio"
-                                name="size"
-                                checked={filters.size === size}
-                                onChange={() =>
-                                    onFilterChange({ size: filters.size === size ? undefined : size })
-                                }
-                                className="w-4 h-4 text-[#8B6914] focus:ring-[#8B6914]"
+                                type="checkbox"
+                                checked={selectedSizes.includes(size)}
+                                onChange={() => toggleSize(size)}
+                                className="w-4 h-4 rounded text-[#8B6914] border-[#D1C7BB] focus:ring-[#8B6914] accent-[#8B6914]"
                             />
-                            <span className="text-[12px] text-[#1A1A1A]">{size}</span>
+                            <span className="text-[12px] text-[#1A1A1A] group-hover:text-[#8B6914] transition-colors">{size}</span>
                         </label>
                     ))}
                 </div>
@@ -246,14 +251,14 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({ filters, onFilterChange, 
 
             {/* In Stock */}
             <div>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer group">
                     <input
                         type="checkbox"
                         checked={filters.inStock || false}
                         onChange={(e) => onFilterChange({ inStock: e.target.checked || undefined })}
-                        className="w-4 h-4 text-[#8B6914] focus:ring-[#8B6914] rounded"
+                        className="w-4 h-4 rounded text-[#8B6914] border-[#D1C7BB] focus:ring-[#8B6914] accent-[#8B6914]"
                     />
-                    <span className="text-[12px] font-medium text-[#1A1A1A]">In Stock Only</span>
+                    <span className="text-[12px] font-medium text-[#1A1A1A] group-hover:text-[#8B6914] transition-colors">In Stock Only</span>
                 </label>
             </div>
         </div>

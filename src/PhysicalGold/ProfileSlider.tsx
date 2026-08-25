@@ -104,7 +104,6 @@ interface PageState {
         mobileNumber: string;
         gender: string;
         panNumber: string;
-        panName: string;
         panVerified: boolean;
     };
     profileErrors: Record<string, string>;
@@ -236,7 +235,6 @@ const ProfilePage: React.FC = () => {
             mobileNumber: "",
             gender: "",
             panNumber: "",
-            panName: "",
             panVerified: false,
         },
         profileErrors: {},
@@ -306,7 +304,6 @@ const ProfilePage: React.FC = () => {
                     mobileNumber: profile.mobileNumber || profile.phone || profile.phoneNumber || "",
                     gender: profile.gender || "",
                     panNumber: profile.panNumber || "",
-                    panName: profile.firstName && profile.lastName ? `${profile.firstName} ${profile.lastName}` : "",
                     panVerified: profile.panVerified || false,
                 },
             });
@@ -333,7 +330,6 @@ const ProfilePage: React.FC = () => {
                         mobileNumber: profile.mobileNumber || "",
                         gender: profile.gender || "",
                         panNumber: profile.panNumber || "",
-                        panName: profile.firstName && profile.lastName ? `${profile.firstName} ${profile.lastName}` : "",
                         panVerified: profile.panVerified || false,
                     },
                 });
@@ -470,12 +466,6 @@ const ProfilePage: React.FC = () => {
             errors.panNumber = "Invalid PAN format (e.g., ABCDE1234F)";
         }
 
-        if (!profileForm.panVerified && profileForm.panNumber.trim()) {
-            if (!profileForm.panName.trim()) {
-                errors.panName = "Name as per PAN is required for verification";
-            }
-        }
-
         // Optional WhatsApp number validation
         if (profileForm.whatsappNumber.trim() && !validateMobileNumber(profileForm.whatsappNumber)) {
             errors.whatsappNumber = "Invalid mobile number (10 digits, starting with 6-9)";
@@ -492,7 +482,7 @@ const ProfilePage: React.FC = () => {
             if (!profileForm.panVerified) {
                 patch({ isVerifyingPan: true });
                 try {
-                    await verifyPan(uid, profileForm.panName, profileForm.panNumber.toUpperCase());
+                    await verifyPan(profileForm.panNumber.toUpperCase());
                     patch({ isVerifyingPan: false });
                 } catch (panErr: any) {
                     patch({
@@ -885,7 +875,7 @@ const ProfilePage: React.FC = () => {
                 />
             )}
 
-            <main className="pt-40 pb-16 max-w-5xl mx-auto px-4 sm:px-6">
+            <main className="pt-36 pb-20 max-w-5xl mx-auto px-3 sm:px-6">
 
                 {/* Back */}
                 <button
@@ -898,7 +888,7 @@ const ProfilePage: React.FC = () => {
                 </button>
 
                 {/* Profile Header Card */}
-                <div className="bg-white border border-[#E8E0D5] rounded-xl px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-1 shadow-sm">
+                <div className="bg-white border border-[#E8E0D5] rounded-xl px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-1 shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="h-11 w-11 rounded-full bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0">
                             <User className="h-5 w-5" strokeWidth={1.8} />
@@ -944,7 +934,7 @@ const ProfilePage: React.FC = () => {
                                         setSearchParams({ tab: id });
                                         patch({ activeTab: id, isAddingAddress: false, isEditingProfile: false });
                                     }}
-                                    className={`flex items-center gap-1.5 px-5 py-3 text-[14px] font-medium border-b-2 transition-all ${isActive ? "border-[#8B6914] text-[#8B6914]" : "border-transparent text-[#8A8A8A] hover:text-[#1A1A1A]"}`}
+                                    className={`flex items-center gap-1.5 px-4 py-3.5 text-[13px] font-medium border-b-2 transition-all shrink-0 ${isActive ? "border-[#8B6914] text-[#8B6914]" : "border-transparent text-[#8A8A8A] hover:text-[#1A1A1A]"}`}
                                 >
                                     <Icon className="h-3.5 w-3.5" strokeWidth={isActive ? 2.5 : 1.8} />
                                     {label}
@@ -1122,27 +1112,7 @@ const ProfilePage: React.FC = () => {
                                         {s.profileErrors.panNumber && <p className="text-[11px] text-rose-500 mt-1">{s.profileErrors.panNumber}</p>}
                                         {s.profileForm.panVerified && <p className="text-[11px] text-[#8A8A8A] mt-1">PAN is verified and cannot be changed.</p>}
                                     </div>
-                                    {!s.profileForm.panVerified && s.profileForm.panNumber.trim() && (
-                                        <div>
-                                            <label className={labelCls}>Name as per PAN<span className="text-rose-500 ml-1">*</span></label>
-                                            <input
-                                                type="text"
-                                                value={s.profileForm.panName}
-                                                onChange={(e) => {
-                                                    patchProfile({ panName: e.target.value });
-                                                    if (s.profileErrors.panName && e.target.value.trim()) {
-                                                        const newErrors = { ...s.profileErrors };
-                                                        delete newErrors.panName;
-                                                        patch({ profileErrors: newErrors });
-                                                    }
-                                                }}
-                                                placeholder="Full name as per PAN card"
-                                                className={`${inputCls} ${s.profileErrors.panName ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
-                                            />
-                                            {s.profileErrors.panName && <p className="text-[11px] text-rose-500 mt-1">{s.profileErrors.panName}</p>}
-                                            <p className="text-[11px] text-[#8A8A8A] mt-1">Required for PAN verification</p>
-                                        </div>
-                                    )}
+                
                                     <div className="flex gap-3 pt-2">
                                         <button onClick={() => patch({ isEditingProfile: false, profileErrors: {} })} className="px-5 py-2 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition">Cancel</button>
                                         <button onClick={handleSaveProfile} disabled={s.isSavingProfile || s.isVerifyingPan} className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-60">
@@ -1450,28 +1420,23 @@ const ProfilePage: React.FC = () => {
                                                 {/* Order Header */}
                                                 {/* Order Header */}
                                                 <div className="flex items-start gap-3 px-4 py-4">
-                                                    <div className="h-9 w-9 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
-                                                        <Package className="h-4 w-4" />
+                                                    <div className="h-10 w-10 rounded-xl bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
+                                                        <Package className="h-5 w-5" />
                                                     </div>
-                                                    <div className="flex-1 min-w-0 space-y-1.5">
-                                                        {/* Order number — truncated on small screens */}
-                                                        <p className="text-[11px] text-[#8A8A8A] truncate">
-                                                            Order #{order.orderNumber}
-                                                        </p>
-                                                        {/* Date */}
-                                                        <p className="text-[11px] font-medium text-[#1A1A1A]">
-                                                            {formatDate(order.paymentExpiry)}
-                                                        </p>
-                                                        {/* Badges + amount — all in flow, wraps naturally */}
-                                                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <div className="min-w-0">
+                                                                <p className="text-[12px] font-semibold text-[#1A1A1A] truncate">Order #{order.orderNumber}</p>
+                                                                <p className="text-[11px] text-[#8A8A8A] mt-0.5">{formatDate(order.paymentExpiry)}</p>
+                                                            </div>
+                                                            <span className="text-[14px] font-bold text-[#1A1A1A] shrink-0">{DISPLAY_INR(order.totalAmount)}</span>
+                                                        </div>
+                                                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
                                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(order.orderStatus)}`}>
                                                                 Order: {order.orderStatus}
                                                             </span>
                                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(order.paymentStatus)}`}>
                                                                 Payment: {order.paymentStatus}
-                                                            </span>
-                                                            <span className="text-[13px] font-semibold text-[#1A1A1A] ml-auto whitespace-nowrap">
-                                                                {DISPLAY_INR(order.totalAmount)}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -1515,46 +1480,55 @@ const ProfilePage: React.FC = () => {
                                                             <p className="text-[11px] text-[#8A8A8A]">{formatDate(order.paymentExpiry)}</p>
                                                         </div>
 
-                                                        {order.items?.map((item: any, i: number) => (
-                                                            <div key={i} className="bg-white border border-[#E8E0D5] rounded-lg px-4 py-3">
-                                                                <div className="flex items-start justify-between gap-3">
-                                                                    <div className="flex items-start gap-3">
-                                                                        <div className="h-9 w-9 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
-                                                                            <Package className="h-4 w-4" />
-                                                                        </div>
-                                                                        <div className="space-y-0.5">
-                                                                            <p className="text-[13px] font-semibold text-[#1A1A1A]">
+                                                        {order.items?.map((item: any, i: number) => {
+                                                            const existingReview = reviews.find((r) => r.productId === item.productId);
+                                                            return (
+                                                            <div key={i} className="bg-white border border-[#E8E0D5] rounded-xl px-4 py-3.5">
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className="h-9 w-9 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
+                                                                        <Package className="h-4 w-4" />
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-start justify-between gap-2">
+                                                                            <p className="text-[13px] font-semibold text-[#1A1A1A] leading-snug">
                                                                                 {item.productName || `Product #${item.productId}`}
                                                                             </p>
-                                                                            {item.variant && (
-                                                                                <p className="text-[11px] text-[#8B6914] font-medium">{item.variant}</p>
-                                                                            )}
-                                                                            <p className="text-[11px] text-[#8A8A8A]">
-                                                                                Qty: {item.quantity} · {DISPLAY_INR(item.price)} per pc
-                                                                            </p>
+                                                                            <p className="text-[13px] font-semibold text-[#1A1A1A] shrink-0">{DISPLAY_INR(item.subtotal)}</p>
                                                                         </div>
-                                                                    </div>
-                                                                    <div className="text-right shrink-0">
-                                                                        <p className="text-[13px] font-semibold text-[#1A1A1A]">{DISPLAY_INR(item.subtotal)}</p>
-                                                                        {item.quantity > 1 && (
-                                                                            <p className="text-[10px] text-[#8A8A8A] mt-0.5">
-                                                                                {item.quantity} × {DISPLAY_INR(item.price)}
-                                                                            </p>
+                                                                        {item.variant && (
+                                                                            <p className="text-[11px] text-[#8B6914] font-medium mt-0.5">{item.variant}</p>
                                                                         )}
-                                                                        {order.orderStatus?.toUpperCase() === "DELIVERED" && (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => openProductReview(item)}
-                                                                                className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-[#8B6914] hover:text-[#5f470d]"
-                                                                            >
-                                                                                <Star className="h-3 w-3" />
-                                                                                {reviews.some((review) => review.productId === item.productId) ? "Edit rating" : "Rate product"}
-                                                                            </button>
-                                                                        )}
+                                                                        <p className="text-[11px] text-[#8A8A8A] mt-0.5">
+                                                                            Qty: {item.quantity} · {DISPLAY_INR(item.price)} per pc
+                                                                        </p>
+                                                                        <div className="mt-2 flex items-center justify-between gap-2">
+                                                                            {existingReview && (
+                                                                            <div className="flex items-center gap-0.5">
+                                                                                {[1,2,3,4,5].map((star) => (
+                                                                                    <Star key={star} className="h-3.5 w-3.5"
+                                                                                        fill={star <= existingReview.rating ? "#F5B301" : "none"}
+                                                                                        stroke={star <= existingReview.rating ? "#F5B301" : "#D1C7BB"}
+                                                                                    />
+                                                                                ))}
+                                                                                <span className="ml-1.5 text-[11px] text-[#8A8A8A] font-medium">{REVIEW_RATING_LABELS[existingReview.rating]}</span>
+                                                                            </div>
+                                                                            )}
+                                                                            {order.orderStatus?.toUpperCase() === "DELIVERED" && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => openProductReview(item)}
+                                                                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B6914] hover:text-[#5f470d] shrink-0"
+                                                                                >
+                                                                                    <Star className="h-3 w-3" fill={existingReview ? "#F5B301" : "none"} stroke="#8B6914" />
+                                                                                    {existingReview ? "Edit rating" : "Rate product"}
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                        ))}
+                                                            );
+                                                        })}
 
                                                         {/* Order Summary Row */}
                                                         <div className="flex items-center justify-between bg-white border border-[#E8E0D5] rounded-lg px-4 py-3">
@@ -1800,7 +1774,7 @@ const ProfilePage: React.FC = () => {
                                                 {q.resolvedBy && (
                                                     <div className="mt-3 pt-3 border-t border-[#F0EBE1] flex items-center gap-2">
                                                         <CheckCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                                                        <p className="text-[12px] text-emerald-700 font-medium">Resolved by {q.resolvedBy}</p>
+                                                        <p className="text-[12px] text-emerald-700 font-medium">Cancelled by {q.resolvedBy}</p>
                                                     </div>
                                                 )}
                                                 {/* User Documents */}

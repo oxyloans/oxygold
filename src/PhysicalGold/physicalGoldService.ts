@@ -245,6 +245,42 @@ export const uploadRatingMedia = async (
     ),
   );
 };
+export const fetchProductRatings = async (
+  productId: number | string,
+  params: {
+    rating?: number;
+    verifiedPurchase?: boolean;
+    search?: string;
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    direction?: "ASC" | "DESC";
+  } = {},
+) =>
+  readApiResponse<{
+    content: ProductReview[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+  }>(
+    await fetch(
+      `${BASE_URL}/ratings/product/${productId}?` +
+        new URLSearchParams({
+          ...(params.rating !== undefined && { rating: String(params.rating) }),
+          ...(params.verifiedPurchase !== undefined && { verifiedPurchase: String(params.verifiedPurchase) }),
+          ...(params.search && { search: params.search }),
+          page: String(params.page ?? 0),
+          size: String(params.size ?? 10),
+          sortBy: params.sortBy ?? "createdAt",
+          direction: params.direction ?? "DESC",
+        }).toString(),
+      { headers: { accept: "*/*" } },
+    ),
+  );
+
 export const fetchRatingMedia = async (ratingId: number) =>
   readApiResponse<ReviewMedia[]>(
     await authenticatedFetch(`${BASE_URL}/ratings/${ratingId}/media`),
@@ -728,9 +764,9 @@ export const getUserProfile = async (userId: number) => {
   return data;
 };
 
-export const verifyPan = async (userId: number, name: string, pan: string) => {
+export const verifyPan = async (pan: string) => {
   const response = await authenticatedFetch(
-    `${BASE_URL}/auth/verifyPan/${userId}?name=${encodeURIComponent(name)}&pan=${encodeURIComponent(pan)}`,
+    `${BASE_URL}/auth/verifyPan?pan=${encodeURIComponent(pan)}`,
   );
   const data = await response.json();
   if (!response.ok) {

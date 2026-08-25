@@ -19,13 +19,10 @@ import AIModelPreviewModal from "./components/AIModelPreviewModal";
 import VirtualTryOnModal from "./components/VirtualTryOnModal";
 
 import { PhysicalGoldProduct, ProductVariant } from "./physicalGoldData";
-import { fetchProductVariants, fetchProducts, generateModelImage, generateVirtualTryOn, fetchProductRecommendations } from "./physicalGoldService";
+import { fetchProductVariants, fetchProducts, generateModelImage, generateVirtualTryOn, fetchProductRecommendations, fetchProductRatings } from "./physicalGoldService";
 import { useCart } from "./CartContext";
 import { useWishlist } from "./WishlistContext";
 import {
-  getMockReviews,
-  getProductRating,
-  getReviewCount,
   getProductTag,
 } from "./mockData";
 import "./styles.css";
@@ -52,6 +49,12 @@ const ProductDetailsPage: React.FC = () => {
   const [similarProducts, setSimilarProducts] = useState<PhysicalGoldProduct[]>([]);
   const [exploreMoreProducts, setExploreMoreProducts] = useState<PhysicalGoldProduct[]>([]);
   const [inCart, setInCart] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsTotalElements, setReviewsTotalElements] = useState(0);
+  const [reviewsPage, setReviewsPage] = useState(0);
+  const [reviewsLast, setReviewsLast] = useState(true);
+  const [reviewsRatingFilter, setReviewsRatingFilter] = useState<number | undefined>(undefined);
   const [isTryOnOpen, setIsTryOnOpen] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
@@ -98,10 +101,31 @@ const ProductDetailsPage: React.FC = () => {
   }, [selectedVariant, cartItems]);
 
   const liked = product ? isInWishlist(product.id) : false;
-  const rating = id ? getProductRating(id) : 4;
-  const reviewCount = id ? getReviewCount(id) : 50;
-  const reviews = id ? getMockReviews(id) : [];
   const tag = id ? getProductTag(id) : null;
+  const rating = reviews.length > 0
+    ? Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) * 10) / 10
+    : 0;
+  const reviewCount = reviewsTotalElements;
+
+  const loadReviews = useCallback(async (page = 0, ratingFilter?: number, append = false) => {
+    if (!id) return;
+    setReviewsLoading(true);
+    try {
+      const res = await fetchProductRatings(id, {
+        page,
+        size: 10,
+        ...(ratingFilter !== undefined && { rating: ratingFilter }),
+      });
+      setReviews((prev) => append ? [...prev, ...(res.content || [])] : (res.content || []));
+      setReviewsTotalElements(res.totalElements || 0);
+      setReviewsPage(page);
+      setReviewsLast(res.last ?? true);
+    } catch (e) {
+      console.error("Failed to load reviews:", e);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -159,7 +183,8 @@ const ProductDetailsPage: React.FC = () => {
       }
     };
     loadProduct();
-  }, [id]);
+    loadReviews(0);
+  }, [id, loadReviews]);
 
   const purities = useMemo(
     () => Array.from(new Set(variants.map((v) => v.purity))),
@@ -524,13 +549,15 @@ const ProductDetailsPage: React.FC = () => {
                       <Star
                         key={s}
                         size={12}
-                        fill={s <= rating ? "#C29B27" : "none"}
-                        stroke={s <= rating ? "#C29B27" : "#D1C7BB"}
+                        fill={s <= Math.round(rating) ? "#C29B27" : "none"}
+                        stroke={s <= Math.round(rating) ? "#C29B27" : "#D1C7BB"}
                         strokeWidth={1}
                       />
                     ))}
                   </div>
-                  <span className="text-[11px] text-[#8A8A8A]">({reviewCount} reviews)</span>
+                  <span className="text-[11px] text-[#8A8A8A]">
+                    {reviewCount > 0 ? `${rating} (${reviewCount} reviews)` : "No reviews yet"}
+                  </span>
                 </div>
               </div>
 
@@ -1015,12 +1042,13 @@ const ProductDetailsPage: React.FC = () => {
 
               {activeTab === "reviews" && (
                 <div className="max-w-xl">
+                  {/* Summary */}
                   <div className="inline-flex items-center gap-3 mb-5 p-3.5 bg-white rounded-xl border border-[#F0EBE1]">
-                    <div className="text-2xl font-serif font-bold text-[#1A1A1A]">{rating}</div>
+                    <div className="text-2xl font-serif font-bold text-[#1A1A1A]">{rating || "—"}</div>
                     <div>
                       <div className="flex gap-0.5 mb-1">
                         {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} size={11} fill={s <= rating ? "#C29B27" : "none"} stroke={s <= rating ? "#C29B27" : "#D1C7BB"} />
+                          <Star key={s} size={11} fill={s <= Math.round(rating) ? "#C29B27" : "none"} stroke={s <= Math.round(rating) ? "#C29B27" : "#D1C7BB"} />
                         ))}
                       </div>
                       <p className="text-[9px] font-bold text-[#8A8A8A] uppercase tracking-widest">
@@ -1028,22 +1056,79 @@ const ProductDetailsPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    {reviews.map((review, i) => (
-                      <div key={i} className="pb-4 border-b border-[#F0EBE1]">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-bold text-[#1A1A1A] text-[12px]">{review.name}</span>
-                          <span className="text-[10px] text-[#8A8A8A]">{review.date}</span>
-                        </div>
-                        <div className="flex gap-0.5 mb-1.5">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star key={s} size={10} fill={s <= review.rating ? "#C29B27" : "none"} stroke={s <= review.rating ? "#C29B27" : "#D1C7BB"} />
-                          ))}
-                        </div>
-                        <p className="text-[11px] text-[#6B6B6B] leading-relaxed">{review.text}</p>
-                      </div>
+
+                  {/* Rating filter */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {[undefined, 5, 4, 3, 2, 1].map((r) => (
+                      <button
+                        key={r ?? "all"}
+                        onClick={() => {
+                          setReviewsRatingFilter(r);
+                          loadReviews(0, r);
+                        }}
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold border transition-all ${
+                          reviewsRatingFilter === r
+                            ? "bg-[#C29B27] text-white border-[#C29B27]"
+                            : "bg-white text-[#6B6B6B] border-[#E8E2D8] hover:border-[#C29B27]/50"
+                        }`}
+                      >
+                        {r === undefined ? "All" : `${r} ★`}
+                      </button>
                     ))}
                   </div>
+
+                  {/* Reviews list */}
+                  {reviewsLoading && reviews.length === 0 ? (
+                    <div className="flex items-center gap-2 py-8 text-[#8A8A8A]">
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                      <span className="text-[12px]">Loading reviews...</span>
+                    </div>
+                  ) : reviews.length === 0 ? (
+                    <p className="text-[12px] text-[#8A8A8A] py-8">No reviews yet for this product.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {reviews.map((review) => (
+                        <div key={review.id} className="pb-4 border-b border-[#F0EBE1]">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-[#1A1A1A] text-[12px]">{review.userFullName || "Customer"}</span>
+                              {review.verifiedPurchase && (
+                                <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Verified</span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-[#8A8A8A]">
+                              {review.createdAt ? new Date(review.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : ""}
+                            </span>
+                          </div>
+                          <div className="flex gap-0.5 mb-1">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star key={s} size={10} fill={s <= review.rating ? "#C29B27" : "none"} stroke={s <= review.rating ? "#C29B27" : "#D1C7BB"} />
+                            ))}
+                          </div>
+                          {review.title && <p className="text-[12px] font-semibold text-[#1A1A1A] mb-0.5">{review.title}</p>}
+                          <p className="text-[11px] text-[#6B6B6B] leading-relaxed">{review.reviewText}</p>
+                          {review.media?.length > 0 && (
+                            <div className="flex gap-2 mt-2 flex-wrap">
+                              {review.media.map((m: any) => (
+                                m.mediaType === "IMAGE" ? (
+                                  <img key={m.id} src={m.mediaUrl} alt="review" className="h-16 w-16 rounded-lg object-cover border border-[#E8E2D8]" />
+                                ) : null
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {!reviewsLast && (
+                        <button
+                          onClick={() => loadReviews(reviewsPage + 1, reviewsRatingFilter, true)}
+                          disabled={reviewsLoading}
+                          className="mt-2 px-5 py-2 rounded-lg border border-[#E8E2D8] text-[11px] font-bold text-[#C29B27] hover:bg-amber-50 transition disabled:opacity-50"
+                        >
+                          {reviewsLoading ? "Loading..." : "Load more reviews"}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

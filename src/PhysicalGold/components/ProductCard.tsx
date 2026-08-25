@@ -1,7 +1,9 @@
-import React from "react";
-import { Heart, Trash2 } from "lucide-react";
+import React, { useCallback } from "react";
+import { Heart, Trash2, ShoppingCart } from "lucide-react";
 import { PhysicalGoldProduct } from "../physicalGoldData";
 import { useWishlist } from "../WishlistContext";
+import { useCart } from "../CartContext";
+import { fetchProductVariants } from "../physicalGoldService";
 import { getProductTag } from "../mockData";
 import "../styles.css";
 
@@ -12,9 +14,32 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, isWishlistPage }) => {
-  const { isInWishlist, toggleWishlist } = useWishlist();
+  const { isInWishlist, toggleWishlist, removeFromWishlist } = useWishlist();
+  const { addToCart } = useCart();
   const isLiked = isInWishlist(product.id);
   const tag = getProductTag(product.id);
+
+  const handleMoveToCart = useCallback(async (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+
+    try {
+      const { variants } = await fetchProductVariants(product.id);
+      const selectedVariant = variants.find((variant) => variant.status === "ACTIVE" || variant.status === "active") || variants[0];
+
+      if (!selectedVariant) {
+        console.warn("No available variant found for product:", product.id);
+        return;
+      }
+
+      await addToCart(product, selectedVariant);
+
+      if (isWishlistPage) {
+        await removeFromWishlist(product.id);
+      }
+    } catch (error) {
+      console.error("Failed to move item to cart:", error);
+    }
+  }, [addToCart, isWishlistPage, product, removeFromWishlist]);
 
   return (
     <div
@@ -74,9 +99,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, isWishlistP
         <p className="text-[11px] text-[#8A8A8A] font-semibold uppercase tracking-wide">
           {product.weight ? `${product.weight}g` : "VARIOUS WEIGHTS"} • {product.purity || "22K"}
         </p>
-        <p className="text-base font-bold text-[#C29B27] mt-1">
-          ₹{product.priceRange}
-        </p>
+        <div className="mt-1 flex items-center justify-between gap-3">
+          <p className="text-base font-bold text-[#C29B27]">
+            ₹{product.priceRange}
+          </p>
+          {isWishlistPage && (
+            <button
+              onClick={handleMoveToCart}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#8B6914] px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-[#7A5C10] transition"
+            >
+              <ShoppingCart size={14} />
+              Move to Cart
+            </button>
+          )}
+        </div>
       </div>
     </div >
   );
