@@ -308,7 +308,7 @@ const CartPage: React.FC = () => {
         try {
             await confirmOrder(s.orderId);
             if (s.paymentMode === "CASHFREE" && s.paymentSessionId) {
-                const cashfree = await load({ mode: "sandbox" });
+                const cashfree = await load({ mode: "production" });
                 const orderNumber = s.orderSuccess?.orderNumber || "";
                 cashfree.checkout({
                     paymentSessionId: s.paymentSessionId,

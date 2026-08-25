@@ -51,8 +51,8 @@ const Header: React.FC<HeaderProps> = ({
 
       {/* Main Header */}
       <div style={{ borderBottom: "1px solid hsl(30, 20%, 88%)" }}>
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16 md:h-20">
+        <div className="container mx-auto px-2">
+          <div className="flex items-center justify-between h-12 md:h-12">
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -84,12 +84,12 @@ const Header: React.FC<HeaderProps> = ({
             {/* Right Actions */}
             <div className="flex items-center gap-3 md:gap-5">
               {/* Digital Gold Button */}
-              <button
+              {/* <button
                 onClick={() => navigate("/buy-gold")}
                 className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 cursor-pointer rounded-lg bg-[#C29B27] text-white text-[12px] font-semibold hover:bg-[#A88820] transition-all shadow-sm"
               >
                 Digital Gold
-              </button>
+              </button> */}
 
               {/* Wishlist */}
               <button
@@ -188,7 +188,7 @@ const Header: React.FC<HeaderProps> = ({
       {isMobileMenuOpen && (
         <div className="md:hidden absolute inset-x-0 top-full shadow-lg z-50 bg-background border-b border-gray-200 max-h-[70vh] overflow-y-auto">
           <nav className="flex flex-col p-4 gap-1">
-            <button
+            {/* <button
               onClick={() => {
                 setIsMobileMenuOpen(false);
                 navigate("/buy-gold");
@@ -196,7 +196,7 @@ const Header: React.FC<HeaderProps> = ({
               className="py-3 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-foreground hover:text-primary hover:bg-secondary"
             >
               Digital Gold
-            </button>
+            </button> */}
 
             {categories.length > 0 && (
               <div className="flex flex-col">

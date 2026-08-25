@@ -20,8 +20,8 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
   const navLinks: LinkItem[] = useMemo(
     () => [
       { label: "Live gold rate", targetId: "live-rate" },
-      { label: "AI book", targetId: "ai-book" },
-      { label: "Buy gold coins", targetId: "buy-coins" },
+      { label: "Buy Silver Coins", targetId: "buy-silver" },
+      { label: "Buy Gold coins", targetId: "buy-gold" },
       { label: "Design Own Jewellery", targetId: "design-jewellery" },
       { label: "About Us", targetId: "about" },
       { label: "Login", targetId: "login" }
@@ -53,6 +53,10 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
 
   const goTo = (targetId: string) => {
     setMobileOpen(false);
+    if (targetId === "buy-silver" || targetId === "buy-gold") {
+      window.location.href = "/login";
+      return;
+    }
     if (targetId === "login") {
       navigate("/login");
       return;

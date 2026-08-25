@@ -56,7 +56,7 @@ const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
     const [showOtpSent, setShowOtpSent] = useState(false);
     const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-    const redirectTo = location.state?.from || '/select-gold';
+    const redirectTo = location.state?.from || '/physical-gold';
 
     // Clear any existing session when component mounts
     useEffect(() => {

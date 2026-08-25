@@ -32,7 +32,7 @@ const PaymentMethod = ({ onDataPass }: { onDataPass: (data: any) => void }) => {
   useEffect(() => {
     const initCashfree = async () => {
       try {
-        const cashfree = await load({ mode: 'sandbox' });
+        const cashfree = await load({ mode: 'production' });
         setCashfree(cashfree);
       } catch (error) {
         console.error('Cashfree initialization failed:', error);

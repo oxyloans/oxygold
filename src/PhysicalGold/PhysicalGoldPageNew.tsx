@@ -230,10 +230,10 @@ const PhysicalGoldPageNew: React.FC = () => {
 
       {!showProducts && (
         <>
-          <div className="pt-32 md:pt-40">
-            <HeroSection />
+          <div className="pt-12 md:pt-20">
+            {/* <HeroSection /> */}
           </div>
-          <TrustBanner />
+          {/* <TrustBanner /> */}
           <CategoryGrid
             categories={categories}
             onCategoryClick={handleCategoryClick}
@@ -243,7 +243,7 @@ const PhysicalGoldPageNew: React.FC = () => {
       )}
 
       {showProducts && (
-        <div className="flex-1 pt-32 md:pt-40">
+        <div className="flex-1 pt-24 md:pt-30">
 
           <div className="container mx-auto px-4 py-8">
             {/* Breadcrumb */}
@@ -282,7 +282,7 @@ const PhysicalGoldPageNew: React.FC = () => {
             </div>
 
             {/* Category Hero Block */}
-            {(() => {
+            {/* {(() => {
               const currentCategory = categories.find((c) => c.id === selectedCategoryId);
               return (
                 <div className="w-full h-40 md:h-64 rounded-xl relative overflow-hidden flex flex-col items-center justify-center mb-10 shadow-md">
@@ -306,7 +306,7 @@ const PhysicalGoldPageNew: React.FC = () => {
                   </div>
                 </div>
               );
-            })()}
+            })()} */}
 
             {/* Subcategories Tabs -> Block Layout */}
             {subCategories.length > 0 && (
