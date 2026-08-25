@@ -802,6 +802,35 @@ export const fetchUserOrders = async (userId: number): Promise<Order[]> => {
   return data.data;
 };
 
+export interface DeliveryTrackingEvent {
+  status: string;
+  statusLabel: string;
+  description: string;
+  timestamp: string;
+}
+
+export interface DeliveryTracking {
+  trackingNumber: string;
+  orderNumber: string;
+  orderId: number;
+  status: string;
+  statusLabel: string;
+  statusDescription: string;
+  deliveryBoy?: { id: number; firstName: string; lastName?: string; phone?: string; vehicleNumber?: string; vehicleType?: string } | null;
+  deliveryAddress?: string;
+  timeline?: DeliveryTrackingEvent[];
+}
+
+/** Get the shipment progress for a customer's order. */
+export const fetchOrderDeliveryTracking = async (orderId: number, userId: number): Promise<DeliveryTracking> => {
+  const response = await authenticatedFetch(`${BASE_URL}/admin/delivery/order/${orderId}`, {
+    headers: { "X-User-Id": String(userId) },
+  });
+  const data = await response.json();
+  if (!response.ok || !data?.success) throw new Error(data?.message || "Delivery tracking is not available yet");
+  return data.data;
+};
+
 export const fetchOrdersByStatus = async (
   userId: number,
   status: string,

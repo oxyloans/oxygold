@@ -32,6 +32,7 @@ import {
     AlertTriangle,
     Star,
     ImagePlus,
+    Truck,
 } from "lucide-react";
 import {
     addAddress,
@@ -56,6 +57,8 @@ import {
     fetchRating,
     fetchRatingMedia,
     uploadRatingMedia,
+    fetchOrderDeliveryTracking,
+    type DeliveryTracking,
     type ProductReview,
     type HelpdeskQuery,
 } from "./physicalGoldService";
@@ -131,6 +134,9 @@ interface PageState {
     orders: Order[];
     isOrdersLoading: boolean;
     expandedOrderId: number | null;
+    deliveryTracking: Record<number, DeliveryTracking>;
+    trackingLoadingOrderId: number | null;
+    trackingErrorOrderId: number | null;
     toast: { message: string; type: ToastType } | null;
     deleteConfirmation: { show: boolean; addressId: string | null };
     // Support/Helpdesk
@@ -256,6 +262,9 @@ const ProfilePage: React.FC = () => {
         orders: [],
         isOrdersLoading: false,
         expandedOrderId: null,
+        deliveryTracking: {},
+        trackingLoadingOrderId: null,
+        trackingErrorOrderId: null,
         toast: null,
         deleteConfirmation: { show: false, addressId: null },
         queries: [],
@@ -672,8 +681,28 @@ const ProfilePage: React.FC = () => {
         }
     };
 
+    const loadDeliveryTracking = async (orderId: number) => {
+        if (s.deliveryTracking[orderId] || s.trackingLoadingOrderId === orderId) return;
+        const userData = GET_USER_DATA();
+        const userId = userData?.data?.userId || userData?.userId;
+        if (!userId) return;
+
+        patch({ trackingLoadingOrderId: orderId, trackingErrorOrderId: null });
+        try {
+            const tracking = await fetchOrderDeliveryTracking(orderId, userId);
+            patch({ deliveryTracking: { ...s.deliveryTracking, [orderId]: tracking } });
+        } catch (error) {
+            console.error("Failed to fetch delivery tracking:", error);
+            patch({ trackingErrorOrderId: orderId });
+        } finally {
+            patch({ trackingLoadingOrderId: null });
+        }
+    };
+
     const toggleOrderExpand = (orderId: number) => {
-        patch({ expandedOrderId: s.expandedOrderId === orderId ? null : orderId });
+        const isClosing = s.expandedOrderId === orderId;
+        patch({ expandedOrderId: isClosing ? null : orderId });
+        if (!isClosing) loadDeliveryTracking(orderId);
     };
 
     const openProductReview = async (item: OrderItem) => {
@@ -1415,6 +1444,9 @@ const ProfilePage: React.FC = () => {
                                 <div className="space-y-3">
                                     {s.orders.map((order) => {
                                         const isExp = s.expandedOrderId === order.orderId;
+                                        const tracking = s.deliveryTracking[order.orderId];
+                                        const isTrackingLoading = s.trackingLoadingOrderId === order.orderId;
+                                        const trackingUnavailable = s.trackingErrorOrderId === order.orderId;
                                         return (
                                             <div key={order.orderId} className="border border-[#E8E0D5] rounded-xl overflow-hidden bg-white">
                                                 {/* Order Header */}
@@ -1464,7 +1496,7 @@ const ProfilePage: React.FC = () => {
                                                             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition ml-auto"
                                                         >
                                                             {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                                            {isExp ? "Hide Details" : "View Details"}
+                                                            {isExp ? "Hide Details" : "Track Order"}
                                                         </button>
                                                     </div>
                                                 )}
@@ -1479,6 +1511,45 @@ const ProfilePage: React.FC = () => {
                                                             </p>
                                                             <p className="text-[11px] text-[#8A8A8A]">{formatDate(order.paymentExpiry)}</p>
                                                         </div>
+
+                                                        {isTrackingLoading ? (
+                                                            <div className="flex items-center gap-2 rounded-xl border border-[#E8E0D5] bg-white px-4 py-3 text-[12px] text-[#8A8A8A]">
+                                                                <Loader2 className="h-4 w-4 animate-spin text-[#8B6914]" /> Loading delivery updates...
+                                                            </div>
+                                                        ) : tracking ? (
+                                                            <section className="rounded-xl border border-[#E8E0D5] bg-white p-4" aria-label="Delivery tracking">
+                                                                <div className="flex items-start justify-between gap-3">
+                                                                    <div className="flex min-w-0 items-start gap-2.5">
+                                                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F5EDD6] text-[#8B6914]"><Truck className="h-4 w-4" /></div>
+                                                                        <div className="min-w-0">
+                                                                            <p className="text-[13px] font-semibold text-[#1A1A1A]">{tracking.statusLabel || "Delivery update"}</p>
+                                                                            <p className="mt-0.5 text-[11px] leading-4 text-[#6D6D6D]">{tracking.statusDescription || "We will keep you updated as your order moves."}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">{tracking.statusLabel || tracking.status}</span>
+                                                                </div>
+
+                                                                <div className="mt-3 grid gap-2 border-y border-[#F0EBE1] py-3 text-[11px] sm:grid-cols-2">
+                                                                    <p className="text-[#8A8A8A]">Tracking ID <span className="ml-1 font-semibold text-[#1A1A1A]">{tracking.trackingNumber || "—"}</span></p>
+                                                                    {tracking.deliveryBoy && <p className="text-[#8A8A8A]">Delivery partner <span className="ml-1 font-semibold text-[#1A1A1A]">{`${tracking.deliveryBoy.firstName || ""} ${tracking.deliveryBoy.lastName || ""}`.trim() || "Assigned"}{tracking.deliveryBoy.vehicleNumber ? ` · ${tracking.deliveryBoy.vehicleNumber}` : ""}</span></p>}
+                                                                    {tracking.deliveryAddress && <p className="flex items-start gap-1.5 text-[#8A8A8A] sm:col-span-2"><MapPin className="mt-0.5 h-3 w-3 shrink-0 text-[#8B6914]" /><span className="leading-4">Delivering to {tracking.deliveryAddress}</span></p>}
+                                                                </div>
+
+                                                                {tracking.timeline?.length ? (
+                                                                    <ol className="mt-3 space-y-3">
+                                                                        {tracking.timeline.map((event, index) => (
+                                                                            <li key={`${event.status}-${event.timestamp}`} className="relative flex gap-3 pl-1">
+                                                                                {index < tracking.timeline!.length - 1 && <span className="absolute left-[7px] top-4 h-[calc(100%+2px)] w-px bg-[#E8E0D5]" />}
+                                                                                <CheckCircle2 className="relative z-10 mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                                                                                <div className="min-w-0"><p className="text-[11px] font-semibold text-[#1A1A1A]">{event.statusLabel}</p><p className="mt-0.5 text-[11px] leading-4 text-[#8A8A8A]">{event.description}</p><p className="mt-1 text-[10px] text-[#A39A8E]">{formatDate(event.timestamp)}</p></div>
+                                                                            </li>
+                                                                        ))}
+                                                                    </ol>
+                                                                ) : null}
+                                                            </section>
+                                                        ) : trackingUnavailable ? (
+                                                            <div className="rounded-xl border border-[#E8E0D5] bg-white px-4 py-3 text-[12px] text-[#6D6D6D]">Delivery tracking will appear here once your order is assigned for delivery.</div>
+                                                        ) : null}
 
                                                         {order.items?.map((item: any, i: number) => {
                                                             const existingReview = reviews.find((r) => r.productId === item.productId);

@@ -449,6 +449,14 @@ const ProductDetailsPage: React.FC = () => {
 
   const finalCategoryName = categoryName || product.categoryName || "Collection";
   const finalSubCategoryName = subCategoryName || product.subCategoryName;
+  // Category is passed from the listing page. Use it for all metal-specific copy so
+  // Silver products never inherit the Gold defaults used by older products.
+  const isSilverProduct = [categoryName, product.categoryName, finalCategoryName]
+    .filter(Boolean)
+    .some((name) => /silver/i.test(String(name)));
+  const metalName = isSilverProduct ? "Silver" : "Gold";
+  const formatMetalOption = (purity: string) =>
+    new RegExp(metalName, "i").test(purity) ? purity : `${purity} ${isSilverProduct ? "Silver" : "Yellow Gold"}`;
 
   return (
     <div className="flex flex-col bg-white min-h-screen">
@@ -535,7 +543,7 @@ const ProductDetailsPage: React.FC = () => {
 
               {/* Category · Subcategory */}
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8A8A8A]">
-                {product.categoryName || "EARRINGS"} · {product.subCategoryName || "STUDS"}
+                {finalCategoryName} · {finalSubCategoryName || "COLLECTION"}
               </p>
 
               {/* Title + Stars */}
@@ -584,7 +592,7 @@ const ProductDetailsPage: React.FC = () => {
                   <span className="w-2.5 h-2.5 rounded-full border border-[#C29B27] inline-flex items-center justify-center flex-shrink-0">
                     <span className="w-1 h-1 bg-[#C29B27] rounded-full block" />
                   </span>
-                  22K Hallmarked
+                  {selectedVariant.purity} {metalName} Hallmarked
                 </span>
                 <span className="text-[10px] font-semibold text-[#6B6B6B] bg-[#F5F0E8] px-2.5 py-1 rounded-md border border-[#E8E2D8]">
                   Weight: {selectedVariant.weight}g
@@ -611,10 +619,10 @@ const ProductDetailsPage: React.FC = () => {
                           : "border-[#E8E2D8] bg-white text-[#6B6B6B] hover:border-[#C29B27]/50 hover:text-[#C29B27]"
                           }`}
                       >
-                        {p} Yellow Gold
+                        {formatMetalOption(p)}
                       </button>
                     ))
-                    : ["22K Yellow Gold", "22K Rose Gold", "18K White Gold"].map((label, idx) => (
+                    : (isSilverProduct ? ["925 Silver"] : ["22K Yellow Gold", "22K Rose Gold", "18K White Gold"]).map((label, idx) => (
                       <button
                         key={label}
                         className={`px-3.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all ${idx === 0
@@ -1015,7 +1023,7 @@ const ProductDetailsPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
                     {[
-                      { label: "Metal", value: "Gold" },
+                      { label: "Metal", value: metalName },
                       { label: "Purity", value: selectedVariant.purity },
                       { label: "Weight", value: `${selectedVariant.weight}g` },
                       { label: "Finish", value: "High Polish" },
@@ -1034,7 +1042,7 @@ const ProductDetailsPage: React.FC = () => {
                     <h4 className="font-serif text-[15px] font-bold text-[#1A1A1A] mb-2">Description</h4>
                     <p className="text-[12px] text-[#6B6B6B] leading-relaxed">
                       {product.description ||
-                        `This exquisite ${product.productName} is handcrafted by skilled artisans using ${selectedVariant.purity} hallmarked gold. Weighing ${selectedVariant.weight}g, this piece combines traditional craftsmanship with contemporary design, making it perfect for both festive occasions and everyday elegance.`}
+                        `This exquisite ${product.productName} is handcrafted by skilled artisans using ${selectedVariant.purity} hallmarked ${metalName.toLowerCase()}. Weighing ${selectedVariant.weight}g, this piece combines traditional craftsmanship with contemporary design, making it perfect for both festive occasions and everyday elegance.`}
                     </p>
                   </div>
                 </div>
