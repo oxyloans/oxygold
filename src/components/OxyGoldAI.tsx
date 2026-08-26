@@ -35,6 +35,7 @@ import InfoChip from "./ui/InfoChip";
 import BadgePill from "./ui/BadgePill";
 import ModuleCard from "./ui/ModuleCard";
 import GoldRatesTickerStrip from "./ui/GoldRatesTickerStrip";
+import BuySilverSection from "./BuySilverSection";
 
 type AssetMap = {
   logo: string;
@@ -285,6 +286,12 @@ export default function OxyGoldLandingPage({ assets }: Props) {
         {/* ✅ Buy Gold Coins */}
         <section id="buy-coins" className="py-0 sm:py-8 lg:py-12">
           <BuyGoldCoins />
+        </section>
+
+        
+        {/* ✅ Buy Gold Coins */}
+        <section id="buy-coins" className="py-0 sm:py-8 lg:py-12">
+          <BuySilverSection />
         </section>
 
         {/* ✅ IBJA */}

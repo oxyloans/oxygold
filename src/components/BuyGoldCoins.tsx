@@ -11,11 +11,7 @@ import goldBanner from "../assets/goldbanner.png";
 export default function BuyGoldSection() {
   const navigate = useNavigate();
   const handleBuyNow = () => {
-    window.open(
-      "https://www.askoxy.ai/main/dashboard/products?type=GOLD",
-      "_blank",
-      "noopener,noreferrer",
-    );
+   navigate("/login");
   };
 
   const handlePlayStore = () => {
