@@ -786,7 +786,7 @@ export const createOrder = async (orderData: {
   userId: number;
   addressId: number;
   notes: string;
-  paymentMode: "WALLET" | "CASHFREE";
+  paymentMode: "WALLET" | "CASHFREE" | "COD" ;
   returnUrl?: string;
 }) => {
   const response = await authenticatedFetch(`${BASE_URL}/order/createOrder`, {

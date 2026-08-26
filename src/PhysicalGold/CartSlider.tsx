@@ -13,6 +13,7 @@ import {
     Wallet,
     X,
     ArrowLeft,
+    Coins
 } from "lucide-react";
 import { load } from "@cashfreepayments/cashfree-js";
 import { QuantitySelector } from "./components/ui/QuantitySelector";
@@ -41,7 +42,7 @@ interface Address {
 interface PageState {
     addresses: Address[];
     selectedAddressId: string;
-    paymentMode: "WALLET" | "CASHFREE";
+    paymentMode: "WALLET" | "CASHFREE" | "COD";
     walletBalance: number | null;
     loadingAddresses: boolean;
     loadingCheckout: boolean;
@@ -56,6 +57,7 @@ interface PageState {
     txnId: string | null;
     profileReminderOpen: boolean;
     checkoutStep: "cart" | "checkout";
+    successModalOpen: boolean;
 }
 
 /* ────────────────────────────────────────────────────────── */
@@ -80,6 +82,12 @@ interface ConfirmModalProps {
     confirmLabel: string;
     confirmClassName?: string;
     loading?: boolean;
+}
+
+interface SuccessModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    orderNumber: string;
 }
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -128,6 +136,37 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     );
 };
 
+const SuccessModal: React.FC<SuccessModalProps> = (props) => {
+    if (!props.isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div className="absolute inset-0 bg-black/30" />
+            <div className="relative w-full max-w-sm rounded-xl border border-[#E8E0D5] bg-white shadow-2xl overflow-hidden">
+                <div className="px-5 py-5">
+                    <div className="flex items-start gap-3 mb-3">
+                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                            <Shield className="h-4 w-4" />
+                        </div>
+                        <h3 className="text-[14px] font-semibold text-[#1A1A1A] leading-snug pt-1">Order Confirmed</h3>
+                    </div>
+                    <div className="mb-5 pl-12 text-[13px] text-[#6B6B6B] leading-relaxed">
+                        Your order has been confirmed successfully.
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={props.onClose}
+                            className="cursor-pointer flex-1 rounded-lg border border-[#E8E0D5] bg-white px-4 py-2 text-[12px] font-medium text-[#6B6B6B] transition hover:bg-[#F5F2EE]"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 /* ────────────────────────────────────────────────────────── */
 /*  CartPage                                                  */
 /* ────────────────────────────────────────────────────────── */
@@ -166,6 +205,7 @@ const CartPage: React.FC = () => {
         txnId: null,
         profileReminderOpen: false,
         checkoutStep: "cart",
+        successModalOpen: false,
     });
 
     const patch = useCallback(
@@ -285,7 +325,7 @@ const CartPage: React.FC = () => {
                     clearCart();
                     navigate(`/physical-gold/profile?tab=orders`);
                     patch({ loadingCheckout: false });
-                } else {
+                } else if (s.paymentMode === "CASHFREE") {
                     patch({
                         orderId,
                         orderSuccess: { orderNumber },
@@ -294,6 +334,8 @@ const CartPage: React.FC = () => {
                         confirmOrderModalOpen: true,
                         loadingCheckout: false,
                     });
+                } else {
+                    patch({ loadingCheckout: false, successModalOpen: true, orderSuccess: { orderNumber } });
                 }
             }
         } catch (err: any) {
@@ -398,6 +440,11 @@ const CartPage: React.FC = () => {
                 confirmLabel="Confirm & Pay"
                 confirmClassName="bg-[#8B6914] text-white hover:bg-[#7A5C10]"
                 description={<p>Please review your order summary to proceed with payment.</p>}
+            />
+            <SuccessModal
+                isOpen={s.successModalOpen}
+                orderNumber={s.orderSuccess?.orderNumber ?? ""}
+                onClose={() => { clearCart(); patch({ successModalOpen: false }); navigate(`/physical-gold/profile?tab=orders`); }}
             />
             <ConfirmModal
                 isOpen={s.profileReminderOpen}
@@ -526,22 +573,43 @@ const CartPage: React.FC = () => {
                                 <div className="bg-white border border-[#E8E0D5] rounded-xl p-5">
                                     <h3 className="text-[14px] font-semibold text-[#1A1A1A] mb-4">Payment Method</h3>
                                     <div className="grid grid-cols-2 gap-3">
-                                        {(["CASHFREE", "WALLET"] as const).map((mode) => (
+                                        {/* {(["CASHFREE", "WALLET", "COD"] as const).map((mode) => (
                                             <button
                                                 key={mode}
                                                 onClick={() => patch({ paymentMode: mode })}
                                                 className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${s.paymentMode === mode ? "border-[#8B6914] bg-[#F5EDD6]/30" : "border-[#E8E0D5] hover:border-[#C9B87A]"}`}
                                             >
                                                 <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${s.paymentMode === mode ? "bg-[#8B6914] text-white" : "bg-[#F5F2EE] text-[#D1C7BB]"}`}>
-                                                    {mode === "WALLET" ? <Wallet size={16} /> : <CreditCard size={16} />}
+                                                    {mode === "COD" ? <Coins size={16} /> : <CreditCard size={16} />}
                                                 </div>
                                                 <div className="text-left">
                                                     <p className={`text-[12px] font-semibold ${s.paymentMode === mode ? "text-[#8B6914]" : "text-[#1A1A1A]"}`}>
-                                                        {mode === "WALLET" ? "OxyGold Wallet" : "Online Payment"}
+                                                        {mode === "COD" ? "Cash on Delivery" : "Online Payment"}
                                                     </p>
                                                     <p className="text-[11px] text-[#8A8A8A]">
                                                         {mode === "WALLET" && s.walletBalance !== null
                                                             ? formatINR(s.walletBalance)
+                                                            : "UPI, Cards, Net Banking"}
+                                                    </p>
+                                                </div>
+                                            </button>
+                                        ))} */}
+                                        {(["CASHFREE", "COD"] as const).map((mode) => (
+                                            <button
+                                                key={mode}
+                                                onClick={() => patch({ paymentMode: mode })}
+                                                className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${s.paymentMode === mode ? "border-[#8B6914] bg-[#F5EDD6]/30" : "border-[#E8E0D5] hover:border-[#C9B87A]"}`}
+                                            >
+                                                <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${s.paymentMode === mode ? "bg-[#8B6914] text-white" : "bg-[#F5F2EE] text-[#D1C7BB]"}`}>
+                                                    {mode === "COD" ? <Coins size={16} /> : <CreditCard size={16} />}
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className={`text-[12px] font-semibold ${s.paymentMode === mode ? "text-[#8B6914]" : "text-[#1A1A1A]"}`}>
+                                                        { mode === "COD" ? "Cash on Delivery" : "Online Payment"}
+                                                    </p>
+                                                    <p className="text-[11px] text-[#8A8A8A]">
+                                                        { mode === "COD"
+                                                            ? "Cash on Delivery"
                                                             : "UPI, Cards, Net Banking"}
                                                     </p>
                                                 </div>
