@@ -978,7 +978,7 @@ const ProductDetailsPage: React.FC = () => {
                 {[
                   { icon: Shield, title: "BIS Hallmarked" },
                   { icon: Truck, title: "Free Insured Delivery" },
-                  { icon: RefreshCw, title: "15-Day Returns" },
+                  // { icon: RefreshCw, title: "15-Day Returns" },
                 ].map(({ icon: Icon, title }) => (
                   <div
                     key={title}
@@ -1145,7 +1145,7 @@ const ProductDetailsPage: React.FC = () => {
                   {[
                     { icon: Truck, title: "Free Shipping", desc: "Complimentary insured shipping on all orders above ₹50,000 across India." },
                     { icon: Shield, title: "Insured Delivery", desc: "Your jewelry is 100% insured until it reaches your doorstep." },
-                    { icon: RefreshCw, title: "15-Day Returns", desc: "Return within 15 days for a full refund or exchange if not satisfied." },
+                    // { icon: RefreshCw, title: "15-Day Returns", desc: "Return within 15 days for a full refund or exchange if not satisfied." },
                   ].map((item, i) => (
                     <div key={i} className="p-4 rounded-xl border border-[#E8E2D8] bg-white space-y-2">
                       <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">

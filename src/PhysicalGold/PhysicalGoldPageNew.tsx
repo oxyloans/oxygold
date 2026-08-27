@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useLocation, useOutletContext } from "react-router-dom";
 import { Package, X, Search } from "lucide-react";
-import HeroSection from "./components/HeroSection";
-import TrustBanner from "./components/TrustBanner";
 import CategoryGrid from "./components/CategoryGrid";
 import ProductCard from "./components/ProductCard";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -100,7 +98,7 @@ const PhysicalGoldPageNew: React.FC = () => {
     }
   }, [layoutSelectedCategoryId]);
 
-  const handleSubCategoryClick = useCallback(async (subCategoryId: string) => {
+  const handleSubCategoryClick = useCallback(async (subCategoryId: string, shouldScroll = true) => {
     setSelectedSubCategoryId(subCategoryId);
 
     try {
@@ -140,7 +138,8 @@ const PhysicalGoldPageNew: React.FC = () => {
             productName: p.name || p.productName || "",
             priceRange: p.priceRange || "Price on request",
             subCategoryId: p.categoryId?.toString() || "",
-            categoryName: p.categoryName || "",
+            categoryName: p.categoryName || categories.find((category) => category.id === selectedCategoryId)?.name || "",
+            subCategoryName: p.subCategoryName || subCategories.find((subCategory) => subCategory.id === selectedSubCategoryId)?.name || "",
             imageUrl: firstUrl || ""
           };
         })
@@ -151,13 +150,12 @@ const PhysicalGoldPageNew: React.FC = () => {
       setTotalElements(response.data?.total || 0);
       setFacets(response.data?.facets || null);
 
-      // Scroll to products section
-      setTimeout(() => {
-        const productsSection = document.getElementById('products-section');
-        if (productsSection) {
-          productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
+      if (shouldScroll) {
+        setTimeout(() => {
+          const productsSection = document.getElementById('products-section');
+          productsSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
     } catch (error) {
       console.error("Failed to load products:", error);
     } finally {
@@ -188,7 +186,7 @@ const PhysicalGoldPageNew: React.FC = () => {
   // Re-fetch products when filters change (but not on initial mount)
   useEffect(() => {
     if (selectedSubCategoryId && showProducts) {
-      handleSubCategoryClick(selectedSubCategoryId);
+      handleSubCategoryClick(selectedSubCategoryId, false);
     }
   }, [filters.q, filters.sortBy, filters.purity, filters.size, filters.minPrice, filters.maxPrice, filters.minWeight, filters.maxWeight, filters.inStock, filters.page]);
 
@@ -243,11 +241,11 @@ const PhysicalGoldPageNew: React.FC = () => {
       )}
 
       {showProducts && (
-        <div className="flex-1 pt-24 md:pt-30">
+        <div className="flex-1 pt-16 sm:pt-20 md:pt-24">
 
-          <div className="container mx-auto px-4 py-8">
+          <div className="container mx-auto px-4 py-5 sm:py-8">
             {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm mb-4">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm mb-5 sm:mb-6">
               <button
                 onClick={() => handleLogoClick()}
                 className="text-gray-500 hover:text-primary transition-colors"
@@ -263,8 +261,8 @@ const PhysicalGoldPageNew: React.FC = () => {
                   setProducts([]);
                 }}
                 className={`transition-colors ${!selectedSubCategoryId
-                    ? "text-primary font-semibold cursor-default"
-                    : "text-gray-500 hover:text-primary"
+                  ? "text-primary font-semibold cursor-default"
+                  : "text-gray-500 hover:text-primary"
                   }`}
                 disabled={!selectedSubCategoryId}
               >
@@ -312,12 +310,12 @@ const PhysicalGoldPageNew: React.FC = () => {
             {subCategories.length > 0 && (
               <div className="mb-12">
                 <h3 className="font-serif text-2xl text-[#1A1A1A] font-bold mb-5">Sub categories</h3>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   {subCategories.map((sub) => (
                     <button
                       key={sub.id}
                       onClick={() => handleSubCategoryClick(sub.id)}
-                      className={`relative overflow-hidden group/sub px-4 py-8 rounded-xl flex flex-col items-center justify-center transition-all border shadow-sm ${selectedSubCategoryId === sub.id
+                      className={`relative overflow-hidden group/sub min-h-28 px-4 py-6 sm:py-8 rounded-xl flex flex-col items-center justify-center transition-all border shadow-sm ${selectedSubCategoryId === sub.id
                         ? "bg-white border-[#C29B27] shadow-md shadow-[#C29B27]/10"
                         : "bg-[#FDFBF7] border-[#F0EBE1] hover:border-[#C29B27]/40 hover:bg-white"
                         }`}
@@ -344,7 +342,7 @@ const PhysicalGoldPageNew: React.FC = () => {
             {selectedSubCategoryId && (
               <div
                 id="products-section"
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6"
+                className="scroll-mt-24 sm:scroll-mt-28 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6"
               >
                 <h3 className="font-serif text-2xl text-[#1A1A1A] font-bold whitespace-nowrap">
                   {subCategories.find((s) => s.id === selectedSubCategoryId)?.name || "Collection"}
@@ -448,7 +446,7 @@ const PhysicalGoldPageNew: React.FC = () => {
 
                 {/* Filter Sidebar */}
                 {showSidebar && (
-                  <aside className="lg:sticky lg:top-24 h-fit">
+                  <aside className="hidden lg:sticky lg:top-24 h-fit lg:block">
                     <FilterSidebar
                       filters={{
                         q: "",
@@ -505,7 +503,7 @@ const PhysicalGoldPageNew: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
                         {filteredProducts.map((product) => (
                           <ProductCard
                             key={product.id}
