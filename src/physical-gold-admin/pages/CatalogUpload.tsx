@@ -33,7 +33,7 @@ const CatalogUpload: React.FC = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [selectedViewType, setSelectedViewType] = useState('FRONT');
 
-    // Confirm Toggle State
+    // Confirm Toggle Stat
     const [confirmToggle, setConfirmToggle] = useState<{ open: boolean; item: any | null; type?: 'variant' | 'product' | 'category' }>({ open: false, item: null });
 
     // Form State
@@ -178,7 +178,7 @@ const CatalogUpload: React.FC = () => {
             setModalType('variant');
             setFormData({
                 sku: '', size: '', purity: '',
-                weight: 0, price: 0, mrp: 0, stockQuantity: 0
+                weight: 0, mrp: 0, stockQuantity: 0
             });
         }
         setIsModalOpen(true);
@@ -236,7 +236,7 @@ const CatalogUpload: React.FC = () => {
                     successMessage = "Variant added successfully";
                 }
             } else if (modalType === 'price') {
-                await adminService.updateVariantPrice(currentItem.id, formData.price);
+                await adminService.updateVariantPrice(currentItem.id, formData.price, formData.mrp);
                 successMessage = "Price updated successfully";
             } else if (modalType === 'quantity') {
                 await adminService.updateVariantQuantity(currentItem.id, formData.stockQuantity);
@@ -383,7 +383,7 @@ const CatalogUpload: React.FC = () => {
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setCurrentItem(item);
-                                    setFormData({ price: item.price });
+                                    setFormData({ price: item.price, mrp: item.mrp });
                                     setModalType('price');
                                     setIsModalOpen(true);
                                 }}
@@ -464,21 +464,19 @@ const CatalogUpload: React.FC = () => {
                         <div className="flex gap-1 p-0.5 bg-slate-100 rounded-lg">
                             <button
                                 onClick={() => setStatusFilter('ACTIVE')}
-                                className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
-                                    statusFilter === 'ACTIVE'
+                                className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${statusFilter === 'ACTIVE'
                                         ? 'bg-white text-emerald-600 shadow-sm'
                                         : 'text-slate-500 hover:text-slate-700'
-                                }`}
+                                    }`}
                             >
                                 Active
                             </button>
                             <button
                                 onClick={() => setStatusFilter('INACTIVE')}
-                                className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
-                                    statusFilter === 'INACTIVE'
+                                className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${statusFilter === 'INACTIVE'
                                         ? 'bg-white text-red-600 shadow-sm'
                                         : 'text-slate-500 hover:text-slate-700'
-                                }`}
+                                    }`}
                             >
                                 Inactive
                             </button>
@@ -516,10 +514,18 @@ const CatalogUpload: React.FC = () => {
             >
                 <form className="space-y-4" onSubmit={handleSubmit}>
                     {modalType === 'price' ? (
-                        <Input
-                            label="New Price (₹)" type="number" value={formData.price || 0}
-                            onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
-                        />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Input
+                                label="New Price (₹)" type="number" min="0.01" step="0.01" value={formData.price ?? ''}
+                                onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
+                                required
+                            />
+                            <Input
+                                label="MRP (₹)" type="number" min="0" step="0.01" value={formData.mrp ?? ''}
+                                onChange={e => setFormData({ ...formData, mrp: Number(e.target.value) })}
+                                required
+                            />
+                        </div>
                     ) : modalType === 'quantity' ? (
                         <Input
                             label="New Stock Quantity" type="number" value={formData.stockQuantity || 0}
@@ -659,7 +665,6 @@ const CatalogUpload: React.FC = () => {
                                 <Input label="Stock" type="number" value={formData.stockQuantity || 0} onChange={e => setFormData({ ...formData, stockQuantity: Number(e.target.value) })} />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Input label="Price (₹)" type="number" value={formData.price || 0} onChange={e => setFormData({ ...formData, price: Number(e.target.value) })} />
                                 <Input label="MRP (₹)" type="number" value={formData.mrp || 0} onChange={e => setFormData({ ...formData, mrp: Number(e.target.value) })} />
                             </div>
                         </div>

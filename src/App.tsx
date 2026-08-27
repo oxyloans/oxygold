@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useState, Suspense, lazy } from 'react';
+import { useEffect, useState, Suspense, lazy } from 'react';
 import ProtectedRoute from './components/ProtectedRoute';
 import { GoldPriceProvider } from './context/GoldPriceContext';
 import { PurchaseProvider } from './context/PurchaseContext';
@@ -11,6 +11,12 @@ import oxygoldLogo from './assets/oxygoldlogo.png';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './Verified';
+
+declare global {
+  interface Window {
+    gtag?: (command: string, eventName: string, parameters?: Record<string, unknown>) => void;
+  }
+}
 
 // Lazy loaded pages
 const Landing = lazy(() => import('./pages/Landing'));
@@ -91,6 +97,17 @@ function PageLoader() {
   );
 }
 
+function GoogleAnalyticsTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    window.gtag?.('event', 'page_view', {
+      page_path: `${location.pathname}${location.search}${location.hash}`,
+    });
+  }, [location]);
+
+  return null;
+}
 
 function AppContent() {
   const [transactionData, setTransactionData] = useState<any>(null);
@@ -130,93 +147,93 @@ function AppContent() {
       {!isAuthPage && !isTestPage && !isFullPageFlow && <Header />}
       <div className="flex-1">
         <Suspense fallback={<PageLoader />}>
-        
+
           <Routes>
-          {/* Auth & Utility */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/api-test" element={<APITest />} />
-          <Route path="/select-gold" element={<ProtectedRoute> <GoldSelection /> </ProtectedRoute>} />
-          <Route path="/bis-certificate" element={<BISCertificate />} />
+            {/* Auth & Utility */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/api-test" element={<APITest />} />
+            <Route path="/select-gold" element={<ProtectedRoute> <GoldSelection /> </ProtectedRoute>} />
+            <Route path="/bis-certificate" element={<BISCertificate />} />
 
-          {/* Processing (full-page, no header) */}
-          <Route path="/payment-processing" element={<PaymentProcessing />} />
-          <Route path="/sell-processing" element={<SellProcessing />} />
+            {/* Processing (full-page, no header) */}
+            <Route path="/payment-processing" element={<PaymentProcessing />} />
+            <Route path="/sell-processing" element={<SellProcessing />} />
 
-          {/* Voice Assistant */}
-          <Route path="/voiceAssistant" element={<Navigate to="/voiceAssistant/welcome" replace />} />
-          <Route path="/voiceAssistant/:screen" element={<RealtimeVoice />} />
+            {/* Voice Assistant */}
+            <Route path="/voiceAssistant" element={<Navigate to="/voiceAssistant/welcome" replace />} />
+            <Route path="/voiceAssistant/:screen" element={<RealtimeVoice />} />
 
-          {/* AI Features */}
-          <Route path="/imageCreation" element={<ImageCreation />} />
-          <Route path="/videoCreation" element={<VideoCreationPage />} />
+            {/* AI Features */}
+            <Route path="/imageCreation" element={<ImageCreation />} />
+            <Route path="/videoCreation" element={<VideoCreationPage />} />
             <Route path="/verified" element={<Home />} />
-          {/* Main */}
-          <Route path="/" element={<OxyGoldAI />} />
-          <Route path="/oxygold-ai" element={<Landing />} />
-          <Route path="/how-it-works" element={<HowItWorks />} />
+            {/* Main */}
+            <Route path="/" element={<OxyGoldAI />} />
+            <Route path="/oxygold-ai" element={<Landing />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
 
-          {/* Digital Gold */}
-          <Route path="/buy-gold" element={<BuyGold onDataPass={handleDataPass} />} />
-          <Route path="/sell-gold" element={<SellGold onDataPass={handleDataPass} />} />
-          <Route path="/review-order" element={<ReviewOrder />} />
-          <Route path="/order-summary" element={<OrderSummary orderData={transactionData} onDataPass={handleDataPass} />} />
-          <Route path="/payment-method" element={<PaymentMethod onDataPass={handleDataPass} />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/payment-details" element={<PaymentDetails />} />
-          <Route path="/sell-summary" element={<SellSummary />} />
-          <Route path="/bank-account" element={<BankAccount />} />
-          <Route path="/terms-conditions" element={<TermsConditions termsData={transactionData} flowType={transactionData?.flowType || 'buy'} />} />
-          <Route path="/sell-success" element={<SellSuccess />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/faq" element={<FAQ />} />
+            {/* Digital Gold */}
+            <Route path="/buy-gold" element={<BuyGold onDataPass={handleDataPass} />} />
+            <Route path="/sell-gold" element={<SellGold onDataPass={handleDataPass} />} />
+            <Route path="/review-order" element={<ReviewOrder />} />
+            <Route path="/order-summary" element={<OrderSummary orderData={transactionData} onDataPass={handleDataPass} />} />
+            <Route path="/payment-method" element={<PaymentMethod onDataPass={handleDataPass} />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/payment-details" element={<PaymentDetails />} />
+            <Route path="/sell-summary" element={<SellSummary />} />
+            <Route path="/bank-account" element={<BankAccount />} />
+            <Route path="/terms-conditions" element={<TermsConditions termsData={transactionData} flowType={transactionData?.flowType || 'buy'} />} />
+            <Route path="/sell-success" element={<SellSuccess />} />
+            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/faq" element={<FAQ />} />
 
-          {/* Physical Gold */}
-          <Route
-            element={
-              <ProtectedRoute>
-                <PhysicalGoldLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/physical-gold" element={<PhysicalGoldPage />} />
-            <Route path="/physical-gold/product/:id" element={<ProductDetailsPage />} />
+            {/* Physical Gold */}
             <Route
-              path="/physical-gold/orders"
-              element={<Navigate to="/physical-gold/profile?tab=orders" replace />}
-            />
-            <Route path="/physical-gold/cart" element={<CartPage />} />
-            <Route path="/physical-gold/profile" element={<ProfilePage />} />
-            <Route path="/physical-gold/wishlist" element={<WishlistPage />} />
-            <Route path="/physical-gold/payment-status" element={<PaymentStatusPage />} />
-            <Route path="/physical-gold/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/physical-gold/terms-conditions" element={<TermsConditionsPhysical />} />
-            <Route path="/physical-gold/shipping-policy" element={<ShippingPolicy />} />
-            <Route path="/physical-gold/return-refund-policy" element={<ReturnRefundPolicy />} />
-            <Route path="/physical-gold/faq" element={<FAQPage />} />
-            <Route path="/physical-gold/cookie-policy" element={<CookiePolicy />} />
-            <Route path="/physical-gold/cancellation-policy" element={<CancellationPolicy />} />
-          </Route>
-            
-          {/* Admin */}
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/*" element={<AdminLayout />} />
-
-          {/* Partner */}
-          <Route path="/partner/login" element={<PartnerLogin />} />
-          <Route path="/partner/register" element={<PartnerRegister />} />
-          <Route path="/partner/*" element={<PartnerLayout />} />
-
-          {/* Delivery personnel — independent module */}
-          <Route path="/delivery-boy/login" element={<DeliveryBoyLogin />} />
-          <Route element={<DeliveryBoyRoute />}>
-            <Route element={<DeliveryBoyLayout />}>
-              <Route path="/delivery-boy/dashboard" element={<DeliveryBoyDashboard />} />
-              <Route path="/delivery-boy/deliveries" element={<DeliveryBoyOrders />} />
+              element={
+                <ProtectedRoute>
+                  <PhysicalGoldLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/physical-gold" element={<PhysicalGoldPage />} />
+              <Route path="/physical-gold/product/:id" element={<ProductDetailsPage />} />
+              <Route
+                path="/physical-gold/orders"
+                element={<Navigate to="/physical-gold/profile?tab=orders" replace />}
+              />
+              <Route path="/physical-gold/cart" element={<CartPage />} />
+              <Route path="/physical-gold/profile" element={<ProfilePage />} />
+              <Route path="/physical-gold/wishlist" element={<WishlistPage />} />
+              <Route path="/physical-gold/payment-status" element={<PaymentStatusPage />} />
+              <Route path="/physical-gold/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/physical-gold/terms-conditions" element={<TermsConditionsPhysical />} />
+              <Route path="/physical-gold/shipping-policy" element={<ShippingPolicy />} />
+              <Route path="/physical-gold/return-refund-policy" element={<ReturnRefundPolicy />} />
+              <Route path="/physical-gold/faq" element={<FAQPage />} />
+              <Route path="/physical-gold/cookie-policy" element={<CookiePolicy />} />
+              <Route path="/physical-gold/cancellation-policy" element={<CancellationPolicy />} />
             </Route>
-          </Route>
-          <Route path="/delivery-boy" element={<Navigate to="/delivery-boy/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+
+            {/* Admin */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/*" element={<AdminLayout />} />
+
+            {/* Partner */}
+            <Route path="/partner/login" element={<PartnerLogin />} />
+            <Route path="/partner/register" element={<PartnerRegister />} />
+            <Route path="/partner/*" element={<PartnerLayout />} />
+
+            {/* Delivery personnel — independent module */}
+            <Route path="/delivery-boy/login" element={<DeliveryBoyLogin />} />
+            <Route element={<DeliveryBoyRoute />}>
+              <Route element={<DeliveryBoyLayout />}>
+                <Route path="/delivery-boy/dashboard" element={<DeliveryBoyDashboard />} />
+                <Route path="/delivery-boy/deliveries" element={<DeliveryBoyOrders />} />
+              </Route>
+            </Route>
+            <Route path="/delivery-boy" element={<Navigate to="/delivery-boy/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </div>
@@ -232,6 +249,7 @@ function App() {
         <BrowserRouter>
           <CartProvider>
             <WishlistProvider>
+              <GoogleAnalyticsTracker />
               <AppContent />
             </WishlistProvider>
           </CartProvider>
