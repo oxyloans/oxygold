@@ -288,7 +288,7 @@ const ProductDetailsPage: React.FC = () => {
       const generatedUrl = await generateModelImage(imageUrl);
       setAiGeneratedImage(generatedUrl);
     } catch (err) {
-      setAiError("Unable to generate image. Please try again.");
+      setAiError(err instanceof Error && err.message ? err.message : "Unable to generate image. Please try again.");
     } finally {
       setIsGeneratingAI(false);
     }
@@ -464,7 +464,7 @@ const ProductDetailsPage: React.FC = () => {
         <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
 
           {/* ── Breadcrumb — solid white bg, always visible ── */}
-          <nav className="flex items-center flex-wrap gap-1 text-[11px] font-semibold text-[#8A8A8A] mb-4 bg-white pt-20">
+          <nav className="flex items-center flex-wrap gap-1 text-[11px] font-semibold text-[#8A8A8A] mb-4 bg-white md:pt-16 pt-12 lg:pt-20">
             <button
               onClick={() => navigate("/physical-gold")}
               className="hover:text-[#C29B27] transition-colors"

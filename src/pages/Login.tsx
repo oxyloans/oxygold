@@ -269,7 +269,7 @@ const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
             position: absolute; inset: 0;
             background:
               linear-gradient(to bottom, rgba(6,15,30,0.6), rgba(6,15,30,0.75)),
-              url('https://img.freepik.com/premium-photo/gold-investment-outlook-illustration-gold-bars-stock-data-hologram_36897-5112.jpg');
+              url('https://i.ibb.co/pv179ZZ9/Chat-GPT-Image-Aug-28-2026-07-03-48-PM.png');
             background-size: cover;
             background-position: center;
           }
@@ -288,11 +288,14 @@ const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
             color: #fff; line-height: 1.2; margin-bottom: 10px;
             letter-spacing: -0.02em;
           }
-          .lg-tagline em { color: #f0bb3a; font-style: normal; }
+          .lg-tagline em { font-style: normal; }
+          .lg-gold-text { color: #f0bb3a; }
+          .lg-silver-text { color: #d4d9e2; }
           .lg-left-desc {
             font-size: 0.73rem; color: rgba(255,255,255,0.42);
             line-height: 1.65; margin-bottom: 22px; font-weight: 400;
           }
+          .lg-promo { transform: translateY(-18px); }
           .lg-stats { display: flex; gap: 18px; }
           .lg-stat { display: flex; flex-direction: column; gap: 2px; }
           .lg-stat-val {
@@ -494,21 +497,21 @@ const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
               <div className="lg-left-img" />
               <div className="lg-left-content">
                 <div className="lg-logo-name">OXYGOLD.AI</div>
-                <div>
-                  <div className="lg-tagline">Invest in<br /><em>digital gold</em><br />with confidence</div>
-                  <div className="lg-left-desc">Secure, insured, and always at live market rates.</div>
+                <div className="lg-promo">
+                  <div className="lg-tagline">Welcome Back to<br /><em><span className="lg-gold-text">OXYGOLD.AI</span></em></div>
+                  <div className="lg-left-desc">Access your account to explore gold and silver products, check live rates, and manage your account securely.</div>
                   <div className="lg-stats">
                     <div className="lg-stat">
-                      <span className="lg-stat-val">24K</span>
+                      <span className="lg-stat-val">999.9</span>
                       <span className="lg-stat-lbl">Purity</span>
                     </div>
                     <div className="lg-stat">
                       <span className="lg-stat-val">₹100</span>
-                      <span className="lg-stat-lbl">Min. Buy</span>
+                      <span className="lg-stat-lbl">Market Rates</span>
                     </div>
                     <div className="lg-stat">
-                      <span className="lg-stat-val">100%</span>
-                      <span className="lg-stat-lbl">Insured</span>
+                      <span className="lg-stat-val">Secure</span>
+                      <span className="lg-stat-lbl">Access</span>
                     </div>
                   </div>
                 </div>

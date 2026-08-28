@@ -197,6 +197,8 @@ function AppContent() {
               }
             >
               <Route path="/physical-gold" element={<PhysicalGoldPage />} />
+              <Route path="/physical-gold/category/:categoryId" element={<PhysicalGoldPage />} />
+              <Route path="/physical-gold/category/:categoryId/subcategory/:subCategoryId" element={<PhysicalGoldPage />} />
               <Route path="/physical-gold/product/:id" element={<ProductDetailsPage />} />
               <Route
                 path="/physical-gold/orders"

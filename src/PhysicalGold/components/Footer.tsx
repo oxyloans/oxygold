@@ -8,7 +8,7 @@ const Footer: React.FC = () => {
 
   return (
     <footer style={{ backgroundColor: "hsl(20, 30%, 10%)", color: "hsl(30, 15%, 70%)" }}>
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 md:px-8 lg:px-8 sm:px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* Brand */}
           <div>
@@ -67,7 +67,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-3 text-sm" style={{ color: "hsl(30, 15%, 70%)" }}>
               <li className="flex items-start gap-2">
                 <MapPin size={16} className="mt-0.5 flex-shrink-0" style={{ color: "hsl(38, 80%, 55%)" }} />
-                <span>OXYIDEAS TECHNOLOGIES PVT LTD, CC-03, Indu Fortune Fields, KPHB, Hyderabad, Telangana - 500085</span>
+                <span>OXYIDEAS PARTNERS LLP, CC-03, Indu Fortune Fields, KPHB, Hyderabad, Telangana - 500085</span>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin size={16} className="mt-0.5 flex-shrink-0" style={{ color: "hsl(38, 80%, 55%)" }} />
@@ -88,7 +88,7 @@ const Footer: React.FC = () => {
         {/* Bottom Bar */}
         <div className="pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm" style={{ borderTop: "1px solid hsl(20, 20%, 20%)" }}>
           <p style={{ color: "hsl(30, 15%, 60%)" }}>
-            © 2026 OxyGold by OXYIDEAS TECHNOLOGIES PVT LTD. All rights reserved.
+            © 2026 OxyGold by OXYIDEAS PARTNERS LLP. All rights reserved.
           </p>
           <div className="flex flex-wrap gap-4 md:gap-6 justify-center">
             <button onClick={() => navigate("/physical-gold/privacy-policy")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>

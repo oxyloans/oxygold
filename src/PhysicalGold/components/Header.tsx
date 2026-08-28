@@ -39,10 +39,10 @@ const Header: React.FC<HeaderProps> = ({
 
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-md">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-md ">
       {/* Top Banner */}
       <div className="bg-accent border-b border-gray-200">
-        <div className="container mx-auto px-4 py-2 text-center">
+        <div className="container mx-auto px-8 py-2 text-center">
           <p className="text-xs font-medium tracking-wide text-white">
             Free Shipping on Orders Above ₹50,000
           </p>
@@ -50,14 +50,15 @@ const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Main Header */}
-      <div style={{ borderBottom: "1px solid hsl(30, 20%, 88%)" }}>
-        <div className="container mx-auto px-2">
+      <div style={{ borderBottom: "0.5px solid hsl(40, 20%, 88%)" }}>
+        <div className="container mx-auto px-4 md:px-8 sm:px-4 lg:px-8 h-14">
           <div className="flex items-center justify-between h-12 md:h-12">
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 transition-colors text-foreground hover:text-primary"
               aria-label="Toggle menu"
+              title="Menu"
             >
               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -103,6 +104,7 @@ const Header: React.FC<HeaderProps> = ({
                 }}
                 className="hidden md:block p-2 cursor-pointer transition-colors relative text-foreground hover:text-primary"
                 aria-label="Wishlist"
+                title="Wishlist"
               >
                 <Heart size={20} />
                 {wishlistCount > 0 && (
@@ -125,6 +127,7 @@ const Header: React.FC<HeaderProps> = ({
                   }}
                   className="p-2 transition-colors cursor-pointer text-foreground hover:text-primary"
                   aria-label="Account"
+                  title="Account"
                 >
                   <User size={20} />
                 </button>
@@ -142,6 +145,7 @@ const Header: React.FC<HeaderProps> = ({
                 }}
                 className="p-2 transition-colors cursor-pointer relative text-foreground hover:text-primary"
                 aria-label="Cart"
+                title="Cart"
               >
                 <ShoppingCart size={20} />
                 {totalItems > 0 && (
@@ -158,7 +162,7 @@ const Header: React.FC<HeaderProps> = ({
       {/* Desktop Category Navigation */}
       {categories.length > 0 && (
         <nav className="hidden md:block" style={{ borderBottom: "1px solid hsl(30, 20%, 88%)", backgroundColor: "hsl(30, 15%, 97%)" }}>
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto px-8">
             <div className="flex items-center justify-center gap-8 py-2.5">
               {categories.map((cat) => (
                 <button

@@ -81,7 +81,7 @@ const TermsConditions: React.FC = () => {
             <section>
               <h2 className="text-[18px] font-semibold text-[#1A1A1A] mb-3">6. Intellectual Property</h2>
               <p>
-                All content on this website, including images, text, logos, and designs, is the property of OXYIDEAS TECHNOLOGIES PVT LTD and protected by copyright laws. Unauthorized use is prohibited.
+                All content on this website, including images, text, logos, and designs, is the property of OXYIDEAS PARTNERS LLP and protected by copyright laws. Unauthorized use is prohibited.
               </p>
             </section>
 
@@ -102,7 +102,7 @@ const TermsConditions: React.FC = () => {
             <section>
               <h2 className="text-[18px] font-semibold text-[#1A1A1A] mb-3">9. Contact Information</h2>
               <div className="mt-3 p-4 bg-[#F5F2EE] rounded-lg border border-[#E8E0D5]">
-                <p className="font-semibold text-[#1A1A1A]">OXYIDEAS TECHNOLOGIES PVT LTD</p>
+                <p className="font-semibold text-[#1A1A1A]">OXYIDEAS PARTNERS LLP</p>
                 <p>Email: support@askoxy.ai</p>
                 <p>Phone: +91 81432 71103</p>
               </div>

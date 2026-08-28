@@ -111,7 +111,7 @@ const ReturnRefundPolicy: React.FC = () => {
               <h2 className="text-[18px] font-semibold text-[#1A1A1A] mb-3">9. Contact Us</h2>
               <p className="mb-3">For returns, refunds, or exchanges, contact us:</p>
               <div className="mt-3 p-4 bg-[#F5F2EE] rounded-lg border border-[#E8E0D5]">
-                <p className="font-semibold text-[#1A1A1A]">OXYIDEAS TECHNOLOGIES PVT LTD</p>
+                <p className="font-semibold text-[#1A1A1A]">OXYIDEAS PARTNERS LLP</p>
                 <p>Email: support@askoxy.ai</p>
                 <p>Phone: +91 81432 71103</p>
               </div>

@@ -75,6 +75,14 @@ const DISPLAY_INR = (v: number) =>
         maximumFractionDigits: 0,
     }).format(v);
 
+const getApiErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error && error.message ? error.message : fallback;
+
+const normaliseAddress = (address: Pick<Address, "flatNo" | "landMark" | "address" | "pinCode" | "state">) =>
+    [address.flatNo, address.landMark, address.address, address.pinCode, address.state]
+        .map((value) => value.trim().replace(/\s+/g, " ").toLowerCase())
+        .join("|");
+
 /* ────────────────────────────────────────────────────────── */
 /*  Types                                                     */
 /* ────────────────────────────────────────────────────────── */
@@ -502,7 +510,7 @@ const ProfilePage: React.FC = () => {
                         isVerifyingPan: false,
                         isSavingProfile: false,
                         profileErrors: { panNumber: panErr.message || "PAN verification failed" },
-                        toast: { message: "PAN verification failed. Please check your details.", type: "error" }
+                        toast: { message: getApiErrorMessage(panErr, "PAN verification failed. Please check your details."), type: "error" }
                     });
                     return;
                 }
@@ -535,7 +543,11 @@ const ProfilePage: React.FC = () => {
             else if (returnTo === "support") { setTimeout(() => { setSearchParams({ tab: "support" }); patch({ activeTab: "support" }); }, 800); }
         } catch (err) {
             console.error("Failed to save profile:", err);
-            patch({ toast: { message: "Failed to save profile. Please try again.", type: "error" } });
+            const message = getApiErrorMessage(err, "Unable to save profile. Please try again.");
+            const profileErrors = /whatsapp/i.test(message)
+                ? { whatsappNumber: message }
+                : {};
+            patch({ profileErrors, toast: { message, type: "error" } });
         } finally {
             patch({ isSavingProfile: false, isVerifyingPan: false });
         }
@@ -553,6 +565,15 @@ const ProfilePage: React.FC = () => {
             errors.pinCode = "Pin code is required";
         } else if (!validatePincode(addrForm.pinCode)) {
             errors.pinCode = "Invalid pin code (6 digits)";
+        }
+        if (!addrForm.state.trim()) errors.state = "State is required";
+
+        const duplicateAddress = s.addresses.some((savedAddress) =>
+            savedAddress.id !== editingAddress?.id &&
+            normaliseAddress(savedAddress) === normaliseAddress(addrForm),
+        );
+        if (duplicateAddress) {
+            errors.address = "This address is already saved";
         }
 
         if (Object.keys(errors).length) {
@@ -588,7 +609,11 @@ const ProfilePage: React.FC = () => {
             });
         } catch (err) {
             console.error("Failed to save address:", err);
-            patch({ toast: { message: "Failed to save address. Please try again.", type: "error" } });
+            const message = getApiErrorMessage(err, "Failed to save address. Please try again.");
+            patch({
+                addrErrors: /pin\s*code|pincode|postal/i.test(message) ? { pinCode: message } : {},
+                toast: { message, type: "error" },
+            });
         } finally {
             patch({ isAddressLoading: false });
         }
@@ -679,7 +704,7 @@ const ProfilePage: React.FC = () => {
             patch({ toast: { message: "Address deleted successfully", type: "success" } });
         } catch (err) {
             console.error("Failed to delete address:", err);
-            patch({ toast: { message: "Failed to delete address. Please try again.", type: "error" } });
+            patch({ toast: { message: getApiErrorMessage(err, "Failed to delete address. Please try again."), type: "error" } });
         } finally {
             patch({ isAddressLoading: false });
         }
@@ -856,7 +881,7 @@ const ProfilePage: React.FC = () => {
             await loadQueries('PENDING');
         } catch (err) {
             console.error('Failed to submit query:', err);
-            patch({ toast: { message: 'Failed to submit query. Please try again.', type: 'error' } });
+            patch({ toast: { message: getApiErrorMessage(err, 'Failed to submit query. Please try again.'), type: 'error' } });
         } finally {
             patch({ isSubmittingQuery: false });
         }
@@ -874,7 +899,7 @@ const ProfilePage: React.FC = () => {
             await loadQueries();
         } catch (err) {
             console.error('Failed to cancel query:', err);
-            patch({ toast: { message: 'Failed to cancel query. Please try again.', type: 'error' } });
+            patch({ toast: { message: getApiErrorMessage(err, 'Failed to cancel query. Please try again.'), type: 'error' } });
         } finally {
             patch({ cancellingQueryId: null });
         }
@@ -908,7 +933,7 @@ const ProfilePage: React.FC = () => {
                 />
             )}
 
-            <main className="pt-36 pb-20 max-w-5xl mx-auto px-3 sm:px-6">
+            <main className="pt-28 sm:pt-36 pb-12 sm:pb-20 max-w-5xl mx-auto px-3 sm:px-6">
 
                 {/* Back */}
                 <button
@@ -978,7 +1003,7 @@ const ProfilePage: React.FC = () => {
 
                     {/* ── PROFILE TAB ── */}
                     {s.activeTab === "info" && (
-                        <div className="p-6">
+                        <div className="p-4 sm:p-6">
                             {s.isProfileLoading ? (
                                 <div className="flex items-center justify-center py-16 gap-2 text-[#8A8A8A]">
                                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -1222,7 +1247,7 @@ const ProfilePage: React.FC = () => {
                             </div>
 
                             {s.isAddingAddress && (
-                                <div className="border border-[#E8E0D5] rounded-xl p-5 mb-5 space-y-4 bg-[#FAFAF8]">
+                                <div className="border border-[#E8E0D5] rounded-xl p-4 sm:p-5 mb-5 space-y-4 bg-[#FAFAF8]">
                                     <h4 className="text-[12px] font-semibold text-[#1A1A1A]">{s.editingAddress ? "Edit Address" : "New Address"}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
@@ -1283,14 +1308,21 @@ const ProfilePage: React.FC = () => {
                                                 onChange={(e) => {
                                                     const formatted = formatPincode(e.target.value);
                                                     patchAddrForm({ pinCode: formatted });
-                                                    if (s.addrErrors.pinCode) {
-                                                        if (formatted.trim() && validatePincode(formatted)) {
-                                                            const newErrors = { ...s.addrErrors };
-                                                            delete newErrors.pinCode;
-                                                            patch({ addrErrors: newErrors });
-                                                        }
+                                                    const newErrors = { ...s.addrErrors };
+                                                    if (formatted.length === 6 && validatePincode(formatted)) {
+                                                        delete newErrors.pinCode;
+                                                    } else if (formatted.length > 0) {
+                                                        newErrors.pinCode = "Pin code must contain 6 digits";
+                                                    }
+                                                    patch({ addrErrors: newErrors });
+                                                }}
+                                                onBlur={() => {
+                                                    if (!validatePincode(s.addrForm.pinCode)) {
+                                                        patch({ addrErrors: { ...s.addrErrors, pinCode: "Pin code must contain 6 digits" } });
                                                     }
                                                 }}
+                                                inputMode="numeric"
+                                                maxLength={6}
                                                 placeholder="6-digit pin code"
                                                 className={`${inputCls} ${s.addrErrors.pinCode ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
                                             />
@@ -1300,9 +1332,17 @@ const ProfilePage: React.FC = () => {
                                             <label className={labelCls}>State</label>
                                             <input
                                                 value={s.addrForm.state}
-                                                onChange={(e) => patchAddrForm({ state: e.target.value })}
-                                                className={inputCls}
+                                                onChange={(e) => {
+                                                    patchAddrForm({ state: e.target.value });
+                                                    if (s.addrErrors.state && e.target.value.trim()) {
+                                                        const newErrors = { ...s.addrErrors };
+                                                        delete newErrors.state;
+                                                        patch({ addrErrors: newErrors });
+                                                    }
+                                                }}
+                                                className={`${inputCls} ${s.addrErrors.state ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
                                             />
+                                            {s.addrErrors.state && <p className="text-[11px] text-rose-500 mt-1">{s.addrErrors.state}</p>}
                                         </div>
                                     </div>
                                     <div className="border-t border-[#E8E0D5] pt-4">
@@ -1326,9 +1366,9 @@ const ProfilePage: React.FC = () => {
                                             </p>
                                         )}
                                     </div>
-                                    <div className="flex gap-3 pt-1">
-                                        <button onClick={cancelAddrForm} className="px-4 py-2 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition">Cancel</button>
-                                        <button onClick={handleSaveAddr} disabled={s.isAddressLoading} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-60">
+                                    <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
+                                        <button onClick={cancelAddrForm} className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition">Cancel</button>
+                                        <button onClick={handleSaveAddr} disabled={s.isAddressLoading} className="inline-flex w-full sm:w-auto justify-center items-center gap-2 px-4 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-60">
                                             {s.isAddressLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                                             {s.editingAddress ? "Update" : "Save Address"}
                                         </button>
@@ -1926,8 +1966,8 @@ const ProfilePage: React.FC = () => {
             </main>
 
             {reviewItem && (
-                <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 sm:items-center sm:px-4" onMouseDown={closeProductReview}>
-                    <div className="w-full rounded-t-3xl bg-white p-4 shadow-2xl sm:max-w-md sm:rounded-2xl sm:p-5" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="review-title">
+                <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 sm:items-center sm:p-4" onMouseDown={closeProductReview}>
+                    <div className="max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-white p-4 shadow-2xl sm:max-w-md sm:rounded-2xl sm:p-5" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="review-title">
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h3 id="review-title" className="text-[18px] font-semibold text-[#1A1A1A]">{editingReview ? "Edit your review" : "Write a product review"}</h3>

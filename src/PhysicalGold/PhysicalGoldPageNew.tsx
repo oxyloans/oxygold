@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate, useLocation, useOutletContext } from "react-router-dom";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { Package, X, Search } from "lucide-react";
 import CategoryGrid from "./components/CategoryGrid";
 import ProductCard from "./components/ProductCard";
@@ -17,8 +17,9 @@ import "./styles.css";
 
 const PhysicalGoldPageNew: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { categories, selectedCategoryId: layoutSelectedCategoryId, setSelectedCategoryId: setLayoutSelectedCategoryId } = useOutletContext<{ categories: Category[], selectedCategoryId?: string, setSelectedCategoryId: (id: string | undefined) => void }>();
+  const { categoryId: routeCategoryId, subCategoryId: routeSubCategoryId } = useParams();
+  const { categories, setSelectedCategoryId: setLayoutSelectedCategoryId } = useOutletContext<{ categories: Category[], selectedCategoryId?: string, setSelectedCategoryId: (id: string | undefined) => void }>();
+  const loadedRouteRef = useRef("");
 
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [products, setProducts] = useState<PhysicalGoldProduct[]>([]);
@@ -91,13 +92,6 @@ const PhysicalGoldPageNew: React.FC = () => {
     setFilters(prev => ({ ...prev, q: "", page: 0 }));
   };
 
-  // Sync with layout's selected category
-  useEffect(() => {
-    if (layoutSelectedCategoryId && layoutSelectedCategoryId !== selectedCategoryId) {
-      setSelectedCategoryId(layoutSelectedCategoryId);
-    }
-  }, [layoutSelectedCategoryId]);
-
   const handleSubCategoryClick = useCallback(async (subCategoryId: string, shouldScroll = true) => {
     setSelectedSubCategoryId(subCategoryId);
 
@@ -163,25 +157,14 @@ const PhysicalGoldPageNew: React.FC = () => {
     }
   }, [filters]);
 
-  const handleCategoryClick = useCallback(async (categoryId: string) => {
-    setSelectedCategoryId(categoryId);
-    setLayoutSelectedCategoryId(categoryId);
-    setSelectedSubCategoryId("");
-    setProducts([]);
-    setShowProducts(true);
-    clearFilters();
+  const handleCategoryClick = useCallback((categoryId: string) => {
+    navigate(`/physical-gold/category/${encodeURIComponent(categoryId)}`);
+  }, [navigate]);
 
-    try {
-      const data = await fetchSubCategories(categoryId);
-      setSubCategories(data);
-
-      if (data.length > 0) {
-        handleSubCategoryClick(data[0].id);
-      }
-    } catch (error) {
-      console.error("Failed to load subcategories:", error);
-    }
-  }, [handleSubCategoryClick, setLayoutSelectedCategoryId]);
+  const handleSubCategoryNavigation = useCallback((subCategoryId: string) => {
+    if (!selectedCategoryId) return;
+    navigate(`/physical-gold/category/${encodeURIComponent(selectedCategoryId)}/subcategory/${encodeURIComponent(subCategoryId)}`);
+  }, [navigate, selectedCategoryId]);
 
   // Re-fetch products when filters change (but not on initial mount)
   useEffect(() => {
@@ -196,21 +179,58 @@ const PhysicalGoldPageNew: React.FC = () => {
   const filteredProducts = useMemo(() => products, [products]);
 
   useEffect(() => {
-    if (location.state?.reset) {
+    if (categories.length === 0) return;
+
+    const routeKey = `${routeCategoryId || ""}/${routeSubCategoryId || ""}`;
+    if (loadedRouteRef.current === routeKey) return;
+    loadedRouteRef.current = routeKey;
+
+    if (!routeCategoryId) {
       setShowProducts(false);
       setSelectedCategoryId("");
       setSelectedSubCategoryId("");
+      setSubCategories([]);
       setProducts([]);
-      navigate(".", { replace: true, state: {} });
-    } else if (categories.length > 0 && location.state?.selectedCategory) {
-      setSelectedCategoryId(location.state.selectedCategory);
-      handleCategoryClick(location.state.selectedCategory);
-      navigate(".", { replace: true, state: {} });
+      setLayoutSelectedCategoryId(undefined);
+      return;
     }
-  }, [categories, location.state, handleCategoryClick, navigate]);
+
+    if (!categories.some((category) => category.id === routeCategoryId)) {
+      navigate("/physical-gold", { replace: true });
+      return;
+    }
+
+    setSelectedCategoryId(routeCategoryId);
+    setLayoutSelectedCategoryId(routeCategoryId);
+    setShowProducts(true);
+    setSelectedSubCategoryId("");
+    setProducts([]);
+    clearFilters();
+
+    fetchSubCategories(routeCategoryId)
+      .then((data) => {
+        setSubCategories(data);
+        const selectedSubCategory = routeSubCategoryId && data.some((subCategory) => subCategory.id === routeSubCategoryId)
+          ? routeSubCategoryId
+          : data[0]?.id;
+
+        if (!selectedSubCategory) return;
+
+        if (!routeSubCategoryId) {
+          navigate(
+            `/physical-gold/category/${encodeURIComponent(routeCategoryId)}/subcategory/${encodeURIComponent(selectedSubCategory)}`,
+            { replace: true },
+          );
+          return;
+        }
+
+        handleSubCategoryClick(selectedSubCategory);
+      })
+      .catch((error) => console.error("Failed to load subcategories:", error));
+  }, [categories, routeCategoryId, routeSubCategoryId, navigate, handleSubCategoryClick, setLayoutSelectedCategoryId]);
 
   const handleLogoClick = useCallback(() => {
-    navigate("/physical-gold", { replace: true, state: {} });
+    navigate("/physical-gold");
     setShowProducts(false);
     setSelectedCategoryId("");
     setLayoutSelectedCategoryId(undefined);
@@ -241,9 +261,9 @@ const PhysicalGoldPageNew: React.FC = () => {
       )}
 
       {showProducts && (
-        <div className="flex-1 pt-16 sm:pt-20 md:pt-24">
+        <div className="flex-1 pt-20 sm:pt-24 md:pt-32 lg:pt-32 ">
 
-          <div className="container mx-auto px-4 py-5 sm:py-8">
+          <div className="container mx-auto px-8 py-5 sm:py-8">
             {/* Breadcrumb */}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm mb-5 sm:mb-6">
               <button
@@ -256,10 +276,7 @@ const PhysicalGoldPageNew: React.FC = () => {
               <span className="text-gray-400">›</span>
 
               <button
-                onClick={() => {
-                  setSelectedSubCategoryId("");
-                  setProducts([]);
-                }}
+                onClick={() => navigate(`/physical-gold/category/${encodeURIComponent(selectedCategoryId)}`)}
                 className={`transition-colors ${!selectedSubCategoryId
                   ? "text-primary font-semibold cursor-default"
                   : "text-gray-500 hover:text-primary"
@@ -309,23 +326,27 @@ const PhysicalGoldPageNew: React.FC = () => {
             {/* Subcategories Tabs -> Block Layout */}
             {subCategories.length > 0 && (
               <div className="mb-12">
-                <h3 className="font-serif text-2xl text-[#1A1A1A] font-bold mb-5">Sub categories</h3>
+                <h2 className="font-serif text-2xl text-[#1A1A1A] font-bold mb-5">Sub categories</h2>
                 <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   {subCategories.map((sub) => (
                     <button
                       key={sub.id}
-                      onClick={() => handleSubCategoryClick(sub.id)}
+                      onClick={() => handleSubCategoryNavigation(sub.id)}
                       className={`relative overflow-hidden group/sub min-h-28 px-4 py-6 sm:py-8 rounded-xl flex flex-col items-center justify-center transition-all border shadow-sm ${selectedSubCategoryId === sub.id
                         ? "bg-white border-[#C29B27] shadow-md shadow-[#C29B27]/10"
                         : "bg-[#FDFBF7] border-[#F0EBE1] hover:border-[#C29B27]/40 hover:bg-white"
                         }`}
                     >
+                      <div className="absolute inset-0 flex items-center justify-center bg-[#F7F1E5]" aria-hidden="true">
+                        <span className="text-3xl text-[#8B6914]">{sub.name.charAt(0)}</span>
+                      </div>
                       {sub.imageUrl && (
                         <>
                           <img
                             src={sub.imageUrl}
                             alt={sub.name}
                             className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover/sub:opacity-30 transition-opacity"
+                            onError={(event) => { event.currentTarget.style.display = "none"; }}
                           />
                           <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/40 to-transparent" />
                         </>

@@ -160,7 +160,7 @@ const Register = () => {
           position: absolute; inset: 0;
           background:
             linear-gradient(to bottom, rgba(6,15,30,0.6), rgba(6,15,30,0.75)),
-            url('https://img.freepik.com/premium-photo/gold-investment-outlook-illustration-gold-bars-stock-data-hologram_36897-5112.jpg');
+            url('https://i.ibb.co/pv179ZZ9/Chat-GPT-Image-Aug-28-2026-07-03-48-PM.png');
           background-size: cover; background-position: center;
         }
         .lg-left-content {
@@ -173,7 +173,9 @@ const Register = () => {
           font-size: 1.7rem; font-weight: 700; color: #fff;
           line-height: 1.2; margin-bottom: 10px; letter-spacing: -0.02em;
         }
-        .lg-tagline em { color: #f0bb3a; font-style: normal; }
+        .lg-tagline em { font-style: normal; }
+        .lg-gold-text { color: #f0bb3a; }
+        .lg-silver-text { color: #d4d9e2; }
         .lg-left-desc {
           font-size: 0.73rem; color: rgba(255,255,255,0.42);
           line-height: 1.65; margin-bottom: 22px; font-weight: 400;
@@ -348,20 +350,20 @@ const Register = () => {
             <div className="lg-left-content">
               <div className="lg-logo-name">OXYGOLD.AI</div>
               <div>
-                <div className="lg-tagline">Start your<br /><em>gold journey</em><br />today</div>
-                <div className="lg-left-desc">Join thousands of smart investors building wealth with digital gold — secure, insured, and always live rates.</div>
+                <div className="lg-tagline">Start Your<br /><em><span className="lg-gold-text">Gold</span> &amp; <span className="lg-silver-text">Silver</span> Journey</em></div>
+                <div className="lg-left-desc">Create your account to explore gold and silver products with live market rates and a secure experience.</div>
                 <div className="lg-stats">
                   <div className="lg-stat">
-                    <span className="lg-stat-val">24K</span>
+                    <span className="lg-stat-val">999.9</span>
                     <span className="lg-stat-lbl">Purity</span>
                   </div>
                   <div className="lg-stat">
                     <span className="lg-stat-val">₹100</span>
-                    <span className="lg-stat-lbl">Min. Buy</span>
+                    <span className="lg-stat-lbl">Market Rates</span>
                   </div>
                   <div className="lg-stat">
-                    <span className="lg-stat-val">100%</span>
-                    <span className="lg-stat-lbl">Insured</span>
+                    <span className="lg-stat-val">Secure</span>
+                    <span className="lg-stat-lbl">Experience</span>
                   </div>
                 </div>
               </div>

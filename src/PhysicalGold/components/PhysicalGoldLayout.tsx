@@ -36,15 +36,12 @@ const PhysicalGoldLayout: React.FC = () => {
 
     const handleCategoryClick = (categoryId: string) => {
         setSelectedCategoryId(categoryId);
-        navigate("/physical-gold", {
-            state: { selectedCategory: categoryId, timestamp: Date.now() },
-            replace: location.pathname === "/physical-gold"
-        });
+        navigate(`/physical-gold/category/${encodeURIComponent(categoryId)}`);
     };
 
     const handleLogoClick = () => {
         setSelectedCategoryId(undefined);
-        navigate("/physical-gold", { replace: true, state: { reset: Date.now() } });
+        navigate("/physical-gold");
         window.scrollTo(0, 0);
     };
 

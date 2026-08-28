@@ -18,6 +18,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, isWishlistP
   const { addToCart } = useCart();
   const isLiked = isInWishlist(product.id);
   const tag = getProductTag(product.id);
+  const isSilver = [product.categoryName, product.subCategoryName]
+    .filter(Boolean)
+    .some((name) => name!.toLowerCase().includes("silver"));
+  const productMeta = [
+    product.weight ? `${product.weight}g` : isSilver ? null : "VARIOUS WEIGHTS",
+    product.purity || (isSilver ? null : "22K"),
+  ]
+    .filter(Boolean)
+    .join(" • ");
 
   const handleMoveToCart = useCallback(async (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -96,9 +105,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, isWishlistP
         <h3 className="text-[17px] font-serif leading-tight text-[#1A1A1A] font-bold line-clamp-2">
           {product.productName}
         </h3>
-        <p className="text-[11px] text-[#8A8A8A] font-semibold uppercase tracking-wide">
-          {product.weight ? `${product.weight}g` : "VARIOUS WEIGHTS"} • {product.purity || "22K"}
-        </p>
+        {productMeta && (
+          <p className="text-[11px] text-[#8A8A8A] font-semibold uppercase tracking-wide">
+            {productMeta}
+          </p>
+        )}
         <div className="mt-1 flex items-center justify-between gap-3">
           <p className="text-base font-bold text-[#C29B27]">
             ₹{product.priceRange}
