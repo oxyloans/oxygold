@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { API_BASE_URL } from '../Config';
 import { X, Bell, CheckCircle } from 'lucide-react';
 
-const SubscribeLivePrice = () => {
+const SubscribeLivePrice = ({ iconOnly = false }: { iconOnly?: boolean }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -49,11 +49,11 @@ const SubscribeLivePrice = () => {
       if (!usersResponse.ok) {
         throw new Error('Failed to verify user details. Please try again.');
       }
-      
+
       const existingUsers = await usersResponse.json();
-      
-      const userExists = existingUsers.some((user: any) => 
-        (user.email && user.email.toLowerCase() === formData.email.trim().toLowerCase()) || 
+
+      const userExists = existingUsers.some((user: any) =>
+        (user.email && user.email.toLowerCase() === formData.email.trim().toLowerCase()) ||
         (user.mobileNumber && user.mobileNumber.replace(/\s+/g, '') === formData.mobileNumber.replace(/\s+/g, ''))
       );
 
@@ -123,26 +123,21 @@ const SubscribeLivePrice = () => {
         .subscribe-btn-text-full {
           display: inline;
         }
-        .subscribe-btn-text-short {
-          display: none;
-        }
-        @media (max-width: 640px) {
-          .subscribe-btn-text-full {
-            display: none;
-          }
-          .subscribe-btn-text-short {
-            display: inline;
-          }
-        }
       `}</style>
 
       <button
         onClick={() => setIsOpen(true)}
-        className="subscribe-btn inline-flex cursor-pointer items-center gap-2 px-5 py-3 bg-[rgba(13,31,60,0.72)] hover:bg-[rgba(13,31,60,0.9)] text-[#f0bb3a] font-semibold rounded-xl border border-[rgba(240,187,58,0.30)] transition-all duration-300 hover:scale-[1.02]"
+        className="subscribe-btn inline-flex cursor-pointer items-center justify-center gap-2 bg-[rgba(13,31,60,0.72)] hover:bg-[rgba(13,31,60,0.9)] text-[#f0bb3a] font-semibold rounded-xl border border-[rgba(240,187,58,0.30)] transition-all duration-300 hover:scale-[1.02]"
+        style={{
+          height: "42px",
+          minHeight: "42px",
+          padding: iconOnly ? "0 12px" : "0 16px",
+          lineHeight: 1,
+          fontSize: iconOnly ? "12px" : "13px",
+        }}
       >
         <Bell size={18} className="bell-icon" />
-        <span className="subscribe-btn-text-full">Subscribe Live Price</span>
-        <span className="subscribe-btn-text-short">Subscribe</span>
+        {!iconOnly && <span className="subscribe-btn-text-full">Subscribe Live Price</span>}
       </button>
 
       {isOpen && createPortal(

@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TokenManager from '../utils/tokenManager';
-import { logout } from '../utils/userUtils';
 import { API_BASE_URL } from '../Config';
 import { useCart } from '../PhysicalGold/CartContext';
 import { useWishlist } from '../PhysicalGold/WishlistContext';
@@ -58,13 +57,11 @@ const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
 
     const redirectTo = location.state?.from || '/physical-gold';
 
-    // Clear any existing session when component mounts
+    // If already logged in, redirect away from login page
     useEffect(() => {
-      console.log('[Login] Component mounted, clearing any existing session');
       const tokenManager = TokenManager.getInstance();
       if (tokenManager.isLoggedIn()) {
-        console.log('[Login] Found existing session, clearing it for fresh login');
-        logout();
+        navigate(redirectTo, { replace: true });
       }
     }, []);
 
@@ -270,6 +267,7 @@ const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
             background:
               linear-gradient(to bottom, rgba(6,15,30,0.6), rgba(6,15,30,0.75)),
               url('https://i.ibb.co/pv179ZZ9/Chat-GPT-Image-Aug-28-2026-07-03-48-PM.png');
+              url('https://i.ibb.co/pv179ZZ9/Chat-GPT-Image-Aug-28-2026-07-03-48-PM.png');
             background-size: cover;
             background-position: center;
           }
@@ -291,10 +289,14 @@ const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
           .lg-tagline em { font-style: normal; }
           .lg-gold-text { color: #f0bb3a; }
           .lg-silver-text { color: #d4d9e2; }
+          .lg-tagline em { font-style: normal; }
+          .lg-gold-text { color: #f0bb3a; }
+          .lg-silver-text { color: #d4d9e2; }
           .lg-left-desc {
             font-size: 0.73rem; color: rgba(255,255,255,0.42);
             line-height: 1.65; margin-bottom: 22px; font-weight: 400;
           }
+          .lg-promo { transform: translateY(-18px); }
           .lg-promo { transform: translateY(-18px); }
           .lg-stats { display: flex; gap: 18px; }
           .lg-stat { display: flex; flex-direction: column; gap: 2px; }
@@ -503,13 +505,17 @@ const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
                   <div className="lg-stats">
                     <div className="lg-stat">
                       <span className="lg-stat-val">999.9</span>
+                      <span className="lg-stat-val">999.9</span>
                       <span className="lg-stat-lbl">Purity</span>
                     </div>
                     <div className="lg-stat">
                       <span className="lg-stat-val">₹100</span>
                       <span className="lg-stat-lbl">Market Rates</span>
+                      <span className="lg-stat-lbl">Market Rates</span>
                     </div>
                     <div className="lg-stat">
+                      <span className="lg-stat-val">Secure</span>
+                      <span className="lg-stat-lbl">Access</span>
                       <span className="lg-stat-val">Secure</span>
                       <span className="lg-stat-lbl">Access</span>
                     </div>
@@ -629,3 +635,4 @@ const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
   };
 
   export default Login;
+

@@ -12,6 +12,7 @@ import Users from '../../pages/Users';
 import Helpdesk from '../../pages/Helpdesk';
 import DeliveryTeam from '../../pages/DeliveryTeam';
 import Reviews from '../../pages/Reviews';
+import DeliveryPricing from '../../pages/DeliveryPricing';
 
 const AdminLayout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -41,6 +42,7 @@ const AdminLayout: React.FC = () => {
               <Route path="users" element={<Users />} />
               <Route path="helpdesk" element={<Helpdesk />} />
               <Route path="delivery" element={<DeliveryTeam />} />
+              <Route path="delivery-pricing" element={<DeliveryPricing />} />
               <Route path="reviews" element={<Reviews />} />
               <Route path="/" element={<Navigate to="dashboard" replace />} />
             </Routes>

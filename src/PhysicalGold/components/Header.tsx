@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../CartContext";
 import { useWishlist } from "../WishlistContext";
 import oxygoldLogo from "../../assets/oxygoldlogo.png";
+import Toast from "./Toast";
 import "../styles.css";
 
 interface HeaderProps {
@@ -20,7 +21,7 @@ const Header: React.FC<HeaderProps> = ({
   selectedCategoryId,
 }) => {
   const navigate = useNavigate();
-  const { totalItems } = useCart();
+  const { totalItems, cartNotification, dismissCartNotification } = useCart();
   const { wishlistCount } = useWishlist();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -40,6 +41,7 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-md ">
+      {cartNotification && <Toast message={cartNotification.message} type={cartNotification.type} onClose={dismissCartNotification} />}
       {/* Top Banner */}
       <div className="bg-accent border-b border-gray-200">
         <div className="container mx-auto px-8 py-2 text-center">

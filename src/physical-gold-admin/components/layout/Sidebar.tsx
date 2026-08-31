@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   HelpCircle,
   Bike,
+  Truck,
   MessageSquareText,
   X,
 } from "lucide-react";
@@ -38,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
     { title: "Registered Users", icon: <User size={18} />, path: "/admin/users" },
     { title: "Orders Management", icon: <ShoppingBag size={18} />, path: "/admin/orders" },
     { title: "Delivery Boy List", icon: <Bike size={18} />, path: "/admin/delivery" },
+    { title: "Delivery Pricing", icon: <Truck size={18} />, path: "/admin/delivery-pricing" },
     { title: "Reviews & Ratings", icon: <MessageSquareText size={18} />, path: "/admin/reviews" },
     { title: "All User Queries", icon: <HelpCircle size={18} />, path: "/admin/helpdesk" },
   ];

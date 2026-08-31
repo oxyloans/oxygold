@@ -179,12 +179,16 @@ const CartPage: React.FC = () => {
         decrementQuantity,
         removeFromCart,
         clearCart,
+        refreshCart,
         totalItems,
         cartSubtotal,
         totalGstCharges,
         totalMakingCharges,
         totalPayableAmount,
         totalCartItemWeight,
+        deliveryFee,
+        deliveryDistanceKm,
+        ratePerKm,
     } = useCart();
 
     const [s, setS] = useState<PageState>({
@@ -254,6 +258,10 @@ const CartPage: React.FC = () => {
         })();
     }, []);
 
+    useEffect(() => {
+        if (s.selectedAddressId) refreshCart(s.selectedAddressId);
+    }, [s.selectedAddressId, refreshCart]);
+
     const handleIncrement = useCallback(
         async (variantId: string) => {
             patch({ incrementingId: variantId });
@@ -273,6 +281,11 @@ const CartPage: React.FC = () => {
     );
 
     const requestRemove = (variantId: string) => patch({ removeConfirmVariantId: variantId });
+
+    const selectAddress = useCallback((addressId: string) => {
+        patch({ selectedAddressId: addressId });
+        refreshCart(addressId);
+    }, [patch, refreshCart]);
 
     const confirmRemove = () => {
         if (s.removeConfirmVariantId) removeFromCart(s.removeConfirmVariantId);
@@ -456,7 +469,7 @@ const CartPage: React.FC = () => {
                 description={<p>We need your profile details to process this order.</p>}
             />
 
-            <main className="pt-40 pb-16 max-w-5xl mx-auto px-4 sm:px-6">
+            <main className="pt-24 md:pt-36 lg:pt-36 pb-16 max-w-5xl mx-auto px-4 sm:px-4">
 
                 {/* Back */}
                 <button
@@ -471,7 +484,7 @@ const CartPage: React.FC = () => {
                     <h1 className="text-[20px] font-semibold text-[#1A1A1A]">
                         {s.checkoutStep === "cart" ? `Shopping Cart (${totalItems})` : "Checkout"}
                     </h1>
-                    <div className="flex items-center gap-2 text-[11px] text-[#8A8A8A]">
+                    <div className="flex pt-2 items-center gap-3 text-[14px] text-[#8A8A8A]">
                         <span
                             className={`cursor-pointer ${s.checkoutStep === "cart" ? "text-[#8B6914] font-semibold" : ""}`}
                             onClick={() => patch({ checkoutStep: "cart" })}
@@ -519,7 +532,9 @@ const CartPage: React.FC = () => {
                                                     </button>
                                                 </div>
                                                 <p className="text-[11px] text-[#8A8A8A] mt-0.5">
-                                                    {variant.purity} · {variant.weight}g · {variant.size || "Standard"}
+                                                    {variant.purity} {" "}
+                                                    {variant.weight}g 
+                                                    {/* {variant.size || "Standard"} */}
                                                 </p>
                                                 <div className="flex items-center justify-between mt-3">
                                                     <QuantitySelector
@@ -553,7 +568,7 @@ const CartPage: React.FC = () => {
                                         {s.addresses.map((addr) => (
                                             <button
                                                 key={addr.id}
-                                                onClick={() => patch({ selectedAddressId: addr.id })}
+                                            onClick={() => selectAddress(addr.id)}
                                                 className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${s.selectedAddressId === addr.id ? "border-[#8B6914] bg-[#F5EDD6]/30" : "border-[#E8E0D5] hover:border-[#C9B87A]"}`}
                                             >
                                                 <div className="flex items-start gap-3">
@@ -640,9 +655,12 @@ const CartPage: React.FC = () => {
                                     <span className="font-medium text-[#1A1A1A]">₹{totalGstCharges.toLocaleString("en-IN")}</span>
                                 </div>
                                 <div className="flex justify-between text-[12px]">
-                                    <span className="text-[#8A8A8A]">Shipping</span>
-                                    <span className="font-medium text-emerald-600">Free</span>
+                                    <span className="text-[#8A8A8A]">Delivery{deliveryDistanceKm !== null ? ` (${deliveryDistanceKm} km)` : ""}</span>
+                                    <span className="font-medium text-[#1A1A1A]">₹{deliveryFee.toLocaleString("en-IN")}</span>
                                 </div>
+                                {ratePerKm !== null && deliveryDistanceKm !== null && (
+                                    <p className="text-[10px] text-[#8A8A8A] text-right">₹{ratePerKm}/km delivery rate</p>
+                                )}
                                 <div className="flex justify-between text-[12px]">
                                     <span className="text-[#8A8A8A]">Insurance</span>
                                     <span className="font-medium text-[#1A1A1A]">Included</span>

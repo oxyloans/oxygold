@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { PhysicalGoldProduct, ProductVariant } from "./physicalGoldData";
 import { AddItemToCart, decrementCartItems, fetchCustomerCartInfo, removeCartItem, fetchProductImageURLs } from "./physicalGoldService";
 
@@ -16,13 +16,18 @@ interface CartContextType {
     decrementQuantity: (variantId: string, cartId: number | undefined) => Promise<void>;
     removeFromCart: (variantId: string) => Promise<void>;
     clearCart: () => void;
-    refreshCart: () => Promise<void>;
+    refreshCart: (addressId?: string | number) => Promise<void>;
     totalItems: number;
     cartSubtotal: number;
     totalGstCharges: number;
     totalMakingCharges: number;
     totalPayableAmount: number;
     totalCartItemWeight: number;
+    deliveryFee: number;
+    deliveryDistanceKm: number | null;
+    ratePerKm: number | null;
+    cartNotification: { message: string; type: "success" | "error" } | null;
+    dismissCartNotification: () => void;
     isLoading: boolean;
 }
 
@@ -51,14 +56,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [totalMakingCharges, setTotalMakingCharges] = useState(0);
     const [totalPayableAmount, setTotalPayableAmount] = useState(0);
     const [totalCartItemWeight, setTotalCartItemWeight] = useState(0);
+    const [deliveryFee, setDeliveryFee] = useState(0);
+    const [deliveryDistanceKm, setDeliveryDistanceKm] = useState<number | null>(null);
+    const [ratePerKm, setRatePerKm] = useState<number | null>(null);
+    const [cartNotification, setCartNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
+    const selectedAddressIdRef = useRef<string | number | undefined>();
 
-    const refreshCart = useCallback(async () => {
+    const refreshCart = useCallback(async (addressId?: string | number) => {
         const userId = GET_USER_ID();
         if (!userId) return;
+        if (addressId !== undefined && addressId !== "") selectedAddressIdRef.current = addressId;
 
         try {
             setIsLoading(true);
-            const data = await fetchCustomerCartInfo(userId);
+            const data = await fetchCustomerCartInfo(userId, addressId ?? selectedAddressIdRef.current);
             if (data?.itemsInCart) {
                 const mappedItems: CartItem[] = await Promise.all(
                     data.itemsInCart.map(async (item: any) => {
@@ -97,6 +108,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setTotalMakingCharges(data.totalMakingCharges || 0);
                 setTotalPayableAmount(data.totalPayableAmount || 0);
                 setTotalCartItemWeight(data.totalCartItemWeight || 0);
+                setDeliveryFee(data.deliveryFee || 0);
+                setDeliveryDistanceKm(data.deliveryDistanceKm ?? null);
+                setRatePerKm(data.ratePerKm ?? null);
             } else {
                 setCartItems([]);
                 setTotalItems(0);
@@ -105,6 +119,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setTotalMakingCharges(0);
                 setTotalPayableAmount(0);
                 setTotalCartItemWeight(0);
+                setDeliveryFee(0);
+                setDeliveryDistanceKm(null);
+                setRatePerKm(null);
             }
         } catch (err) {
             console.error("Failed to refresh cart:", err);
@@ -132,12 +149,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (userId) {
             try {
-                await AddItemToCart({
+                const response = await AddItemToCart({
                     userId: userId,
                     productId: parseInt(product.id),
                     quantity: 1,
                     productVariantId: parseInt(variant.id)
                 });
+                setCartNotification({ message: response?.message || response?.data?.message || "Item added to cart successfully.", type: "success" });
                 refreshCart(); // Sync with server for accurate totals
             } catch (err) {
                 console.error("Failed to add to cart on server:", err);
@@ -160,7 +178,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (userId) {
             try {
-                await AddItemToCart({
+                const response = await AddItemToCart({
                     userId: userId,
                     productId: parseInt(item.product.id),
                     productName: item.product.productName,
@@ -170,6 +188,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     price: item.variant.price,
                     productVariantId: parseInt(variantId)
                 });
+                setCartNotification({ message: response?.message || response?.data?.message || "Cart item updated successfully.", type: "success" });
                 refreshCart();
             } catch (err) {
                 console.error("Failed to increment on server:", err);
@@ -202,13 +221,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (userId) {
             try {
-                await decrementCartItems({
+                const response = await decrementCartItems({
                     userId: userId,
                     id: cartId,
                     productId: parseInt(item.product.id),
                     productVariantId: parseInt(variantId),
                     quantity: 1
                 });
+                setCartNotification({ message: response?.message || response?.data?.message || "Cart item updated successfully.", type: "success" });
             } catch (err) {
                 console.error("Failed to decrement on server:", err);
             } finally {
@@ -239,6 +259,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setTotalMakingCharges(0);
             setTotalPayableAmount(0);
             setTotalCartItemWeight(0);
+            setDeliveryFee(0);
+            setDeliveryDistanceKm(null);
+            setRatePerKm(null);
         }
 
         if (userId) {
@@ -264,6 +287,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setTotalMakingCharges(0);
         setTotalPayableAmount(0);
         setTotalCartItemWeight(0);
+        setDeliveryFee(0);
+        setDeliveryDistanceKm(null);
+        setRatePerKm(null);
     }, []);
 
     return (
@@ -282,6 +308,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 totalMakingCharges,
                 totalPayableAmount,
                 totalCartItemWeight,
+                deliveryFee,
+                deliveryDistanceKm,
+                ratePerKm,
+                cartNotification,
+                dismissCartNotification: () => setCartNotification(null),
                 isLoading,
             }}
         >

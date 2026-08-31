@@ -674,9 +674,11 @@ export const decrementCartItems = async (cartData: any) => {
   return data;
 };
 
-export const fetchCustomerCartInfo = async (customerId: number) => {
+export const fetchCustomerCartInfo = async (customerId: number, addressId?: string | number) => {
+  const query = new URLSearchParams({ customerId: String(customerId) });
+  if (addressId !== undefined && addressId !== "") query.set("addressId", String(addressId));
   const response = await authenticatedFetch(
-    `${BASE_URL}/cart/customer-cart-info?customerId=${customerId}`,
+    `${BASE_URL}/cart/customer-cart-info?${query.toString()}`,
   );
   const data = await response.json();
   if (!response.ok) {

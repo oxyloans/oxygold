@@ -128,6 +128,7 @@ const responsiveStyles = `
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    margin: 9rem 20px 0 20px;
   }
 
   .buy-silver-grid {
@@ -355,6 +356,7 @@ const responsiveStyles = `
 
     .buy-silver-card {
       border-radius: 16px;
+      margin-top: 6rem;
     }
 
     .buy-silver-grid {

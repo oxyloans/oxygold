@@ -244,7 +244,14 @@
   border-width: 5px;
 }
 
-/* Scrollbar styling */
+/* Hide scrollbar but keep scroll functional */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;

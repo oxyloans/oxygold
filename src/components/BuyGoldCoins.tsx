@@ -226,7 +226,7 @@ const styles: Record<string, React.CSSProperties> = {
 
   container: {
     maxWidth: "1400px",
-    margin: "0 auto",
+    margin: "50px 20px 0 20px",
   },
 
   card: {

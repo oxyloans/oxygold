@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
-import { Package, X, Search } from "lucide-react";
+import { Package, X, Search, SlidersHorizontal } from "lucide-react";
 import CategoryGrid from "./components/CategoryGrid";
 import ProductCard from "./components/ProductCard";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -31,6 +31,7 @@ const PhysicalGoldPageNew: React.FC = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [searchInput, setSearchInput] = useState("");
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -323,35 +324,57 @@ const PhysicalGoldPageNew: React.FC = () => {
               );
             })()} */}
 
-            {/* Subcategories Tabs -> Block Layout */}
+            {/* Subcategories */}
             {subCategories.length > 0 && (
-              <div className="mb-12">
-                <h2 className="font-serif text-2xl text-[#1A1A1A] font-bold mb-5">Sub categories</h2>
-                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="mb-4 ">
+                <h2 className="font-serif text-xl text-[#1A1A1A] font-bold mb-4">Sub Categories</h2>
+
+                {/* Mobile: horizontal scroll */}
+                <div className="flex sm:hidden gap-2 overflow-x-auto pb-3 w-full scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
                   {subCategories.map((sub) => (
                     <button
                       key={sub.id}
                       onClick={() => handleSubCategoryNavigation(sub.id)}
-                      className={`relative overflow-hidden group/sub min-h-28 px-4 py-6 sm:py-8 rounded-xl flex flex-col items-center justify-center transition-all border shadow-sm ${selectedSubCategoryId === sub.id
-                        ? "bg-white border-[#C29B27] shadow-md shadow-[#C29B27]/10"
-                        : "bg-[#FDFBF7] border-[#F0EBE1] hover:border-[#C29B27]/40 hover:bg-white"
+                      className={`relative overflow-hidden flex-shrink-0 w-20 h-20 rounded-xl flex flex-col items-center justify-center transition-all border ${selectedSubCategoryId === sub.id
+                          ? "bg-white border-[#C29B27] shadow-md shadow-[#C29B27]/20"
+                          : "bg-[#FDFBF7] border-[#F0EBE1] active:border-[#C29B27]/40"
                         }`}
                     >
-                      <div className="absolute inset-0 flex items-center justify-center bg-[#F7F1E5]" aria-hidden="true">
-                        <span className="text-3xl text-[#8B6914]">{sub.name.charAt(0)}</span>
-                      </div>
                       {sub.imageUrl && (
                         <>
-                          <img
-                            src={sub.imageUrl}
-                            alt={sub.name}
-                            className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover/sub:opacity-30 transition-opacity"
-                            onError={(event) => { event.currentTarget.style.display = "none"; }}
-                          />
+                          <img src={sub.imageUrl} alt={sub.name} className="absolute inset-0 w-full h-full object-cover opacity-20" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                           <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/40 to-transparent" />
                         </>
                       )}
-                      <span className="relative z-10 font-serif font-bold text-[15px] text-[#1A1A1A] mb-1">{sub.name}</span>
+                      <span className="relative z-10 font-semibold text-[11px] text-[#1A1A1A] text-center px-1 leading-tight mb-0.5">{sub.name}</span>
+                      <span className="relative z-10 text-[9px] text-[#8A8A8A]">Explore</span>
+                      {selectedSubCategoryId === sub.id && (
+                        <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-[#C29B27] flex items-center justify-center">
+                          <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tablet/Desktop: grid */}
+                <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  {subCategories.map((sub) => (
+                    <button
+                      key={sub.id}
+                      onClick={() => handleSubCategoryNavigation(sub.id)}
+                      className={`relative overflow-hidden group/sub min-h-28 px-3 py-5 sm:py-6 rounded-xl flex flex-col items-center justify-center transition-all border shadow-sm ${selectedSubCategoryId === sub.id
+                          ? "bg-white border-[#C29B27] shadow-md shadow-[#C29B27]/10"
+                          : "bg-[#FDFBF7] border-[#F0EBE1] hover:border-[#C29B27]/40 hover:bg-white"
+                        }`}
+                    >
+                      {sub.imageUrl && (
+                        <>
+                          <img src={sub.imageUrl} alt={sub.name} className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover/sub:opacity-30 transition-opacity" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                          <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/40 to-transparent" />
+                        </>
+                      )}
+                      <span className="relative z-10 font-serif font-bold text-[15px] text-[#1A1A1A] mb-1 text-center">{sub.name}</span>
                       <span className="relative z-10 text-xs text-[#8A8A8A] font-medium">Explore Details</span>
                     </button>
                   ))}
@@ -359,33 +382,43 @@ const PhysicalGoldPageNew: React.FC = () => {
               </div>
             )}
 
-            {/* Products heading row with search bar inline */}
+            {/* Products heading row with search + mobile filter button */}
             {selectedSubCategoryId && (
               <div
                 id="products-section"
-                className="scroll-mt-24 sm:scroll-mt-28 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6"
+                className="scroll-mt-24 sm:scroll-mt-28 flex flex-col sm:flex-row  sm:items-center sm:justify-between gap-3 mb-4"
               >
                 <h3 className="font-serif text-2xl text-[#1A1A1A] font-bold whitespace-nowrap">
                   {subCategories.find((s) => s.id === selectedSubCategoryId)?.name || "Collection"}
                 </h3>
 
-                <div className="relative w-full sm:max-w-sm">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#8A8A8A]" />
-                  <input
-                    type="text"
-                    placeholder="Search products in this category..."
-                    value={searchInput}
-                    onChange={handleSearchChange}
-                    className="w-full pl-12 pr-12 py-3 rounded-xl border border-[#E8E0D5] text-[14px] text-[#1A1A1A] bg-white placeholder-[#BEB5AA] outline-none focus:border-[#8B6914] focus:ring-2 focus:ring-[#8B6914]/10 transition"
-                  />
-                  {searchInput && (
+                <div className="flex items-center gap-2 w-full sm:max-w-sm">
+                  {/* Mobile Filter Button */}
+                  {showSidebar && (
                     <button
-                      onClick={clearSearch}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8A8A8A] hover:text-[#8B6914] transition"
+                      onClick={() => setMobileFilterOpen(true)}
+                      className="lg:hidden flex items-center gap-2 px-4 py-3 rounded-xl border border-[#E8E0D5] bg-white text-[13px] font-semibold text-[#1A1A1A] flex-shrink-0 shadow-sm"
                     >
-                      <X className="h-5 w-5" />
+                      <SlidersHorizontal className="h-4 w-4 text-[#8B6914]" />
+                      Filters
                     </button>
                   )}
+                  {/* Search — hidden on mobile, visible sm+ */}
+                  <div className="relative flex-1 hidden sm:block">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#8A8A8A]" />
+                    <input
+                      type="text"
+                      placeholder="Search products..."
+                      value={searchInput}
+                      onChange={handleSearchChange}
+                      className="w-full pl-12 pr-12 py-3 rounded-xl border border-[#E8E0D5] text-[14px] text-[#1A1A1A] bg-white placeholder-[#BEB5AA] outline-none focus:border-[#8B6914] focus:ring-2 focus:ring-[#8B6914]/10 transition"
+                    />
+                    {searchInput && (
+                      <button onClick={clearSearch} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8A8A8A] hover:text-[#8B6914] transition">
+                        <X className="h-5 w-5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -558,6 +591,64 @@ const PhysicalGoldPageNew: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Filter Bottom Sheet — only on mobile */}
+      {mobileFilterOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setMobileFilterOpen(false)}
+          />
+          {/* Sheet */}
+          <div className="relative bg-white rounded-t-2xl max-h-[85vh] flex flex-col shadow-2xl">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-gray-300" />
+            </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0EBE1]">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4 text-[#8B6914]" />
+                <span className="text-[15px] font-bold text-[#1A1A1A]">Filters</span>
+              </div>
+              <button onClick={() => setMobileFilterOpen(false)} className="p-1 rounded-full hover:bg-gray-100">
+                <X className="h-5 w-5 text-[#8A8A8A]" />
+              </button>
+            </div>
+            {/* Scrollable content */}
+            <div className="overflow-y-auto flex-1 px-5 py-4">
+              <FilterSidebar
+                filters={{
+                  q: "",
+                  page: filters.page,
+                  pageSize: filters.pageSize,
+                  sortBy: filters.sortBy,
+                  purity: filters.purity,
+                  size: filters.size,
+                  minPrice: filters.minPrice,
+                  maxPrice: filters.maxPrice,
+                  minWeight: filters.minWeight,
+                  maxWeight: filters.maxWeight,
+                  inStock: filters.inStock,
+                }}
+                onFilterChange={updateFilters}
+                onClearFilters={clearFilters}
+                facets={facets}
+              />
+            </div>
+            {/* Apply button */}
+            <div className="px-5 py-4 border-t border-[#F0EBE1]">
+              <button
+                onClick={() => setMobileFilterOpen(false)}
+                className="w-full py-3 rounded-xl bg-[#8B6914] text-white text-[14px] font-bold"
+              >
+                Apply Filters
+              </button>
+            </div>
           </div>
         </div>
       )}

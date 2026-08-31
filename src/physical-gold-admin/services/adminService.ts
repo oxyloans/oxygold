@@ -101,6 +101,42 @@ const adminAuthenticatedFetch = async (
   return response;
 };
 
+export interface DeliveryPricingConfiguration {
+  ratePerKm: number;
+  minimumFee: number;
+  maximumFee: number;
+  freeDeliveryThreshold: number;
+  warehouseLatitude: number;
+  warehouseLongitude: number;
+  enabled: boolean;
+}
+
+export const fetchDeliveryPricing = async (): Promise<DeliveryPricingConfiguration> => {
+  const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/delivery-pricing`, {
+    headers: { Accept: "*/*" },
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok || result?.success === false) {
+    throw new Error(result?.message || "Unable to load delivery pricing.");
+  }
+  return result?.data ?? result;
+};
+
+export const updateDeliveryPricing = async (
+  configuration: DeliveryPricingConfiguration,
+): Promise<DeliveryPricingConfiguration> => {
+  const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/delivery-pricing`, {
+    method: "PUT",
+    headers: { Accept: "*/*" },
+    body: JSON.stringify(configuration),
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok || result?.success === false) {
+    throw new Error(result?.message || "Unable to update delivery pricing.");
+  }
+  return result?.data ?? result;
+};
+
 // --- API Functions ---
 
 export const fetchMainCategories = async (status?: "ACTIVE" | "INACTIVE") => {

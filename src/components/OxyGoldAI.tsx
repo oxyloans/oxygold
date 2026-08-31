@@ -179,15 +179,25 @@ export default function OxyGoldLandingPage({ assets }: Props) {
 
       <GoldRatesTickerStrip fixed top={72} height={34} />
 
+      {/* ✅ Buy Silver Coins */}
+        <section id="buy-coins">
+          <BuySilverSection />
+        </section>
+
+        {/* ✅ Buy Gold Coins */}
+        <section id="buy-coins">
+          <BuyGoldCoins />
+        </section>
+
       {/* ✅ Single real spacing (no extra blank container) */}
       <div
-        className="mx-auto max-w-7xl px-4 sm:px-7 lg:px-8"
-        style={{ paddingTop: 80 }}
+        className="mx-auto max-w-7xl px-4 sm:px-7 lg:px-4"
+        style={{ paddingTop: 40 }}
       >
         {/* HERO SECTION */}
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-7 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-7 lg:px-4">
         {/* HERO */}
 
         <section className="py-2 sm:py-12 lg:py-20">
@@ -281,17 +291,6 @@ export default function OxyGoldLandingPage({ assets }: Props) {
         {/* ✅ AI Book */}
         <section id="ai-book" className="py-0 sm:py-8 lg:py-12">
           <AIBookSection />
-        </section>
-
-        {/* ✅ Buy Gold Coins */}
-        <section id="buy-coins" className="py-0 sm:py-8 lg:py-12">
-          <BuyGoldCoins />
-        </section>
-
-        
-        {/* ✅ Buy Gold Coins */}
-        <section id="buy-coins" className="py-0 sm:py-8 lg:py-12">
-          <BuySilverSection />
         </section>
 
         {/* ✅ IBJA */}

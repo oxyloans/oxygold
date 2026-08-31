@@ -140,7 +140,7 @@ const ProductDetailsPage: React.FC = () => {
           setSelectedWeight(v[0].weight.toString());
           setSelectedSize(v[0].size || "");
         }
-        
+
         // Fetch recommendations
         try {
           const recommendations = await fetchProductRecommendations(id);
@@ -171,7 +171,7 @@ const ProductDetailsPage: React.FC = () => {
         } catch (error) {
           console.error("Failed to load recommendations:", error);
         }
-        
+
         if (p?.subCategoryId) {
           const related = await fetchProducts(p.subCategoryId);
           setRelatedProducts(related.filter((rp) => rp.id !== id).slice(0, 4));
@@ -464,7 +464,7 @@ const ProductDetailsPage: React.FC = () => {
         <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
 
           {/* ── Breadcrumb — solid white bg, always visible ── */}
-          <nav className="flex items-center flex-wrap gap-1 text-[11px] font-semibold text-[#8A8A8A] mb-4 bg-white md:pt-16 pt-12 lg:pt-20">
+          <nav className="flex items-center flex-wrap gap-1 text-[14px] font-semibold text-[#8A8A8A] mb-4 bg-white md:pt-12 pt-8 lg:pt-16">
             <button
               onClick={() => navigate("/physical-gold")}
               className="hover:text-[#C29B27] transition-colors"
@@ -592,7 +592,9 @@ const ProductDetailsPage: React.FC = () => {
                   <span className="w-2.5 h-2.5 rounded-full border border-[#C29B27] inline-flex items-center justify-center flex-shrink-0">
                     <span className="w-1 h-1 bg-[#C29B27] rounded-full block" />
                   </span>
-                  {selectedVariant.purity} {metalName} Hallmarked
+                  {selectedVariant.purity}
+                  {/* {metalName} */}
+                  {" "} Hallmarked
                 </span>
                 <span className="text-[10px] font-semibold text-[#6B6B6B] bg-[#F5F0E8] px-2.5 py-1 rounded-md border border-[#E8E2D8]">
                   Weight: {selectedVariant.weight}g
@@ -676,21 +678,21 @@ const ProductDetailsPage: React.FC = () => {
                     <button
                       onClick={handleAddToCart}
                       disabled={selectedVariant.stockQuantity === 0}
-                      className="flex-1 py-3 flex items-center justify-center gap-2 rounded-lg text-[11px] font-black uppercase tracking-widest bg-[#C29B27] hover:bg-[#A88820] disabled:opacity-50 text-white transition-all transform active:scale-[0.98]"
+                      className="flex-1 h-[46px] flex items-center justify-center gap-2 rounded-lg text-[13px] font-black uppercase tracking-[0.08em] bg-[#C29B27] hover:bg-[#A88820] disabled:opacity-50 text-white transition-all transform active:scale-[0.98]"
                     >
-                      <ShoppingCart size={14} />
+                      <ShoppingCart size={15} />
                       Add to Cart
                     </button>
                     <button
                       onClick={handleBuyNow}
-                      className="flex-1 py-3 flex items-center justify-center rounded-lg text-[11px] font-black uppercase tracking-widest border border-[#C29B27] text-[#C29B27] bg-white hover:bg-amber-50 transition-all transform active:scale-[0.98]"
+                      className="flex-1 h-[46px] flex items-center justify-center rounded-lg text-[13px] font-black uppercase tracking-[0.08em] border border-[#C29B27] text-[#C29B27] bg-white hover:bg-amber-50 transition-all transform active:scale-[0.98]"
                     >
                       Buy Now
                     </button>
                   </div>
                 ) : (
                   <div className="flex gap-2.5">
-                    <div className="flex-1 inline-flex items-center justify-between rounded-lg border border-[#C29B27] bg-amber-50/30 overflow-hidden h-[44px]">
+                    <div className="flex-1 inline-flex items-center justify-between rounded-lg border border-[#C29B27] bg-amber-50/30 overflow-hidden h-[46px]">
                       <button
                         onClick={handleDecrement}
                         className="w-12 h-full flex items-center justify-center text-[#C29B27] hover:bg-[#C29B27] hover:text-white transition-colors"
@@ -709,7 +711,7 @@ const ProductDetailsPage: React.FC = () => {
                     </div>
                     <button
                       onClick={() => navigate("/physical-gold/cart")}
-                      className="flex-[1.5] py-3 flex items-center justify-center gap-2 rounded-lg text-[11px] font-black uppercase tracking-widest bg-[#1A1A1A] text-white hover:bg-black transition-all transform active:scale-[0.98]"
+                      className="flex-[1.5] h-[46px] flex items-center justify-center gap-2 rounded-lg text-[13px] font-black uppercase tracking-[0.08em] bg-[#1A1A1A] text-white hover:bg-black transition-all transform active:scale-[0.98]"
                     >
                       Go to Cart
                       <ChevronRight size={14} />
@@ -1074,11 +1076,10 @@ const ProductDetailsPage: React.FC = () => {
                           setReviewsRatingFilter(r);
                           loadReviews(0, r);
                         }}
-                        className={`px-3 py-1 rounded-full text-[10px] font-bold border transition-all ${
-                          reviewsRatingFilter === r
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold border transition-all ${reviewsRatingFilter === r
                             ? "bg-[#C29B27] text-white border-[#C29B27]"
                             : "bg-white text-[#6B6B6B] border-[#E8E2D8] hover:border-[#C29B27]/50"
-                        }`}
+                          }`}
                       >
                         {r === undefined ? "All" : `${r} ★`}
                       </button>
@@ -1088,7 +1089,7 @@ const ProductDetailsPage: React.FC = () => {
                   {/* Reviews list */}
                   {reviewsLoading && reviews.length === 0 ? (
                     <div className="flex items-center gap-2 py-8 text-[#8A8A8A]">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
                       <span className="text-[12px]">Loading reviews...</span>
                     </div>
                   ) : reviews.length === 0 ? (
