@@ -195,14 +195,6 @@ export default function OxyGoldLandingPage({ assets }: Props) {
           <GoldProductsLanding />
         </section>
 
-        {/* Buy Silver Coins */}
-        <section
-          id="buy-silver-coins"
-          className="scroll-mt-28"
-        >
-          <BuySilverSection />
-        </section>
-
         {/* Buy Gold Coins */}
         <section
           id="buy-coins"
@@ -215,11 +207,6 @@ export default function OxyGoldLandingPage({ assets }: Props) {
         <div className="mx-auto w-full max-w-[1464px] px-4 sm:px-6 lg:px-8">
 
           <div className="space-y-10 sm:space-y-14 lg:space-y-20">
-
-            {/* Track & Trace */}
-            <section className="scroll-mt-28">
-              <TrackTrace />
-            </section>
 
             {/* HERO */}
             <section
@@ -472,12 +459,17 @@ export default function OxyGoldLandingPage({ assets }: Props) {
 
             </section>
 
-            {/* Live Gold Rate */}
+            {/* Track & Trace */}
+            <section className="scroll-mt-28">
+              <TrackTrace />
+            </section>
+
+            {/* Buy Silver Coins */}
             <section
-              id="live-rate"
-              className="py-0"
+              id="buy-silver-coins"
+              className="-mx-4 w-[calc(100%+2rem)] scroll-mt-28 sm:-mx-6 sm:w-[calc(100%+3rem)] lg:-mx-8 lg:w-[calc(100%+4rem)]"
             >
-              <GoldRatesDashboard />
+              <BuySilverSection />
             </section>
 
             {/* AI Book */}
@@ -486,6 +478,14 @@ export default function OxyGoldLandingPage({ assets }: Props) {
               className="py-0"
             >
               <AIBookSection />
+            </section>
+
+            {/* Live Gold Rate */}
+            <section
+              id="live-rate"
+              className="py-0"
+            >
+              <GoldRatesDashboard />
             </section>
 
             {/* IBJA Partner */}

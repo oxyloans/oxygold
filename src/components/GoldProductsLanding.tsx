@@ -41,6 +41,7 @@ const currency = new Intl.NumberFormat("en-IN", {
 });
 
 const AUTH_STORAGE_KEYS = [
+  "user",
   "userData",
   "authData",
   "auth",
@@ -316,11 +317,11 @@ export default function GoldProductsLanding() {
     >
       <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(rgba(255,255,255,.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.14)_1px,transparent_1px)] [background-size:52px_52px]" />
 
-      <div className="relative mx-auto max-w-[1400px] px-4 pb-8 pt-10 sm:px-6 sm:pb-10 sm:pt-14 lg:px-8 lg:pb-12 lg:pt-16">
+      <div className="relative mx-auto w-full max-w-[1464px] px-4 pb-8 pt-6 sm:px-6 sm:pb-10 sm:pt-10 lg:px-8 lg:pb-12 lg:pt-12">
         <header className="mx-auto max-w-3xl text-center">
           <h1
             id="gold-products-title"
-            className="mt-3 font-playfair text-3xl font-black leading-tight sm:text-4xl lg:text-5xl"
+            className="font-playfair text-3xl font-black leading-tight sm:text-4xl lg:text-5xl"
           >
             Buy Gold &amp; Silver{" "}
             <span className="bg-gradient-to-r from-[#D4AF37] to-[#F5D36C] bg-clip-text text-transparent">
@@ -334,14 +335,14 @@ export default function GoldProductsLanding() {
           </p>
         </header>
 
-        <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative flex min-w-0 flex-1 items-center gap-2">
+        <div className="mt-6 flex w-full flex-col gap-3 sm:mt-8 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative min-w-0 flex-1">
             <button
               type="button"
               onClick={() => scrollTabs("left")}
               disabled={!canScrollTabsLeft}
               aria-label="Previous categories"
-              className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 bg-white/10 text-white transition hover:border-[#D4AF37]/60 hover:text-[#F5D36C] ${
+              className={`absolute left-0 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-[#2B0A59]/95 text-white shadow-lg transition hover:border-[#D4AF37]/60 hover:text-[#F5D36C] sm:grid ${
                 canScrollTabsLeft
                   ? "visible opacity-100"
                   : "invisible pointer-events-none opacity-0"
@@ -353,7 +354,7 @@ export default function GoldProductsLanding() {
             <div
               ref={tabsRef}
               onScroll={updateTabArrows}
-              className="flex min-w-0 flex-1 snap-x gap-2 overflow-x-auto py-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className="flex w-full min-w-0 snap-x gap-2 overflow-x-auto py-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
               {categories.map((item) => (
                 <button
@@ -377,7 +378,7 @@ export default function GoldProductsLanding() {
               onClick={() => scrollTabs("right")}
               disabled={!canScrollTabsRight}
               aria-label="More categories"
-              className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 bg-white/10 text-white transition hover:border-[#D4AF37]/60 hover:text-[#F5D36C] ${
+              className={`absolute right-0 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-[#2B0A59]/95 text-white shadow-lg transition hover:border-[#D4AF37]/60 hover:text-[#F5D36C] sm:grid ${
                 canScrollTabsRight
                   ? "visible opacity-100"
                   : "invisible pointer-events-none opacity-0"
@@ -387,7 +388,7 @@ export default function GoldProductsLanding() {
             </button>
           </div>
 
-          <label className="flex h-12 w-full items-center gap-3 rounded-xl border border-white/15 bg-white/[0.07] px-4 transition focus-within:border-[#D4AF37]/70 focus-within:ring-2 focus-within:ring-[#D4AF37]/15 lg:w-72">
+          <label className="flex h-11 w-full items-center gap-3 rounded-xl border border-white/15 bg-white/[0.07] px-4 transition focus-within:border-[#D4AF37]/70 focus-within:ring-2 focus-within:ring-[#D4AF37]/15 sm:h-12 lg:w-72 lg:shrink-0">
             <Search
               size={16}
               className="shrink-0 text-[#F5D36C]"
@@ -415,11 +416,11 @@ export default function GoldProductsLanding() {
         </div>
 
         {loading && (
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:flex sm:gap-5 sm:overflow-hidden">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5">
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
-                className="w-full shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] sm:w-[46%] lg:w-[calc(25%_-_15px)] xl:w-[calc(20%_-_16px)] 2xl:w-[calc(16.666%_-_17px)]"
+                className="w-full overflow-hidden rounded-xl border border-white/10 bg-white/[0.06] sm:rounded-2xl"
               >
                 <div className="aspect-square animate-pulse bg-white/[0.08]" />
 
@@ -433,7 +434,7 @@ export default function GoldProductsLanding() {
         )}
 
         {!loading && error && (
-          <div className="mt-8 rounded-2xl border border-red-300/20 bg-red-400/[0.06] p-8 text-center backdrop-blur-md">
+          <div className="mt-6 rounded-2xl border border-red-300/20 bg-red-400/[0.06] p-6 text-center backdrop-blur-md sm:mt-8 sm:p-8">
             <p className="text-sm font-semibold text-red-200">
               {error}
             </p>
@@ -452,7 +453,7 @@ export default function GoldProductsLanding() {
         {!loading &&
           !error &&
           filteredProducts.length === 0 && (
-            <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.06] p-10 text-center backdrop-blur-md">
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.06] p-8 text-center backdrop-blur-md sm:mt-8 sm:p-10">
               <ShoppingBag
                 className="mx-auto text-[#F5D36C]"
                 size={38}
@@ -478,7 +479,7 @@ export default function GoldProductsLanding() {
         {!loading &&
           !error &&
           filteredProducts.length > 0 && (
-            <div className="mt-8">
+            <div className="mt-6 w-full sm:mt-8">
                 <div
                   className={
                     isSingleProduct

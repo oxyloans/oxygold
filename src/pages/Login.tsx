@@ -115,6 +115,8 @@ const Login = () => {
   };
 
   const handleVerifyOtp = async () => {
+    if (loading || showSuccess) return;
+
     setError('');
     const otpValue = otp.join('');
     if (otpValue.length < 6) { setError('Enter the 6-digit OTP'); return; }
@@ -160,20 +162,16 @@ const Login = () => {
       }
 
       setShowSuccess(true);
-      // Add a small delay to ensure token storage is complete
-      setTimeout(async () => {
-        try {
-          await refreshCart();
-          await refreshWishlist();
-        } catch (e) {
-          console.error('Failed to refresh context on login', e);
-        }
-        clearSavedRedirect();
-        navigate(redirectPath, {
-          replace: true,
-          state: redirectState,
-        });
-      }, 1500);
+
+      clearSavedRedirect();
+      navigate(redirectPath, {
+        replace: true,
+        state: redirectState,
+      });
+
+      // Refresh account data in the background; these requests must never
+      // delay or block navigation after successful OTP verification.
+      void Promise.allSettled([refreshCart(), refreshWishlist()]);
     } catch (err: any) {
       setError(err.message || 'OTP verification failed. Please try again.');
     } finally {
@@ -187,7 +185,17 @@ const Login = () => {
     if (val && i < 5) otpRefs.current[i + 1]?.focus();
   };
   const handleOtpKeyDown = (i: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (otp.join('').length === 6 && !loading && !showSuccess) {
+        void handleVerifyOtp();
+      }
+      return;
+    }
+
+    if (e.key === 'Backspace' && !otp[i] && i > 0) {
+      otpRefs.current[i - 1]?.focus();
+    }
   };
   const handleOtpPaste = (e: React.ClipboardEvent) => {
     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
@@ -576,8 +584,9 @@ const Login = () => {
                           key={i}
                           ref={el => { otpRefs.current[i] = el; }}
                           className={`lg-otp-box ${d ? 'filled' : ''}`}
-                          type="number"
+                          type="text"
                           inputMode="numeric"
+                          autoComplete={i === 0 ? 'one-time-code' : 'off'}
                           maxLength={1}
                           value={d}
                           onChange={e => handleOtpChange(i, e.target.value.slice(-1))}
