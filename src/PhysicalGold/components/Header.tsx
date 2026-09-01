@@ -5,6 +5,7 @@ import { useCart } from "../CartContext";
 import { useWishlist } from "../WishlistContext";
 import oxygoldLogo from "../../assets/oxygoldlogo.png";
 import Toast from "./Toast";
+import TokenManager from "../../utils/tokenManager";
 import "../styles.css";
 
 interface HeaderProps {
@@ -97,9 +98,8 @@ const Header: React.FC<HeaderProps> = ({
               {/* Wishlist */}
               <button
                 onClick={() => {
-                  const stored = localStorage.getItem("user");
-                  if (!stored) {
-                    navigate("/physical-gold/login");
+                    if (!TokenManager.getInstance().isLoggedIn()) {
+                    navigate("/login");
                   } else {
                     navigate("/physical-gold/wishlist");
                   }
@@ -120,9 +120,8 @@ const Header: React.FC<HeaderProps> = ({
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => {
-                    const stored = localStorage.getItem("user");
-                    if (!stored) {
-                      navigate("/physical-gold/login");
+                    if (!TokenManager.getInstance().isLoggedIn()) {
+                      navigate("/login");
                     } else {
                       navigate("/physical-gold/profile");
                     }
@@ -138,9 +137,8 @@ const Header: React.FC<HeaderProps> = ({
               {/* Cart */}
               <button
                 onClick={() => {
-                  const stored = localStorage.getItem("user");
-                  if (!stored) {
-                    navigate("/physical-gold/login");
+                  if (!TokenManager.getInstance().isLoggedIn()) {
+                    navigate("/login");
                   } else {
                     navigate("/physical-gold/cart");
                   }

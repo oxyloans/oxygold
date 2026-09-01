@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
     ArrowLeft,
-    Briefcase,
     CheckCircle2,
     History,
     Loader2,
@@ -20,12 +19,10 @@ import {
     ShoppingBag,
     User,
     Wallet,
-    Settings,
     Trash2,
     HelpCircle,
     MessageSquare,
     Send,
-    Clock,
     CheckCheck,
     Paperclip,
     X,
@@ -82,6 +79,11 @@ const normaliseAddress = (address: Pick<Address, "flatNo" | "landMark" | "addres
     [address.flatNo, address.landMark, address.address, address.pinCode, address.state]
         .map((value) => value.trim().replace(/\s+/g, " ").toLowerCase())
         .join("|");
+
+const removeErrorKey = (errors: Record<string, string> | undefined, key: string): Record<string, string> => {
+    const { [key]: _removed, ...rest } = (errors ?? {}) as Record<string, string>;
+    return rest;
+};
 
 /* ────────────────────────────────────────────────────────── */
 /*  Types                                                     */
@@ -444,7 +446,8 @@ const ProfilePage: React.FC = () => {
                 if (ud.data?.accessToken) await logout(ud.data.accessToken);
             }
         } catch (e) { console.error("Logout failed:", e); }
-        localStorage.removeItem("user");
+        const { default: TokenManager } = await import('../utils/tokenManager');
+        TokenManager.getInstance().clearTokens();
         navigate("/login", { replace: true });
     };
 
@@ -544,7 +547,7 @@ const ProfilePage: React.FC = () => {
         } catch (err) {
             console.error("Failed to save profile:", err);
             const message = getApiErrorMessage(err, "Unable to save profile. Please try again.");
-            const profileErrors = /whatsapp/i.test(message)
+            const profileErrors: Record<string, string> = /whatsapp/i.test(message)
                 ? { whatsappNumber: message }
                 : {};
             patch({ profileErrors, toast: { message, type: "error" } });
@@ -584,6 +587,15 @@ const ProfilePage: React.FC = () => {
         const userData = GET_USER_DATA();
         const uid = userData?.data?.userId;
         if (!uid) return;
+
+        if (!addrForm.latitude || !addrForm.longitude) {
+            errors.latitude = "Capture current location before saving this address.";
+        }
+
+        if (Object.keys(errors).length) {
+            patch({ addrErrors: errors, toast: { message: "Please capture your current location before saving the address.", type: "error" } });
+            return;
+        }
 
         const payload = {
             id: editingAddress?.id,
@@ -659,8 +671,11 @@ const ProfilePage: React.FC = () => {
                     latitude: position.coords.latitude.toString(),
                     longitude: position.coords.longitude.toString(),
                 });
+                const nextErrors = { ...s.addrErrors };
+                delete nextErrors.latitude;
                 finish({
                     locationError: "",
+                    addrErrors: nextErrors,
                     toast: { message: "Location captured successfully", type: "success" }
                 });
             },
@@ -981,7 +996,7 @@ const ProfilePage: React.FC = () => {
                                 <button
                                     key={id}
                                     onClick={() => {
-                                                        if (id === "support") {
+                                        if (id === "support") {
                                             const p = s.profileForm;
                                             const isProfileFilled = p.firstName.trim() && p.lastName.trim() && p.email.trim() && p.mobileNumber.trim();
                                             if (!isProfileFilled) {
@@ -1020,9 +1035,7 @@ const ProfilePage: React.FC = () => {
                                                 onChange={(e) => {
                                                     patchProfile({ firstName: e.target.value });
                                                     if (s.profileErrors.firstName && e.target.value.trim()) {
-                                                        const newErrors = { ...s.profileErrors };
-                                                        delete newErrors.firstName;
-                                                        patch({ profileErrors: newErrors });
+                                                        patch({ profileErrors: removeErrorKey(s.profileErrors, "firstName") });
                                                     }
                                                 }}
                                                 className={`${inputCls} ${s.profileErrors.firstName ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
@@ -1036,9 +1049,7 @@ const ProfilePage: React.FC = () => {
                                                 onChange={(e) => {
                                                     patchProfile({ lastName: e.target.value });
                                                     if (s.profileErrors.lastName && e.target.value.trim()) {
-                                                        const newErrors = { ...s.profileErrors };
-                                                        delete newErrors.lastName;
-                                                        patch({ profileErrors: newErrors });
+                                                        patch({ profileErrors: removeErrorKey(s.profileErrors, "lastName") });
                                                     }
                                                 }}
                                                 className={`${inputCls} ${s.profileErrors.lastName ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
@@ -1055,9 +1066,7 @@ const ProfilePage: React.FC = () => {
                                                 patchProfile({ email: e.target.value });
                                                 if (s.profileErrors.email) {
                                                     if (e.target.value.trim() && validateEmail(e.target.value)) {
-                                                        const newErrors = { ...s.profileErrors };
-                                                        delete newErrors.email;
-                                                        patch({ profileErrors: newErrors });
+                                                        patch({ profileErrors: removeErrorKey(s.profileErrors, "email") });
                                                     }
                                                 }
                                             }}
@@ -1075,9 +1084,7 @@ const ProfilePage: React.FC = () => {
                                         onChange={(value) => {
                                             patchProfile({ gender: value });
                                             if (s.profileErrors.gender && value) {
-                                                const newErrors = { ...s.profileErrors };
-                                                delete newErrors.gender;
-                                                patch({ profileErrors: newErrors });
+                                                patch({ profileErrors: removeErrorKey(s.profileErrors, "gender") });
                                             }
                                         }}
                                         required
@@ -1104,9 +1111,7 @@ const ProfilePage: React.FC = () => {
                                                     patchProfile({ alternativeNumber: formatted });
                                                     if (s.profileErrors.alternativeNumber) {
                                                         if (formatted.trim() && validateMobileNumber(formatted)) {
-                                                            const newErrors = { ...s.profileErrors };
-                                                            delete newErrors.alternativeNumber;
-                                                            patch({ profileErrors: newErrors });
+                                                            patch({ profileErrors: removeErrorKey(s.profileErrors, "alternativeNumber") });
                                                         }
                                                     }
                                                 }
@@ -1127,9 +1132,7 @@ const ProfilePage: React.FC = () => {
                                                     patchProfile({ whatsappNumber: formatted });
                                                     if (s.profileErrors.whatsappNumber) {
                                                         if (!formatted.trim() || validateMobileNumber(formatted)) {
-                                                            const newErrors = { ...s.profileErrors };
-                                                            delete newErrors.whatsappNumber;
-                                                            patch({ profileErrors: newErrors });
+                                                            patch({ profileErrors: removeErrorKey(s.profileErrors, "whatsappNumber") });
                                                         }
                                                     }
                                                 }
@@ -1156,9 +1159,7 @@ const ProfilePage: React.FC = () => {
                                                 if (formatted.length <= 10) {
                                                     patchProfile({ panNumber: formatted });
                                                     if (s.profileErrors.panNumber && formatted.trim()) {
-                                                        const newErrors = { ...s.profileErrors };
-                                                        delete newErrors.panNumber;
-                                                        patch({ profileErrors: newErrors });
+                                                        patch({ profileErrors: removeErrorKey(s.profileErrors, "panNumber") });
                                                     }
                                                 }
                                             }}
@@ -1170,7 +1171,7 @@ const ProfilePage: React.FC = () => {
                                         {s.profileErrors.panNumber && <p className="text-[11px] text-rose-500 mt-1">{s.profileErrors.panNumber}</p>}
                                         {s.profileForm.panVerified && <p className="text-[11px] text-[#8A8A8A] mt-1">PAN is verified and cannot be changed.</p>}
                                     </div>
-                
+
                                     <div className="flex gap-3 pt-2">
                                         <button onClick={() => patch({ isEditingProfile: false, profileErrors: {} })} className="px-5 py-2 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition">Cancel</button>
                                         <button onClick={handleSaveProfile} disabled={s.isSavingProfile || s.isVerifyingPan} className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-60">
@@ -1257,9 +1258,7 @@ const ProfilePage: React.FC = () => {
                                                 onChange={(e) => {
                                                     patchAddrForm({ flatNo: e.target.value });
                                                     if (s.addrErrors.flatNo && e.target.value.trim()) {
-                                                        const newErrors = { ...s.addrErrors };
-                                                        delete newErrors.flatNo;
-                                                        patch({ addrErrors: newErrors });
+                                                        patch({ addrErrors: removeErrorKey(s.addrErrors, "flatNo") });
                                                     }
                                                 }}
                                                 className={`${inputCls} ${s.addrErrors.flatNo ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
@@ -1273,9 +1272,7 @@ const ProfilePage: React.FC = () => {
                                                 onChange={(e) => {
                                                     patchAddrForm({ landMark: e.target.value });
                                                     if (s.addrErrors.landMark && e.target.value.trim()) {
-                                                        const newErrors = { ...s.addrErrors };
-                                                        delete newErrors.landMark;
-                                                        patch({ addrErrors: newErrors });
+                                                        patch({ addrErrors: removeErrorKey(s.addrErrors, "landMark") });
                                                     }
                                                 }}
                                                 className={`${inputCls} ${s.addrErrors.landMark ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
@@ -1290,9 +1287,7 @@ const ProfilePage: React.FC = () => {
                                             onChange={(e) => {
                                                 patchAddrForm({ address: e.target.value });
                                                 if (s.addrErrors.address && e.target.value.trim()) {
-                                                    const newErrors = { ...s.addrErrors };
-                                                    delete newErrors.address;
-                                                    patch({ addrErrors: newErrors });
+                                                    patch({ addrErrors: removeErrorKey(s.addrErrors, "address") });
                                                 }
                                             }}
                                             className={`${inputCls} resize-none ${s.addrErrors.address ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
@@ -1308,13 +1303,10 @@ const ProfilePage: React.FC = () => {
                                                 onChange={(e) => {
                                                     const formatted = formatPincode(e.target.value);
                                                     patchAddrForm({ pinCode: formatted });
-                                                    const newErrors = { ...s.addrErrors };
-                                                    if (formatted.length === 6 && validatePincode(formatted)) {
-                                                        delete newErrors.pinCode;
-                                                    } else if (formatted.length > 0) {
-                                                        newErrors.pinCode = "Pin code must contain 6 digits";
-                                                    }
-                                                    patch({ addrErrors: newErrors });
+                                                    const nextErrors = formatted.length === 6 && validatePincode(formatted)
+                                                        ? removeErrorKey(s.addrErrors, "pinCode")
+                                                        : { ...s.addrErrors, pinCode: formatted.length > 0 ? "Pin code must contain 6 digits" : "" };
+                                                    patch({ addrErrors: nextErrors });
                                                 }}
                                                 onBlur={() => {
                                                     if (!validatePincode(s.addrForm.pinCode)) {
@@ -1329,15 +1321,13 @@ const ProfilePage: React.FC = () => {
                                             {s.addrErrors.pinCode && <p className="text-[11px] text-rose-500 mt-1">{s.addrErrors.pinCode}</p>}
                                         </div>
                                         <div>
-                                            <label className={labelCls}>State</label>
+                                            <label className={labelCls}>State<span className="text-rose-500 ml-1">*</span></label>
                                             <input
                                                 value={s.addrForm.state}
                                                 onChange={(e) => {
                                                     patchAddrForm({ state: e.target.value });
                                                     if (s.addrErrors.state && e.target.value.trim()) {
-                                                        const newErrors = { ...s.addrErrors };
-                                                        delete newErrors.state;
-                                                        patch({ addrErrors: newErrors });
+                                                        patch({ addrErrors: removeErrorKey(s.addrErrors, "state") });
                                                     }
                                                 }}
                                                 className={`${inputCls} ${s.addrErrors.state ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
@@ -1359,6 +1349,12 @@ const ProfilePage: React.FC = () => {
                                             )}
                                             {s.isFetchingLocation ? "Fetching..." : "Capture Current Location"}
                                         </button>
+                                        {s.addrErrors.latitude && (
+                                            <p className="text-[11px] text-amber-600 mt-2 flex items-center gap-1">
+                                                <AlertTriangle className="h-3 w-3" />
+                                                {s.addrErrors.latitude}
+                                            </p>
+                                        )}
                                         {(s.addrForm.latitude && s.addrForm.longitude) && (
                                             <p className="text-[11px] text-emerald-600 mt-2 flex items-center gap-1">
                                                 <CheckCircle2 className="h-3 w-3" />
@@ -1387,7 +1383,7 @@ const ProfilePage: React.FC = () => {
                                     <p className="text-[12px] text-[#8A8A8A]">No addresses saved yet</p>
                                 </div>
                             ) : (
-                                <div className="space-y-3">
+                                <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
                                     {s.addresses.map((addr) => (
                                         <div key={addr.id} className="flex items-start gap-4 border border-[#E8E0D5] rounded-xl px-5 py-4 bg-white hover:border-[#C9B87A] transition">
                                             <div className="h-8 w-8 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
@@ -1598,50 +1594,50 @@ const ProfilePage: React.FC = () => {
                                                         {order.items?.map((item: any, i: number) => {
                                                             const existingReview = reviews.find((r) => r.productId === item.productId);
                                                             return (
-                                                            <div key={i} className="bg-white border border-[#E8E0D5] rounded-xl px-4 py-3.5">
-                                                                <div className="flex items-start gap-3">
-                                                                    <div className="h-9 w-9 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
-                                                                        <Package className="h-4 w-4" />
-                                                                    </div>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <div className="flex items-start justify-between gap-2">
-                                                                            <p className="text-[13px] font-semibold text-[#1A1A1A] leading-snug">
-                                                                                {item.productName || `Product #${item.productId}`}
-                                                                            </p>
-                                                                            <p className="text-[13px] font-semibold text-[#1A1A1A] shrink-0">{DISPLAY_INR(item.subtotal)}</p>
+                                                                <div key={i} className="bg-white border border-[#E8E0D5] rounded-xl px-4 py-3.5">
+                                                                    <div className="flex items-start gap-3">
+                                                                        <div className="h-9 w-9 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
+                                                                            <Package className="h-4 w-4" />
                                                                         </div>
-                                                                        {item.variant && (
-                                                                            <p className="text-[11px] text-[#8B6914] font-medium mt-0.5">{item.variant}</p>
-                                                                        )}
-                                                                        <p className="text-[11px] text-[#8A8A8A] mt-0.5">
-                                                                            Qty: {item.quantity} · {DISPLAY_INR(item.price)} per pc
-                                                                        </p>
-                                                                        <div className="mt-2 flex items-center justify-between gap-2">
-                                                                            {existingReview && (
-                                                                            <div className="flex items-center gap-0.5">
-                                                                                {[1,2,3,4,5].map((star) => (
-                                                                                    <Star key={star} className="h-3.5 w-3.5"
-                                                                                        fill={star <= existingReview.rating ? "#F5B301" : "none"}
-                                                                                        stroke={star <= existingReview.rating ? "#F5B301" : "#D1C7BB"}
-                                                                                    />
-                                                                                ))}
-                                                                                <span className="ml-1.5 text-[11px] text-[#8A8A8A] font-medium">{REVIEW_RATING_LABELS[existingReview.rating]}</span>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="flex items-start justify-between gap-2">
+                                                                                <p className="text-[13px] font-semibold text-[#1A1A1A] leading-snug">
+                                                                                    {item.productName || `Product #${item.productId}`}
+                                                                                </p>
+                                                                                <p className="text-[13px] font-semibold text-[#1A1A1A] shrink-0">{DISPLAY_INR(item.subtotal)}</p>
                                                                             </div>
+                                                                            {item.variant && (
+                                                                                <p className="text-[11px] text-[#8B6914] font-medium mt-0.5">{item.variant}</p>
                                                                             )}
-                                                                            {order.orderStatus?.toUpperCase() === "DELIVERED" && (
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() => openProductReview(item)}
-                                                                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B6914] hover:text-[#5f470d] shrink-0"
-                                                                                >
-                                                                                    <Star className="h-3 w-3" fill={existingReview ? "#F5B301" : "none"} stroke="#8B6914" />
-                                                                                    {existingReview ? "Edit rating" : "Rate product"}
-                                                                                </button>
-                                                                            )}
+                                                                            <p className="text-[11px] text-[#8A8A8A] mt-0.5">
+                                                                                Qty: {item.quantity} · {DISPLAY_INR(item.price)} per pc
+                                                                            </p>
+                                                                            <div className="mt-2 flex items-center justify-between gap-2">
+                                                                                {existingReview && (
+                                                                                    <div className="flex items-center gap-0.5">
+                                                                                        {[1, 2, 3, 4, 5].map((star) => (
+                                                                                            <Star key={star} className="h-3.5 w-3.5"
+                                                                                                fill={star <= existingReview.rating ? "#F5B301" : "none"}
+                                                                                                stroke={star <= existingReview.rating ? "#F5B301" : "#D1C7BB"}
+                                                                                            />
+                                                                                        ))}
+                                                                                        <span className="ml-1.5 text-[11px] text-[#8A8A8A] font-medium">{REVIEW_RATING_LABELS[existingReview.rating]}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {order.orderStatus?.toUpperCase() === "DELIVERED" && (
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => openProductReview(item)}
+                                                                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B6914] hover:text-[#5f470d] shrink-0"
+                                                                                    >
+                                                                                        <Star className="h-3 w-3" fill={existingReview ? "#F5B301" : "none"} stroke="#8B6914" />
+                                                                                        {existingReview ? "Edit rating" : "Rate product"}
+                                                                                    </button>
+                                                                                )}
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
                                                             );
                                                         })}
 
@@ -1866,15 +1862,14 @@ const ProfilePage: React.FC = () => {
                                                         <span className="text-[10px] font-semibold text-[#8A8A8A] uppercase tracking-wider">
                                                             #{q.randomTicketId || q.ticketId}
                                                         </span>
-                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                                                            q.queryStatus === 'COMPLETED'
-                                                                ? 'bg-emerald-50 text-emerald-700'
-                                                                : q.queryStatus === 'PENDING'
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${q.queryStatus === 'COMPLETED'
+                                                            ? 'bg-emerald-50 text-emerald-700'
+                                                            : q.queryStatus === 'PENDING'
                                                                 ? 'bg-amber-50 text-amber-700'
                                                                 : q.queryStatus === 'CANCELLED'
-                                                                ? 'bg-rose-50 text-rose-700'
-                                                                : 'bg-blue-50 text-blue-700'
-                                                        }`}>
+                                                                    ? 'bg-rose-50 text-rose-700'
+                                                                    : 'bg-blue-50 text-blue-700'
+                                                            }`}>
                                                             {q.queryStatus}
                                                         </span>
                                                     </div>

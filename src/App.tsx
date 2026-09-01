@@ -188,7 +188,22 @@ function AppContent() {
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/faq" element={<FAQ />} />
 
-            {/* Physical Gold */}
+            {/* Physical Gold public storefront */}
+            <Route element={<PhysicalGoldLayout />}>
+              <Route path="/physical-gold" element={<PhysicalGoldPage />} />
+              <Route path="/physical-gold/category/:categoryId" element={<PhysicalGoldPage />} />
+              <Route path="/physical-gold/category/:categoryId/subcategory/:subCategoryId" element={<PhysicalGoldPage />} />
+              <Route path="/physical-gold/product/:id" element={<ProductDetailsPage />} />
+              <Route path="/physical-gold/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/physical-gold/terms-conditions" element={<TermsConditionsPhysical />} />
+              <Route path="/physical-gold/shipping-policy" element={<ShippingPolicy />} />
+              <Route path="/physical-gold/return-refund-policy" element={<ReturnRefundPolicy />} />
+              <Route path="/physical-gold/faq" element={<FAQPage />} />
+              <Route path="/physical-gold/cookie-policy" element={<CookiePolicy />} />
+              <Route path="/physical-gold/cancellation-policy" element={<CancellationPolicy />} />
+            </Route>
+
+            {/* Physical Gold protected actions */}
             <Route
               element={
                 <ProtectedRoute>
@@ -196,10 +211,6 @@ function AppContent() {
                 </ProtectedRoute>
               }
             >
-              <Route path="/physical-gold" element={<PhysicalGoldPage />} />
-              <Route path="/physical-gold/category/:categoryId" element={<PhysicalGoldPage />} />
-              <Route path="/physical-gold/category/:categoryId/subcategory/:subCategoryId" element={<PhysicalGoldPage />} />
-              <Route path="/physical-gold/product/:id" element={<ProductDetailsPage />} />
               <Route
                 path="/physical-gold/orders"
                 element={<Navigate to="/physical-gold/profile?tab=orders" replace />}
@@ -208,13 +219,6 @@ function AppContent() {
               <Route path="/physical-gold/profile" element={<ProfilePage />} />
               <Route path="/physical-gold/wishlist" element={<WishlistPage />} />
               <Route path="/physical-gold/payment-status" element={<PaymentStatusPage />} />
-              <Route path="/physical-gold/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/physical-gold/terms-conditions" element={<TermsConditionsPhysical />} />
-              <Route path="/physical-gold/shipping-policy" element={<ShippingPolicy />} />
-              <Route path="/physical-gold/return-refund-policy" element={<ReturnRefundPolicy />} />
-              <Route path="/physical-gold/faq" element={<FAQPage />} />
-              <Route path="/physical-gold/cookie-policy" element={<CookiePolicy />} />
-              <Route path="/physical-gold/cancellation-policy" element={<CancellationPolicy />} />
             </Route>
 
             {/* Admin */}

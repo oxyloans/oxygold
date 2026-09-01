@@ -3,19 +3,17 @@ import trackImage from "../assets/trackImage.png";
 
 export default function TracknTrace() {
   return (
-    <section className="w-full">
+    <section className="w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-8 sm:rounded-3xl sm:px-8 sm:py-12 lg:px-12 lg:py-14">
       <div className="grid items-center gap-4 sm:gap-6 lg:gap-8 grid-cols-1 lg:grid-cols-[1.05fr_0.95fr]">
         {/* LEFT CONTENT */}
         <div className="flex flex-col justify-center text-center lg:text-left px-3 sm:px-4 lg:px-0 py-2 sm:py-8 lg:py-0">
-        
-
-          <h1 className="mt-2 text-[28px] sm:text-[40px] md:text-[48px] lg:text-[60px] leading-[1.15] font-black text-white">
+          <h1 className="mt-2 text-[28px] sm:text-[40px] md:text-[48px] lg:text-[56px] leading-[1.15] font-black text-white">
             Track & Trace{" "}
             <span className="bg-gradient-to-br from-[#D4AF37] to-[#F5D36C] bg-clip-text text-transparent">
               Gold
             </span>
           </h1>
-  <p className="pt-8 sm:pt-0 text-[11px] sm:text-[13px] font-extrabold tracking-[1.5px] uppercase bg-gradient-to-r from-white to-[#D4AF37] bg-clip-text text-transparent">
+          <p className="pt-4 sm:pt-0 text-[11px] sm:text-[13px] font-extrabold tracking-[1.5px] uppercase bg-gradient-to-r from-white to-[#D4AF37] bg-clip-text text-transparent">
             Building Trust in the Gold Ecosystem
           </p>
           <p className="mt-3 text-[15px] sm:text-[18px] lg:text-[20px] font-semibold text-white/85 leading-[1.6] max-w-[760px] mx-auto lg:mx-0">
@@ -69,7 +67,7 @@ export default function TracknTrace() {
             <img
               src={trackImage}
               alt="Track and Trace Gold"
-              className="w-full h-auto object-contain block drop-shadow-[0_20px_40px_rgba(0,0,0,0.35)]"
+              className="block h-auto w-full object-contain drop-shadow-[0_14px_24px_rgba(8,2,24,0.24)]"
             />
           </div>
         </div>

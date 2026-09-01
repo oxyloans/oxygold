@@ -539,7 +539,8 @@ export default function GoldRatesDashboard() {
 const styles = `
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
-.grdRoot .page{ padding: 0px; }
+.grdRoot{ width: 100%; padding: 32px 0; box-sizing: border-box; }
+.grdRoot .page{ width: 100%; padding: 0; }
 
 .grdRoot .panel{
   font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -753,6 +754,7 @@ const styles = `
 }
 
 @media (min-width: 640px){
+  .grdRoot{ padding: 32px 0; }
   .grdRoot .panel{ padding: 14px; border-radius: 18px; }
   .grdRoot .title{ font-size: 18px; }
   .grdRoot .subtitle{ font-size: 12px; }
@@ -764,6 +766,7 @@ const styles = `
 }
 
 @media (min-width: 1024px){
+  .grdRoot{ padding: 40px 0; }
   .grdRoot .panel{ padding: 16px; border-radius: 20px; }
   .grdRoot .title{ font-size: 20px; }
   .grdRoot .subtitle{ font-size: 13px; }

@@ -97,10 +97,9 @@ const cardVariants: Variants = {
   },
 };
 
-
 const OurTeam: React.FC = () => {
   return (
-    <section className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] px-4 py-10 backdrop-blur-xl sm:px-6 sm:py-12 lg:px-10 lg:py-16">
+    <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-10 sm:rounded-3xl sm:px-6 sm:py-12 lg:px-10 lg:py-16">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,#5b2eff55_0%,transparent_32%),radial-gradient(circle_at_bottom_right,#d4af3740_0%,transparent_34%)]" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/20" />
 
@@ -141,11 +140,11 @@ const OurTeam: React.FC = () => {
                 y: -8,
                 transition: { duration: 0.25, ease: "easeOut" },
               }}
-              className="group relative overflow-hidden rounded-[30px] border border-white/10 bg-[#1d0b39]/85 p-3 shadow-[0_20px_70px_rgba(0,0,0,0.35)] transition-all duration-300 hover:border-[#f4c73f]/60"
+              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#1d0b39]/80 p-3 shadow-[0_12px_32px_rgba(8,2,24,0.22)] transition-all duration-300 hover:border-[#D4AF37]/50 hover:shadow-[0_16px_38px_rgba(8,2,24,0.28)]"
             >
               <div className="pointer-events-none absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100 bg-[radial-gradient(circle_at_top,#f4c73f24_0%,transparent_45%)]" />
 
-              <div className="relative overflow-hidden rounded-[24px] bg-white">
+              <div className="relative overflow-hidden rounded-xl bg-white">
                 <div className="relative h-72 overflow-hidden sm:h-80">
                   <img
                     src={member.img}

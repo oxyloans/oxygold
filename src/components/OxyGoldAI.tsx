@@ -3,7 +3,6 @@ import {
   Boxes,
   Sparkles,
   Lock,
-  MapPin,
   ShieldCheck,
   CalendarDays,
   Truck,
@@ -26,16 +25,11 @@ import OxyEcosystem from "./OxyPlatforms";
 import TrackTrace from "./TracknTrace";
 import OurTeam from "./OurTeam";
 
-import BackgroundSystem from "./backgrounds/BackgroundSystem";
-import HeroLocalPattern from "./backgrounds/HeroLocalPattern";
-import MiniCircuit from "./backgrounds/MiniCircuit";
 import SectionHeader from "./ui/SectionHeader";
-import GlassCard from "./ui/GlassCard";
-import InfoChip from "./ui/InfoChip";
-import BadgePill from "./ui/BadgePill";
 import ModuleCard from "./ui/ModuleCard";
 import GoldRatesTickerStrip from "./ui/GoldRatesTickerStrip";
 import BuySilverSection from "./BuySilverSection";
+import GoldProductsLanding from "./GoldProductsLanding";
 
 type AssetMap = {
   logo: string;
@@ -44,7 +38,9 @@ type AssetMap = {
   partnerLogos: string[];
 };
 
-type Props = { assets?: Partial<AssetMap> };
+type Props = {
+  assets?: Partial<AssetMap>;
+};
 
 const BRAND = {
   purple: {
@@ -98,12 +94,6 @@ const provideCards = [
   },
 ];
 
-const trustBullets = [
-  "Purple-first UI for authority & security",
-  "Gold accents only for premium highlights (20% rule)",
-  "Clean fintech experience (not jewelry / not flashy retail)",
-  "Audit-ready, scalable platform architecture",
-];
 const modules8 = [
   {
     title: "DIGITAL GOLD",
@@ -141,8 +131,18 @@ const modules8 = [
     icon: Wallet,
     tag: "NEW",
   },
-  { title: "BUY ETF", subtitle: "Market exposure", icon: Landmark, tag: "NEW" },
-  { title: "BUY PURE GOLD", subtitle: "999+ purity", icon: Scale, tag: "NEW" },
+  {
+    title: "BUY ETF",
+    subtitle: "Market exposure",
+    icon: Landmark,
+    tag: "NEW",
+  },
+  {
+    title: "BUY PURE GOLD",
+    subtitle: "999+ purity",
+    icon: Scale,
+    tag: "NEW",
+  },
 ];
 
 export default function OxyGoldLandingPage({ assets }: Props) {
@@ -152,11 +152,14 @@ export default function OxyGoldLandingPage({ assets }: Props) {
 
   useEffect(() => {
     const handleScroll = () => {
-      setShowScroll(window.scrollY > 300); // show after scrolling 300px
+      setShowScroll(window.scrollY > 300);
     };
 
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
   const scrollToTop = () => {
@@ -165,265 +168,588 @@ export default function OxyGoldLandingPage({ assets }: Props) {
       behavior: "smooth",
     });
   };
+
   return (
     <div
       id="top"
-      className="min-h-screen text-white font-poppins overflow-x-hidden"
+      className="min-h-screen overflow-x-hidden bg-[#0B021D] font-poppins text-white"
       style={{
-        background: `linear-gradient(180deg, ${BRAND.purple.deepBg} 0%, #07061A 70%, #050412 100%)`,
+        background:
+          "linear-gradient(180deg, #2B0A59 0%, #1B063D 50%, #0B021D 100%)",
       }}
     >
-      <BackgroundSystem />
-
+      {/* Header */}
       <LandingHeader offsetPx={106} />
 
+      {/* Gold Rates Ticker */}
       <GoldRatesTickerStrip fixed top={72} height={34} />
 
-      {/* ✅ Buy Silver Coins */}
-        <section id="buy-coins">
+      {/* Main Content */}
+      <main className="relative z-10 space-y-10 sm:space-y-14 lg:space-y-20">
+
+        {/* Gold Jewellery Products */}
+        <section
+          id="gold-products"
+          className="scroll-mt-28"
+        >
+          <GoldProductsLanding />
+        </section>
+
+        {/* Buy Silver Coins */}
+        <section
+          id="buy-silver-coins"
+          className="scroll-mt-28"
+        >
           <BuySilverSection />
         </section>
 
-        {/* ✅ Buy Gold Coins */}
-        <section id="buy-coins">
+        {/* Buy Gold Coins */}
+        <section
+          id="buy-coins"
+          className="scroll-mt-28"
+        >
           <BuyGoldCoins />
         </section>
 
-      {/* ✅ Single real spacing (no extra blank container) */}
-      <div
-        className="mx-auto max-w-7xl px-4 sm:px-7 lg:px-4"
-        style={{ paddingTop: 40 }}
-      >
-        {/* HERO SECTION */}
-      </div>
+        {/* Main Container */}
+        <div className="mx-auto w-full max-w-[1464px] px-4 sm:px-6 lg:px-8">
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-7 lg:px-4">
-        {/* HERO */}
+          <div className="space-y-10 sm:space-y-14 lg:space-y-20">
 
-        <section className="py-2 sm:py-12 lg:py-20">
-          <TrackTrace />
-        </section>
-        <section
-          id="hero"
-          className="relative grid items-center gap-6 sm:gap-8 lg:gap-12 pb-4 sm:pb-8 lg:pb-10 pt-2 sm:pt-6 lg:pt-8 lg:grid-cols-2"
-        >
-          <HeroLocalPattern />
+            {/* Track & Trace */}
+            <section className="scroll-mt-28">
+              <TrackTrace />
+            </section>
 
-          {/* LEFT */}
-          <div className="text-center lg:text-left px-2 pt-0 sm:px-0">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold leading-[1.15] sm:leading-tight font-playfair">
-              Powering the Future of{" "}
-              <span className="inline-block">
-                Gold Intell
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{
-                    backgroundImage: `linear-gradient(90deg, ${BRAND.gold.bright}, ${BRAND.gold.primary})`,
-                  }}
+            {/* HERO */}
+            <section
+              id="hero"
+              className="
+                relative
+                grid
+                items-center
+                gap-8
+                overflow-hidden
+                rounded-2xl
+                border
+                border-white/10
+                bg-white/[0.035]
+                px-4
+                py-8
+                sm:gap-10
+                sm:rounded-3xl
+                sm:px-8
+                sm:py-12
+                lg:grid-cols-2
+                lg:gap-14
+                lg:px-12
+                lg:py-16
+              "
+            >
+
+              {/* LEFT CONTENT */}
+              <div className="px-2 pt-0 text-center sm:px-0 lg:text-left">
+
+                <h1
+                  className="
+                    font-playfair
+                    text-2xl
+                    font-extrabold
+                    leading-[1.15]
+                    sm:text-3xl
+                    md:text-4xl
+                    lg:text-5xl
+                    sm:leading-tight
+                  "
                 >
-                  AI
-                </span>
-                gence
-              </span>
-            </h1>
+                  Powering the Future of{" "}
 
-            <p className="mt-4 mx-auto lg:mx-0 max-w-xl text-sm sm:text-base lg:text-lg leading-relaxed text-white/85">
-              OXYGOLD.AI is engineering a next-generation gold ecosystem where
-              benchmark pricing, compliance frameworks, and AI intelligence
-              converge to modernize how gold is owned, validated, and scaled.
-            </p>
+                  <span className="inline-block">
+                    Gold Intell
 
-            <p className="mt-3 mx-auto lg:mx-0 max-w-xl text-sm sm:text-base leading-relaxed text-white/65">
-              We are building the foundational infrastructure layer powering
-              trust in the modern gold economy.
-            </p>
-
-            {/* Leadership Section */}
-            <div className="mt-6 sm:mt-8 max-w-xl mx-auto lg:mx-0">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                <p className="text-sm sm:text-base font-medium tracking-widest text-white/60">
-                  CO-FOUNDERS
-                </p>
-                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div className="flex items-center justify-center lg:justify-start gap-2 rounded-xl border border-white/15 bg-white/5 px-3 sm:px-4 py-3 text-xs sm:text-sm lg:text-base text-white/90 text-center lg:text-left">
-                  <span className="h-2 w-2 rounded-full bg-yellow-400 shrink-0" />
-                  <div className="leading-snug">
-                    <p className="font-medium">Radhakrishna Thatavarti</p>
-                    <p className="text-white/60 text-[11px] sm:text-xs lg:text-sm">
-                      Co-Founder & CEO
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-center lg:justify-start gap-2 rounded-xl border border-white/15 bg-white/5 px-3 sm:px-4 py-3 text-xs sm:text-sm lg:text-base text-white/90 text-center lg:text-left">
-                  <span className="h-2 w-2 rounded-full bg-yellow-400 shrink-0" />
-                  <div className="leading-snug">
-                    <p className="font-medium">Ramadevi Thatavarti</p>
-                    <p className="text-white/60 text-[11px] sm:text-xs lg:text-sm">
-                      Co-Founder & CTO
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT */}
-          <div className="flex justify-center lg:justify-end pt-0">
-            <img
-              src={A.heroPoster}
-              alt="Hero Poster"
-              className="w-full max-w-sm sm:max-w-md lg:max-w-xl object-contain"
-              draggable={false}
-            />
-          </div>
-        </section>
-
-        {/* ✅ Live Gold Rate */}
-        <section id="live-rate" className="py-0 sm:py-8 lg:py-16">
-          <GoldRatesDashboard />
-        </section>
-
-        {/* ✅ AI Book */}
-        <section id="ai-book" className="py-0 sm:py-8 lg:py-12">
-          <AIBookSection />
-        </section>
-
-        {/* ✅ IBJA */}
-        <section id="ibja-partner" className="py-0 sm:py-8 lg:py-12">
-          <IBJAPartnerSection />
-        </section>
-
-        {/* ✅ Design Jewellery */}
-        <section id="design-jewellery" className="py-0 sm:py-8 lg:py-12">
-          <DesignGoldOrnaments />
-        </section>
-
-        {/* ✅ Leadership Team */}
-        <section id="leadership" className="py-2 sm:py-8 lg:py-12">
-          <OurTeam />
-        </section>
-
-        {/* MAIN CONTENT SECTIONS */}
-        <div className="space-y-0 sm:space-y-6">
-          {/* ✅ What We Provide */}
-          <section id="provide" className="py-2 sm:py-10">
-            <SectionHeader
-              kicker=""
-              title="What We Provide"
-              subtitle="Digital gold + AI-driven trust layer for multiple sectors — designed like a premium bank-grade platform."
-            />
-
-            <div className="mt-6 sm:mt-8 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-              {provideCards.map((c) => (
-                <div
-                  key={c.title}
-                  className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 sm:p-5 transition hover:bg-white/10"
-                >
-                  <div className="relative flex items-start gap-3 sm:gap-4">
-                    <div className="grid h-10 w-10 sm:h-12 sm:w-12 place-items-center rounded-xl border border-yellow-400/40 bg-gradient-to-br from-yellow-300/30 via-white/10 to-purple-500/20 text-yellow-400">
-                      <div className="scale-95 sm:scale-100">{c.icon}</div>
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm sm:text-base font-semibold text-white">
-                        {c.title}
-                      </h3>
-                      <p className="mt-2 text-xs sm:text-sm leading-relaxed text-white/70">
-                        {c.desc}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* ✅ Modules */}
-          <section id="modules" className="py-0 sm:py-6">
-            <div className="relative overflow-hidden rounded-xl sm:rounded-2xl lg:rounded-[20px] border border-white/10 bg-white/5">
-              <div
-                className="pointer-events-none absolute -left-12 sm:-left-20 lg:-left-24 -top-12 sm:-top-20 lg:-top-24 h-40 w-40 sm:h-56 sm:w-56 lg:h-72 lg:w-72 rounded-full blur-3xl opacity-30"
-                style={{ backgroundColor: `${BRAND.purple.primary}55` }}
-              />
-              <div
-                className="pointer-events-none absolute -right-12 sm:-right-20 lg:-right-24 -bottom-12 sm:-bottom-20 lg:-bottom-24 h-40 w-40 sm:h-56 sm:w-56 lg:h-72 lg:w-72 rounded-full blur-3xl opacity-25"
-                style={{ backgroundColor: `${BRAND.gold.primary}55` }}
-              />
-
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 opacity-35" />
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-12 sm:h-20 lg:h-24 bg-gradient-to-b from-white/10 to-transparent opacity-40" />
-
-              <div className="relative px-3 py-4 sm:p-6 lg:p-10">
-                <div className="text-center">
-                  <h2 className="text-lg sm:text-2xl lg:text-3xl font-semibold leading-tight">
                     <span
                       className="bg-clip-text text-transparent"
                       style={{
-                        backgroundImage: `linear-gradient(90deg, ${BRAND.gold.bright}, ${BRAND.gold.primary})`,
+                        backgroundImage: `linear-gradient(
+                          90deg,
+                          ${BRAND.gold.bright},
+                          ${BRAND.gold.primary}
+                        )`,
                       }}
                     >
-                      OXYGOLD.AI
-                    </span>{" "}
-                    Modules
-                  </h2>
-
-                  <p className="mt-2 sm:mt-3 mx-auto max-w-2xl text-xs sm:text-sm lg:text-base leading-relaxed text-white/70">
-                    A premium ecosystem for bullion and allied sectors — built
-                    like a{" "}
-                    <span className="text-white/90 font-semibold">
-                      Digital Gold Bank
+                      AI
                     </span>
-                    .
-                  </p>
-                </div>
 
-                <div className="mt-4 sm:mt-6 lg:mt-8 grid gap-2.5 sm:gap-3 lg:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                  {modules8.map((m) => (
-                    <ModuleCard key={m.title} {...m} />
-                  ))}
+                    gence
+                  </span>
+                </h1>
+
+                <p
+                  className="
+                    mx-auto
+                    mt-4
+                    max-w-xl
+                    text-sm
+                    leading-relaxed
+                    text-white/85
+                    sm:text-base
+                    lg:mx-0
+                    lg:text-lg
+                  "
+                >
+                  OXYGOLD.AI is engineering a next-generation gold ecosystem
+                  where benchmark pricing, compliance frameworks, and AI
+                  intelligence converge to modernize how gold is owned,
+                  validated, and scaled.
+                </p>
+
+                <p
+                  className="
+                    mx-auto
+                    mt-3
+                    max-w-xl
+                    text-sm
+                    leading-relaxed
+                    text-white/65
+                    sm:text-base
+                    lg:mx-0
+                  "
+                >
+                  We are building the foundational infrastructure layer
+                  powering trust in the modern gold economy.
+                </p>
+
+                {/* Leadership */}
+                <div className="mx-auto mt-6 max-w-xl sm:mt-8 lg:mx-0">
+
+                  {/* Clean Heading - No Decorative Lines */}
+                  <div className="mb-4 text-center lg:text-left">
+                    <p
+                      className="
+                        text-sm
+                        font-medium
+                        tracking-[0.25em]
+                        text-white/60
+                        sm:text-base
+                      "
+                    >
+                      CO-FOUNDERS
+                    </p>
+                  </div>
+
+                  {/* Founder Cards */}
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+
+                    {/* Founder 1 */}
+                    <div
+                      className="
+                        flex
+                        items-center
+                        justify-center
+                        gap-2
+                        rounded-xl
+                        border
+                        border-white/10
+                        bg-white/[0.045]
+                        px-3
+                        py-3
+                        text-center
+                        text-xs
+                        text-white/90
+                        transition
+                        duration-200
+                        hover:border-white/20
+                        hover:bg-white/[0.065]
+                        sm:px-4
+                        sm:text-sm
+                        lg:justify-start
+                        lg:text-left
+                        lg:text-base
+                      "
+                    >
+                      <span
+                        className="
+                          h-2
+                          w-2
+                          shrink-0
+                          rounded-full
+                          bg-yellow-400
+                        "
+                      />
+
+                      <div className="leading-snug">
+                        <p className="font-medium">
+                          Radhakrishna Thatavarti
+                        </p>
+
+                        <p
+                          className="
+                            text-[11px]
+                            text-white/60
+                            sm:text-xs
+                            lg:text-sm
+                          "
+                        >
+                          Co-Founder & CEO
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Founder 2 */}
+                    <div
+                      className="
+                        flex
+                        items-center
+                        justify-center
+                        gap-2
+                        rounded-xl
+                        border
+                        border-white/10
+                        bg-white/[0.045]
+                        px-3
+                        py-3
+                        text-center
+                        text-xs
+                        text-white/90
+                        transition
+                        duration-200
+                        hover:border-white/20
+                        hover:bg-white/[0.065]
+                        sm:px-4
+                        sm:text-sm
+                        lg:justify-start
+                        lg:text-left
+                        lg:text-base
+                      "
+                    >
+                      <span
+                        className="
+                          h-2
+                          w-2
+                          shrink-0
+                          rounded-full
+                          bg-yellow-400
+                        "
+                      />
+
+                      <div className="leading-snug">
+                        <p className="font-medium">
+                          Ramadevi Thatavarti
+                        </p>
+
+                        <p
+                          className="
+                            text-[11px]
+                            text-white/60
+                            sm:text-xs
+                            lg:text-sm
+                          "
+                        >
+                          Co-Founder & CTO
+                        </p>
+                      </div>
+                    </div>
+
+                  </div>
                 </div>
               </div>
+
+              {/* RIGHT - HERO IMAGE */}
+              <div className="flex justify-center pt-0 lg:justify-end">
+                <img
+                  src={A.heroPoster}
+                  alt="Hero Poster"
+                  className="
+                    w-full
+                    max-w-sm
+                    object-contain
+                    sm:max-w-md
+                    lg:max-w-xl
+                  "
+                  draggable={false}
+                />
+              </div>
+
+            </section>
+
+            {/* Live Gold Rate */}
+            <section
+              id="live-rate"
+              className="py-0"
+            >
+              <GoldRatesDashboard />
+            </section>
+
+            {/* AI Book */}
+            <section
+              id="ai-book"
+              className="py-0"
+            >
+              <AIBookSection />
+            </section>
+
+            {/* IBJA Partner */}
+            <section
+              id="ibja-partner"
+              className="py-0"
+            >
+              <IBJAPartnerSection />
+            </section>
+
+            {/* Design Jewellery */}
+            <section
+              id="design-jewellery"
+              className="py-0"
+            >
+              <DesignGoldOrnaments />
+            </section>
+
+            {/* Leadership Team */}
+            <section
+              id="leadership"
+              className="py-0"
+            >
+              <OurTeam />
+            </section>
+
+            {/* Main Content Sections */}
+            <div className="space-y-10 sm:space-y-14 lg:space-y-20">
+
+              {/* What We Provide */}
+              <section
+                id="provide"
+                className="py-2 sm:py-10"
+              >
+                <SectionHeader
+                  kicker=""
+                  title="What We Provide"
+                  subtitle="Digital gold + AI-driven trust layer for multiple sectors — designed like a premium bank-grade platform."
+                />
+
+                <div
+                  className="
+                    mt-6
+                    grid
+                    grid-cols-1
+                    gap-4
+                    sm:mt-8
+                    sm:grid-cols-2
+                    sm:gap-5
+                    lg:grid-cols-4
+                  "
+                >
+                  {provideCards.map((c) => (
+                    <div
+                      key={c.title}
+                      className="
+                        relative
+                        overflow-hidden
+                        rounded-2xl
+                        border
+                        border-white/10
+                        bg-white/[0.045]
+                        p-4
+                        transition
+                        duration-200
+                        hover:-translate-y-0.5
+                        hover:border-[#D4AF37]/30
+                        hover:bg-white/[0.065]
+                        sm:p-5
+                      "
+                    >
+                      <div className="flex items-start gap-3 sm:gap-4">
+
+                        {/* Icon */}
+                        <div
+                          className="
+                            grid
+                            h-10
+                            w-10
+                            shrink-0
+                            place-items-center
+                            rounded-xl
+                            border
+                            border-yellow-400/30
+                            bg-white/[0.035]
+                            text-yellow-400
+                            sm:h-12
+                            sm:w-12
+                          "
+                        >
+                          <div className="scale-95 sm:scale-100">
+                            {c.icon}
+                          </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="min-w-0 flex-1">
+
+                          <h3
+                            className="
+                              text-sm
+                              font-semibold
+                              text-white
+                              sm:text-base
+                            "
+                          >
+                            {c.title}
+                          </h3>
+
+                          <p
+                            className="
+                              mt-2
+                              text-xs
+                              leading-relaxed
+                              text-white/70
+                              sm:text-sm
+                            "
+                          >
+                            {c.desc}
+                          </p>
+
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Modules */}
+              <section
+                id="modules"
+                className="py-0 sm:py-6"
+              >
+                <div
+                  className="
+                    overflow-hidden
+                    rounded-xl
+                    border
+                    border-white/10
+                    bg-white/[0.035]
+                    sm:rounded-2xl
+                    lg:rounded-[20px]
+                  "
+                >
+
+                  <div className="px-3 py-4 sm:p-6 lg:p-10">
+
+                    {/* Intro */}
+                    <div className="text-center">
+                      <p
+                        className="
+                          mx-auto
+                          mt-2
+                          max-w-2xl
+                          text-xs
+                          leading-relaxed
+                          text-white/70
+                          sm:mt-3
+                          sm:text-sm
+                          lg:text-base
+                        "
+                      >
+                        A premium ecosystem for bullion and allied sectors —
+                        built like a{" "}
+
+                        <span className="font-semibold text-white/90">
+                          Digital Gold Bank
+                        </span>
+                        .
+                      </p>
+                    </div>
+
+                    {/* Module Cards */}
+                    <div
+                      className="
+                        mt-4
+                        grid
+                        grid-cols-1
+                        gap-2.5
+                        sm:mt-6
+                        sm:grid-cols-2
+                        sm:gap-3
+                        lg:mt-8
+                        lg:grid-cols-4
+                        lg:gap-4
+                      "
+                    >
+                      {modules8.map((m) => (
+                        <ModuleCard
+                          key={m.title}
+                          {...m}
+                        />
+                      ))}
+                    </div>
+
+                  </div>
+                </div>
+              </section>
+
             </div>
-          </section>
+
+            {/* Platforms */}
+            <section
+              id="platforms"
+              className="py-0"
+            >
+              <OxyEcosystem />
+            </section>
+
+          </div>
         </div>
+      </main>
 
-        {/* ✅ Platforms */}
-        <section id="platforms" className="py-0 sm:py-8 lg:py-12">
-          <OxyEcosystem />
-          {/* OPTIONAL: If you want dropdown sub-links to scroll inside this section,
-          add these anchors near each platform card inside OxyEcosystem component:
-          <div id="platform-oxygold" />
-          <div id="platform-askoxy" />
-          <div id="platform-oxyloans" />
-          <div id="platform-oxybricks" />
-      */}
-        </section>
-      </div>
-
-      {/* ✅ About/Footer */}
-      <section id="about">
+      {/* About / Footer */}
+      <section
+        id="about"
+        className="
+          relative
+          z-10
+          mt-10
+          sm:mt-14
+          lg:mt-20
+        "
+      >
         <OxyGoldFooter />
       </section>
 
-      {/* Scroll To Top Button */}
+      {/* Scroll To Top */}
       {showScroll && (
         <button
           aria-label="scrollarrow"
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-50 group"
+          className="
+            group
+            fixed
+            bottom-6
+            right-6
+            z-50
+          "
         >
           <div
-            className="h-12 w-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-110"
+            className="
+              flex
+              h-12
+              w-12
+              items-center
+              justify-center
+              rounded-full
+              border
+              border-white/15
+              shadow-[0_10px_28px_rgba(12,2,35,0.28)]
+              transition-all
+              duration-300
+              hover:scale-105
+            "
             style={{
-              background: `linear-gradient(135deg, ${BRAND.purple.primary}, ${BRAND.gold.primary})`,
+              background: `linear-gradient(
+                135deg,
+                ${BRAND.purple.primary},
+                ${BRAND.gold.primary}
+              )`,
             }}
           >
-            <ArrowUp className="text-white h-5 w-5" />
+            <ArrowUp className="h-5 w-5 text-white" />
           </div>
         </button>
       )}

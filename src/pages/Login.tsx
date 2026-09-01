@@ -1,212 +1,202 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TokenManager from '../utils/tokenManager';
 import { API_BASE_URL } from '../Config';
 import { useCart } from '../PhysicalGold/CartContext';
 import { useWishlist } from '../PhysicalGold/WishlistContext';
 
-// Add global function to window for easy token inspection
-declare global {
-  interface Window {
-    debugTokens: any;
-    showTokens: () => void;
-    showLocalStorage: () => void;
-  }
-}
-
-// Global functions for debugging
-window.showTokens = () => {
-  const tokenManager = TokenManager.getInstance();
-  console.log('=== CURRENT TOKENS ===');
-  console.log('Access Token:', tokenManager.getAccessToken());
-  console.log('User ID:', tokenManager.getUserId());
-  console.log('Is Logged In:', tokenManager.isLoggedIn());
-  console.log('Debug Tokens:', window.debugTokens);
-  console.log('=== END TOKENS ===');
-};
-
-window.showLocalStorage = () => {
-  console.log('=== LOCALSTORAGE DATA ===');
-  console.log('Raw user data:', localStorage.getItem('user'));
-  try {
-    const parsed = JSON.parse(localStorage.getItem('user') || '{}');
-    console.log('Parsed user data:', parsed);
-  } catch (e) {
-    console.log('Error parsing localStorage:', e);
-  }
-  console.log('=== END LOCALSTORAGE ===');
-};
-
 const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
 
-  const Login = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { refreshCart } = useCart();
-    const { refreshWishlist } = useWishlist();
-    const [step, setStep] = useState<'phone' | 'otp'>('phone');
-    const [phone, setPhone] = useState('');
-    const [otp, setOtp] = useState(['', '', '', '', '', '']);
-    const [sessionId, setSessionId] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [resendTimer, setResendTimer] = useState(0);
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [showOtpSent, setShowOtpSent] = useState(false);
-    const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+const Login = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { refreshCart } = useCart();
+  const { refreshWishlist } = useWishlist();
+  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [sessionId, setSessionId] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showOtpSent, setShowOtpSent] = useState(false);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-    const redirectTo = location.state?.from || '/physical-gold';
+  // Keep the initial status stable. A successful OTP updates TokenManager and
+  // re-renders this component, but the normal success flow should finish
+  // refreshing the cart/wishlist before redirecting.
+  const initiallyLoggedIn = useRef(
+    TokenManager.getInstance().isLoggedIn()
+  ).current;
 
-    // If already logged in, redirect away from login page
-    useEffect(() => {
+  const loginState = (location.state || {}) as {
+    from?: string;
+    redirectTo?: string;
+    productState?: Record<string, unknown>;
+  };
+
+  const savedRedirect = sessionStorage.getItem('redirectAfterLogin');
+  const requestedRedirect =
+    loginState.redirectTo || loginState.from || savedRedirect || '/physical-gold';
+
+  // Only allow internal application routes as post-login destinations.
+  const redirectPath =
+    requestedRedirect.startsWith('/') && !requestedRedirect.startsWith('//')
+      ? requestedRedirect
+      : '/physical-gold';
+
+  const savedProductState = useMemo(() => {
+    try {
+      const rawState = sessionStorage.getItem('redirectAfterLoginState');
+      return rawState
+        ? (JSON.parse(rawState) as Record<string, unknown>)
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  }, [location.key]);
+
+  const redirectState = loginState.productState || savedProductState;
+
+  const clearSavedRedirect = () => {
+    sessionStorage.removeItem('redirectAfterLogin');
+    sessionStorage.removeItem('redirectAfterLoginState');
+  };
+
+  // ALL hooks must be called before any conditional return (Rules of Hooks)
+  useEffect(() => {
+    if (resendTimer <= 0) return;
+    const t = setTimeout(() => setResendTimer(r => r - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendTimer]);
+
+  useEffect(() => {
+    if (!initiallyLoggedIn) return;
+
+    sessionStorage.removeItem('redirectAfterLogin');
+    sessionStorage.removeItem('redirectAfterLoginState');
+    navigate(redirectPath, { replace: true, state: redirectState });
+  }, [initiallyLoggedIn, navigate, redirectPath, redirectState]);
+
+  if (initiallyLoggedIn) {
+    return null;
+  }
+
+  const handleSendOtp = async () => {
+    setError('');
+    if (!/^[6-9]\d{9}$/.test(phone)) { setError('Enter a valid 10-digit mobile number'); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneNumber: phone,
+          registrationType: 'mobile',
+          userType: 'Login',
+          userRole: 'user',
+          whatsappNumber: '',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Failed to send OTP');
+      setSessionId(data?.mobileOtpSessionId || data?.data?.mobileOtpSessionId || '');
+      setShowOtpSent(true);
+      setTimeout(() => setShowOtpSent(false), 3000);
+      setStep('otp');
+      setResendTimer(30);
+      setTimeout(() => otpRefs.current[0]?.focus(), 100);
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setError('');
+    const otpValue = otp.join('');
+    if (otpValue.length < 6) { setError('Enter the 6-digit OTP'); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneNumber: phone,
+          registrationType: 'mobile',
+          userType: 'Login',
+          mobileOtpSessionId: sessionId,
+          mobileOtpValue: otpValue,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Invalid OTP');
+
+      // Use TokenManager to store tokens
       const tokenManager = TokenManager.getInstance();
-      if (tokenManager.isLoggedIn()) {
-        navigate(redirectTo, { replace: true });
-      }
-    }, []);
-
-    useEffect(() => {
-      if (resendTimer <= 0) return;
-      const t = setTimeout(() => setResendTimer(r => r - 1), 1000);
-      return () => clearTimeout(t);
-    }, [resendTimer]);
-
-    const handleSendOtp = async () => {
-      setError('');
-      if (!/^[6-9]\d{9}$/.test(phone)) { setError('Enter a valid 10-digit mobile number'); return; }
-      setLoading(true);
-      try {
-        const res = await fetch(API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phoneNumber: phone,
-            registrationType: 'mobile',
-            userType: 'Login',
-            userRole: 'user',
-            whatsappNumber: '',
-          }),
+      if (data.data && data.data.accessToken && data.data.refreshToken) {
+        tokenManager.setTokens({
+          accessToken: data.data.accessToken,
+          refreshToken: data.data.refreshToken,
+          expiresIn: data.data.expiresIn,
+          userId: data.data.userId,
+          tokenType: data.data.tokenType || 'Bearer',
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || 'Failed to send OTP');
-        setSessionId(data?.mobileOtpSessionId || data?.data?.mobileOtpSessionId || '');
-        setShowOtpSent(true);
-        setTimeout(() => setShowOtpSent(false), 3000);
-        setStep('otp');
-        setResendTimer(30);
-        setTimeout(() => otpRefs.current[0]?.focus(), 100);
-      } catch (err: any) {
-        setError(err.message || 'Something went wrong. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    const handleVerifyOtp = async () => {
-      setError('');
-      const otpValue = otp.join('');
-      if (otpValue.length < 6) { setError('Enter the 6-digit OTP'); return; }
-      setLoading(true);
-      try {
-        const res = await fetch(API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phoneNumber: phone,
-            registrationType: 'mobile',
-            userType: 'Login',
-            mobileOtpSessionId: sessionId,
-            mobileOtpValue: otpValue,
-          }),
-        });
-        const data = await res.json();
-        console.log('📦 FULL API Response:', JSON.stringify(data, null, 2));
-        console.log('📦 Response Object:', data);
-        console.log('🔍 Checking data structure:');
-        console.log('- data.data exists:', !!data.data);
-        console.log('- data.data.accessToken exists:', !!(data.data?.accessToken));
-        console.log('- data.accessToken exists:', !!data.accessToken);
-        console.log('- Available keys:', Object.keys(data));
-        
-        if (!res.ok) throw new Error(data?.message || 'Invalid OTP');
-        
-        // Use TokenManager to store tokens
-        const tokenManager = TokenManager.getInstance();
-        if (data.data && data.data.accessToken && data.data.refreshToken) {
-          console.log('✅ Storing tokens via TokenManager for user:', data.data.userId);
-          console.log('🔑 ACCESS TOKEN:', data.data.accessToken?.substring(0, 20) + '...');
-          console.log('🔄 REFRESH TOKEN:', data.data.refreshToken?.substring(0, 20) + '...');
-          console.log('👤 USER ID:', data.data.userId);
-          console.log('⏰ EXPIRES IN:', data.data.expiresIn);
-          
-          tokenManager.setTokens({
-            accessToken: data.data.accessToken,
-            refreshToken: data.data.refreshToken,
-            expiresIn: data.data.expiresIn,
-            userId: data.data.userId,
-            tokenType: data.data.tokenType || 'Bearer',
-          });
-          
-          // Store in window object for easy access in console
-          window.debugTokens = {
-            accessToken: data.data.accessToken,
-            refreshToken: data.data.refreshToken,
-            userId: data.data.userId,
-            expiresIn: data.data.expiresIn
-          };
-          
-          console.log('%c🎉 LOGIN SUCCESSFUL - NEW USER SESSION CREATED!', 'color: green; font-size: 16px; font-weight: bold;');
-          console.log('%cTo view tokens, type: window.debugTokens', 'color: orange; font-weight: bold;');
-          
+      } else {
+        // Clear any existing data first
+        localStorage.removeItem('user');
+        // Do not clear sessionStorage here. It contains the product route that
+        // must be restored after successful authentication.
+        // Fallback for old format
+        const userId = data?.data?.userId || data?.userId || data?.data?.id || data?.id || null;
+        if (userId) {
+          localStorage.setItem('user', JSON.stringify({ phone, isLoggedIn: true, userId, ...data }));
         } else {
-          console.log('⚠️ Using fallback token storage - this should not happen');
-          // Clear any existing data first
-          localStorage.removeItem('user');
-          sessionStorage.clear();
-          // Fallback for old format
-          const userId = data?.data?.userId || data?.userId || data?.data?.id || data?.id || null;
-          if (userId) {
-            localStorage.setItem('user', JSON.stringify({ phone, isLoggedIn: true, userId, ...data }));
-          } else {
-            throw new Error('No user ID found in response');
-          }
+          throw new Error('No user ID found in response');
         }
-        
-        setShowSuccess(true);
-        // Add a small delay to ensure token storage is complete
-        setTimeout(async () => { 
-          try {
-            await refreshCart();
-            await refreshWishlist();
-          } catch (e) {
-            console.error('Failed to refresh context on login', e);
-          }
-          console.log('[Login] Redirecting to:', redirectTo);
-          navigate(redirectTo); 
-        }, 1500);
-      } catch (err: any) {
-        setError(err.message || 'OTP verification failed. Please try again.');
-      } finally {
-        setLoading(false);
       }
-    };
 
-    const handleOtpChange = (i: number, val: string) => {
-      if (!/^\d?$/.test(val)) return;
-      const next = [...otp]; next[i] = val; setOtp(next); setError('');
-      if (val && i < 5) otpRefs.current[i + 1]?.focus();
-    };
-    const handleOtpKeyDown = (i: number, e: React.KeyboardEvent) => {
-      if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
-    };
-    const handleOtpPaste = (e: React.ClipboardEvent) => {
-      const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-      if (pasted.length === 6) { setOtp(pasted.split('')); otpRefs.current[5]?.focus(); }
-      e.preventDefault();
-    };
-    const handleResend = () => {
-      setOtp(['', '', '', '', '', '']); setError(''); handleSendOtp();
-    };
+      setShowSuccess(true);
+      // Add a small delay to ensure token storage is complete
+      setTimeout(async () => {
+        try {
+          await refreshCart();
+          await refreshWishlist();
+        } catch (e) {
+          console.error('Failed to refresh context on login', e);
+        }
+        clearSavedRedirect();
+        navigate(redirectPath, {
+          replace: true,
+          state: redirectState,
+        });
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || 'OTP verification failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpChange = (i: number, val: string) => {
+    if (!/^\d?$/.test(val)) return;
+    const next = [...otp]; next[i] = val; setOtp(next); setError('');
+    if (val && i < 5) otpRefs.current[i + 1]?.focus();
+  };
+  const handleOtpKeyDown = (i: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
+  };
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length === 6) { setOtp(pasted.split('')); otpRefs.current[5]?.focus(); }
+    e.preventDefault();
+  };
+  const handleResend = () => {
+    setOtp(['', '', '', '', '', '']); setError(''); handleSendOtp();
+  };
 
     return (
       <>
@@ -505,17 +495,13 @@ const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
                   <div className="lg-stats">
                     <div className="lg-stat">
                       <span className="lg-stat-val">999.9</span>
-                      <span className="lg-stat-val">999.9</span>
                       <span className="lg-stat-lbl">Purity</span>
                     </div>
                     <div className="lg-stat">
                       <span className="lg-stat-val">₹100</span>
                       <span className="lg-stat-lbl">Market Rates</span>
-                      <span className="lg-stat-lbl">Market Rates</span>
                     </div>
                     <div className="lg-stat">
-                      <span className="lg-stat-val">Secure</span>
-                      <span className="lg-stat-lbl">Access</span>
                       <span className="lg-stat-val">Secure</span>
                       <span className="lg-stat-lbl">Access</span>
                     </div>
@@ -635,4 +621,3 @@ const API = `${API_BASE_URL}/oxygold-api/auth/userLoginOrRegister`;
   };
 
   export default Login;
-
