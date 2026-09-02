@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -334,14 +333,14 @@ export default function GoldProductsLanding() {
   return (
     <section
       aria-labelledby="gold-products-title"
-      className="relative isolate overflow-x-clip pt-20 text-white sm:pt-24 lg:pt-[106px]"
+      className="relative isolate overflow-x-clip pt-28 text-white min-[480px]:pt-32 sm:pt-28 md:pt-32 lg:pt-[132px]"
       style={{
         background: "transparent",
       }}
     >
       <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(rgba(255,255,255,.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.14)_1px,transparent_1px)] [background-size:52px_52px]" />
 
-      <div className="relative mx-auto w-full max-w-[1464px] px-3 pb-8 pt-5 min-[380px]:px-4 sm:px-6 sm:pb-10 sm:pt-10 lg:px-8 lg:pb-12 lg:pt-12">
+      <div className="relative mx-auto w-full max-w-[1464px] px-3 pb-8 pt-4 min-[380px]:px-4 sm:px-6 sm:pb-10 sm:pt-8 lg:px-8 lg:pb-12 lg:pt-10">
         <header className="mx-auto max-w-3xl text-center">
           <h1
             id="gold-products-title"
@@ -349,17 +348,12 @@ export default function GoldProductsLanding() {
           >
             Buy Gold &amp; Silver{" "}
             <span className="bg-gradient-to-r from-[#D4AF37] to-[#F5D36C] bg-clip-text text-transparent">
-              Products
+              Coins
             </span>
           </h1>
-
-          <p className="mx-auto mt-4 max-w-2xl text-[13px] leading-6 text-white/70 min-[380px]:text-sm sm:text-base sm:leading-7">
-            Shop gold jewellery, gold coins, and 999 pure silver coins and bars
-            from OXYGOLD.AI.
-          </p>
         </header>
 
-        <div className="mt-6 flex w-full flex-col gap-3 sm:mt-8 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mt-5 flex w-full flex-col gap-3 sm:mt-7 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative min-w-0 flex-1">
             <button
               type="button"
@@ -412,7 +406,7 @@ export default function GoldProductsLanding() {
             </button>
           </div>
 
-          <label className="flex h-11 w-full items-center gap-3 rounded-xl border border-white/15 bg-white/[0.07] px-4 transition focus-within:border-[#D4AF37]/70 focus-within:ring-2 focus-within:ring-[#D4AF37]/15 sm:h-12 lg:w-72 lg:shrink-0">
+          <label className="hidden h-12 w-full items-center gap-3 rounded-xl border border-white/15 bg-white/[0.07] px-4 transition focus-within:border-[#D4AF37]/70 focus-within:ring-2 focus-within:ring-[#D4AF37]/15 sm:flex lg:w-72 lg:shrink-0">
             <Search
               size={16}
               className="shrink-0 text-[#F5D36C]"

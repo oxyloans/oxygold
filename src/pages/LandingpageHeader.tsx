@@ -300,15 +300,12 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
           </div>
         </nav>
 
-        {/* Sidebar Footer: Subscribe + Login */}
+        {/* Sidebar Footer: Login (the compact live-price icon remains in the mobile header) */}
         <div style={{
           padding: "16px 12px 24px",
           borderTop: "1px solid rgba(212,175,55,0.15)",
           display: "flex", flexDirection: "column", gap: "10px",
         }}>
-          <div style={{ width: "100%" }}>
-            <SubscribeLivePrice />
-          </div>
           <button
             onClick={() => goTo("login")}
             style={{
