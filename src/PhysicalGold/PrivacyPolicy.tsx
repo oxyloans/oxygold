@@ -94,7 +94,7 @@ const PrivacyPolicy: React.FC = () => {
               </p>
               <div className="mt-3 p-4 bg-[#F5F2EE] rounded-lg border border-[#E8E0D5]">
                 <p className="font-semibold text-[#1A1A1A]">OXYIDEAS PARTNERS LLP</p>
-                <p>Email: support@askoxy.ai</p>
+                <p>Email: support@oxygold.ai</p>
                 <p>Phone: +91 81432 71103</p>
               </div>
             </section>

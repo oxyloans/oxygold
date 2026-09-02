@@ -43,7 +43,7 @@ const CancellationPolicy: React.FC = () => {
                 <li>Confirm cancellation</li>
               </ol>
               <p className="mt-3">
-                Alternatively, you can contact our customer support team at support@askoxy.ai or call +91 81432 71103.
+                Alternatively, you can contact our customer support team at support@oxygold.ai or call +91 81432 71103.
               </p>
             </section>
 
@@ -122,7 +122,7 @@ const CancellationPolicy: React.FC = () => {
               <p className="mb-3">For any queries regarding order cancellation:</p>
               <div className="mt-3 p-4 bg-[#F5F2EE] rounded-lg border border-[#E8E0D5]">
                 <p className="font-semibold text-[#1A1A1A]">OXYKART TECHNOLOGIES PVT LTD</p>
-                <p>Email: support@askoxy.ai</p>
+                <p>Email: support@oxygold.ai</p>
                 <p>Phone: +91 81432 71103</p>
                 <p>Hours: Monday - Saturday, 9:00 AM - 6:00 PM IST</p>
               </div>

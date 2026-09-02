@@ -17,22 +17,31 @@ interface Product {
   description: string;
   categoryId: number;
   categoryName: string;
-  productType: string | null;
   frontViewurl: string | null;
-  leftViewUrl: string | null;
-  rightViewUrl: string | null;
-  backViewUrl: string | null;
   status: string;
-  gstPercentage: number;
-  makingPercentage: number;
   price: number;
-  priceRange: string;
-  averageRating: number | null;
-  totalRatings: number | null;
+}
+
+interface SubCategoryResponse {
+  id: number;
+  name: string;
+  status: string;
+  parentId: number;
+  description: string | null;
+  price: number | null;
+  image: string | null;
+}
+
+interface CategoryResponse {
+  id: number;
+  name: string;
+  status: string;
+  subCategories: SubCategoryResponse[];
 }
 
 const API_URL =
-  "https://meta.oxyloans.com/api/oxygold-api/products/getAllProduct";
+  import.meta.env.VITE_OXYGOLD_CATEGORIES_API_URL?.trim() ||
+  "https://meta.oxyloans.com/api/oxygold-api/admin/categories/active-with-subcategories";
 
 const currency = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -125,7 +134,7 @@ function ProductImage({ product }: { product: Product }) {
       alt={product.name}
       loading="lazy"
       onError={() => setFailed(true)}
-      className="h-full w-full object-contain p-4 transition duration-500 group-hover:scale-105 sm:p-6"
+      className="h-full w-full object-contain p-3 transition duration-500 group-hover:scale-105 sm:p-5 lg:p-6"
     />
   );
 }
@@ -182,11 +191,26 @@ export default function GoldProductsLanding() {
           throw new Error("Invalid products response received.");
         }
 
-        setProducts(
-          (data as Product[]).filter(
-            (product) => product.status === "ACTIVE"
-          )
-        );
+        const categoryData = data as CategoryResponse[];
+
+        const mappedProducts = categoryData
+          .filter((item) => item.status === "ACTIVE")
+          .flatMap((parentCategory) =>
+            (parentCategory.subCategories ?? [])
+              .filter((subCategory) => subCategory.status === "ACTIVE")
+              .map<Product>((subCategory) => ({
+                id: subCategory.id,
+                name: subCategory.name,
+                description: subCategory.description?.trim() ?? "",
+                categoryId: subCategory.parentId,
+                categoryName: parentCategory.name,
+                frontViewurl: subCategory.image?.trim() || null,
+                status: subCategory.status,
+                price: Number(subCategory.price) || 0,
+              }))
+          );
+
+        setProducts(mappedProducts);
       } catch (reason) {
         if ((reason as Error).name !== "AbortError") {
           setError(
@@ -317,11 +341,11 @@ export default function GoldProductsLanding() {
     >
       <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(rgba(255,255,255,.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.14)_1px,transparent_1px)] [background-size:52px_52px]" />
 
-      <div className="relative mx-auto w-full max-w-[1464px] px-4 pb-8 pt-6 sm:px-6 sm:pb-10 sm:pt-10 lg:px-8 lg:pb-12 lg:pt-12">
+      <div className="relative mx-auto w-full max-w-[1464px] px-3 pb-8 pt-5 min-[380px]:px-4 sm:px-6 sm:pb-10 sm:pt-10 lg:px-8 lg:pb-12 lg:pt-12">
         <header className="mx-auto max-w-3xl text-center">
           <h1
             id="gold-products-title"
-            className="font-playfair text-3xl font-black leading-tight sm:text-4xl lg:text-5xl"
+            className="font-playfair text-[28px] font-black leading-[1.12] min-[380px]:text-3xl sm:text-4xl lg:text-5xl"
           >
             Buy Gold &amp; Silver{" "}
             <span className="bg-gradient-to-r from-[#D4AF37] to-[#F5D36C] bg-clip-text text-transparent">
@@ -329,7 +353,7 @@ export default function GoldProductsLanding() {
             </span>
           </h1>
 
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-white/70 sm:text-base sm:leading-7">
+          <p className="mx-auto mt-4 max-w-2xl text-[13px] leading-6 text-white/70 min-[380px]:text-sm sm:text-base sm:leading-7">
             Shop gold jewellery, gold coins, and 999 pure silver coins and bars
             from OXYGOLD.AI.
           </p>
@@ -354,7 +378,7 @@ export default function GoldProductsLanding() {
             <div
               ref={tabsRef}
               onScroll={updateTabArrows}
-              className="flex w-full min-w-0 snap-x gap-2 overflow-x-auto py-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className="flex w-full min-w-0 snap-x snap-mandatory gap-2 overflow-x-auto py-1 scroll-smooth overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
               {categories.map((item) => (
                 <button
@@ -399,7 +423,7 @@ export default function GoldProductsLanding() {
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search jewellery"
               aria-label="Search jewellery"
-              className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40"
+              className="min-w-0 flex-1 bg-transparent text-[13px] text-white outline-none placeholder:text-white/40 sm:text-sm"
             />
 
             {query && (
@@ -485,7 +509,7 @@ export default function GoldProductsLanding() {
                     isSingleProduct
                       ? "mx-auto grid max-w-3xl grid-cols-1"
                       : useFeaturedCards
-                      ? "grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5"
+                      ? "grid grid-cols-2 gap-3 sm:grid-cols-1 sm:gap-4 md:grid-cols-2 md:gap-5"
                       : "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5"
                   }
                 >
@@ -539,7 +563,7 @@ export default function GoldProductsLanding() {
                           useFeaturedCards
                             ? isSingleProduct
                               ? "aspect-[16/9] sm:aspect-auto sm:w-[42%] sm:shrink-0"
-                              : "aspect-[16/10] sm:aspect-auto sm:w-[44%] sm:shrink-0"
+                              : "aspect-square sm:aspect-auto sm:w-[44%] sm:shrink-0"
                             : "aspect-square"
                         }`}
                       >
@@ -556,7 +580,7 @@ export default function GoldProductsLanding() {
                         <h2
                           className={`font-playfair font-bold text-white ${
                             useFeaturedCards
-                              ? "text-lg leading-6 sm:text-xl sm:leading-7"
+                              ? "line-clamp-2 min-h-9 text-xs leading-[1.15rem] sm:min-h-0 sm:text-xl sm:leading-7"
                               : "line-clamp-2 min-h-9 text-xs leading-[1.15rem] sm:min-h-10 sm:text-base sm:leading-5"
                           }`}
                         >
@@ -564,7 +588,7 @@ export default function GoldProductsLanding() {
                         </h2>
 
                         {useFeaturedCards && product.description && (
-                          <p className="mt-2 line-clamp-3 text-sm leading-6 text-white/65">
+                          <p className="mt-2 hidden line-clamp-3 text-sm leading-6 text-white/65 sm:block">
                             {product.description}
                           </p>
                         )}
@@ -572,7 +596,7 @@ export default function GoldProductsLanding() {
                         <p
                           className={`font-black text-[#F5D36C] ${
                             useFeaturedCards
-                              ? "mt-3 text-xl"
+                              ? "mt-1.5 text-sm sm:mt-3 sm:text-xl"
                               : "mt-1.5 text-sm sm:mt-2 sm:text-lg"
                           }`}
                         >

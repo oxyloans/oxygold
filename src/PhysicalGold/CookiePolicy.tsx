@@ -33,7 +33,7 @@ const CookiePolicy: React.FC = () => {
 
             <section>
               <h2 className="text-[18px] font-semibold text-[#1A1A1A] mb-3">2. Types of Cookies We Use</h2>
-              
+
               <div className="space-y-4 mt-3">
                 <div>
                   <h3 className="font-semibold text-[#1A1A1A] mb-2">Essential Cookies</h3>
@@ -113,7 +113,7 @@ const CookiePolicy: React.FC = () => {
               <p className="mb-3">If you have questions about our use of cookies, please contact us:</p>
               <div className="mt-3 p-4 bg-[#F5F2EE] rounded-lg border border-[#E8E0D5]">
                 <p className="font-semibold text-[#1A1A1A]">OXYKART TECHNOLOGIES PVT LTD</p>
-                <p>Email: support@askoxy.ai</p>
+                <p>Email: support@oxygold.ai</p>
                 <p>Phone: +91 81432 71103</p>
               </div>
             </section>

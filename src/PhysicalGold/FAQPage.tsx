@@ -89,9 +89,8 @@ const FAQPage: React.FC = () => {
                     {faq.question}
                   </span>
                   <ChevronDown
-                    className={`h-5 w-5 text-[#8B6914] flex-shrink-0 transition-transform ${
-                      openIndex === index ? "rotate-180" : ""
-                    }`}
+                    className={`h-5 w-5 text-[#8B6914] flex-shrink-0 transition-transform ${openIndex === index ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
                 {openIndex === index && (
@@ -109,7 +108,7 @@ const FAQPage: React.FC = () => {
               Our customer support team is here to help you with any queries.
             </p>
             <div className="space-y-2 text-[14px]">
-              <p><strong>Email:</strong> support@askoxy.ai</p>
+              <p><strong>Email:</strong> support@oxygold.ai</p>
               <p><strong>Phone:</strong> +91 81432 71103</p>
               <p><strong>Hours:</strong> Monday - Saturday, 9:00 AM - 6:00 PM IST</p>
             </div>

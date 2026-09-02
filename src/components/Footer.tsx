@@ -5,8 +5,8 @@ const Footer = () => {
     <footer className="app-footer">
       {/* <div className="footer-content">
         <div className="footer-grid"> */}
-          {/* Brand Section */}
-          {/* <div className="footer-section brand-section">
+      {/* Brand Section */}
+      {/* <div className="footer-section brand-section">
             <img 
               src="https://www.askoxy.ai/static/media/askoxylogoblack.56dbb158b7a0beaf4fbe.png" 
               alt="ASKOXY.AI" 
@@ -17,8 +17,8 @@ const Footer = () => {
             </p>
           </div> */}
 
-          {/* Services Section */}
-          {/* <div className="footer-section">
+      {/* Services Section */}
+      {/* <div className="footer-section">
             <h4 className="footer-heading">Services</h4>
             <ul className="footer-links">
               <li><a href="#ai-training">AI & GEN AI Training</a></li>
@@ -30,8 +30,8 @@ const Footer = () => {
             </ul>
           </div> */}
 
-          {/* Company & Contact Section */}
-          {/* <div className="footer-section">
+      {/* Company & Contact Section */}
+      {/* <div className="footer-section">
             <h4 className="footer-heading">Company</h4>
             <div className="footer-contact">
               <p className="company-name">OXYKART TECHNOLOGIES PVT LTD</p>
@@ -41,7 +41,7 @@ const Footer = () => {
               </p>
               <p className="contact-item">
                 <strong>Email:</strong><br />
-                <a href="mailto:support@askoxy.ai">support@askoxy.ai</a>
+                <a href="mailto:support@oxygold.ai">support@oxygold.ai</a>
               </p>
               <p className="contact-item">
                 <strong>Phone:</strong><br />
@@ -51,8 +51,8 @@ const Footer = () => {
             </div>
           </div> */}
 
-          {/* App Download Section */}
-          {/* <div className="footer-section app-section">
+      {/* App Download Section */}
+      {/* <div className="footer-section app-section">
             <h4 className="footer-heading">Get Our App</h4>
             <p className="app-description">
               Download ASKOXY.AI for a seamless experience.
@@ -78,7 +78,7 @@ const Footer = () => {
               </a>
             </div>
           </div> */}
-        {/* </div>
+      {/* </div>
       </div> */}
 
       {/* Bottom Bar */}

@@ -588,13 +588,25 @@ const ProfilePage: React.FC = () => {
         const uid = userData?.data?.userId;
         if (!uid) return;
 
-        if (!addrForm.latitude || !addrForm.longitude) {
-            errors.latitude = "Capture current location before saving this address.";
-        }
-
-        if (Object.keys(errors).length) {
-            patch({ addrErrors: errors, toast: { message: "Please capture your current location before saving the address.", type: "error" } });
-            return;
+        // Always re-geocode on edit; geocode if lat/lng missing on new address
+        let lat = addrForm.latitude;
+        let lng = addrForm.longitude;
+        const shouldGeocode = editingAddress || !lat || !lng;
+        if (shouldGeocode) {
+            const query = [addrForm.flatNo, addrForm.landMark, addrForm.address, addrForm.pinCode, addrForm.state].filter(Boolean).join(", ");
+            try {
+                const res = await fetch(
+                    `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}`
+                );
+                const data = await res.json();
+                if (data.status === "OK" && data.results?.[0]?.geometry?.location) {
+                    lat = String(data.results[0].geometry.location.lat);
+                    lng = String(data.results[0].geometry.location.lng);
+                    patchAddrForm({ latitude: lat, longitude: lng });
+                }
+            } catch (err) {
+                console.error("Geocoding failed on save:", err);
+            }
         }
 
         const payload = {
@@ -605,8 +617,8 @@ const ProfilePage: React.FC = () => {
             state: addrForm.state,
             pinCode: addrForm.pinCode,
             landMark: addrForm.landMark,
-            longitude: addrForm.longitude || "",
-            latitude: addrForm.latitude || "",
+            longitude: lng || "",
+            latitude: lat || "",
         };
 
         patch({ isAddressLoading: true, addrErrors: {} });
@@ -638,6 +650,27 @@ const ProfilePage: React.FC = () => {
             pinCode: addr.pinCode, state: addr.state, type: addr.type,
             latitude: addr.latitude, longitude: addr.longitude, typeDropdownOpen: false,
         });
+    };
+
+    const GOOGLE_API_KEY = "AIzaSyAM29otTWBIAefQe6mb7f617BbnXTHtN0M";
+
+    const geocodeAddressFields = async () => {
+        const { flatNo, landMark, address, pinCode, state } = s.addrForm;
+        if (!flatNo.trim() || !address.trim() || !pinCode.trim() || !state.trim()) return;
+        const query = [flatNo, landMark, address, pinCode, state].filter(Boolean).join(", ");
+        try {
+            const res = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}`
+            );
+            const data = await res.json();
+            if (data.status === "OK" && data.results?.[0]?.geometry?.location) {
+                const { lat, lng } = data.results[0].geometry.location;
+                patchAddrForm({ latitude: String(lat), longitude: String(lng) });
+                patch({ addrErrors: removeErrorKey(s.addrErrors, "latitude") });
+            }
+        } catch (err) {
+            console.error("Geocoding failed:", err);
+        }
     };
 
     const fetchCurrentLocation = () => {
@@ -931,7 +964,7 @@ const ProfilePage: React.FC = () => {
         { id: "info", label: "Profile", icon: User },
         { id: "orders", label: "My Orders", icon: Package },
         { id: "address", label: "Addresses", icon: MapPin },
-        { id: "wallet", label: "Wallet", icon: Wallet },
+        // { id: "wallet", label: "Wallet", icon: Wallet },
         { id: "support", label: "Contact Support", icon: HelpCircle },
     ];
 
@@ -1290,6 +1323,7 @@ const ProfilePage: React.FC = () => {
                                                     patch({ addrErrors: removeErrorKey(s.addrErrors, "address") });
                                                 }
                                             }}
+                                            onBlur={geocodeAddressFields}
                                             className={`${inputCls} resize-none ${s.addrErrors.address ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
                                             rows={2}
                                         />
@@ -1311,6 +1345,8 @@ const ProfilePage: React.FC = () => {
                                                 onBlur={() => {
                                                     if (!validatePincode(s.addrForm.pinCode)) {
                                                         patch({ addrErrors: { ...s.addrErrors, pinCode: "Pin code must contain 6 digits" } });
+                                                    } else {
+                                                        geocodeAddressFields();
                                                     }
                                                 }}
                                                 inputMode="numeric"
@@ -1330,35 +1366,41 @@ const ProfilePage: React.FC = () => {
                                                         patch({ addrErrors: removeErrorKey(s.addrErrors, "state") });
                                                     }
                                                 }}
+                                                onBlur={geocodeAddressFields}
                                                 className={`${inputCls} ${s.addrErrors.state ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
                                             />
                                             {s.addrErrors.state && <p className="text-[11px] text-rose-500 mt-1">{s.addrErrors.state}</p>}
                                         </div>
                                     </div>
-                                    <div className="border-t border-[#E8E0D5] pt-4">
+                                    <div className="border-t border-[#E8E0D5] pt-4 space-y-2">
+                                        {(s.addrForm.latitude && s.addrForm.longitude) ? (
+                                            <p className="text-[11px] text-emerald-600 flex items-center gap-1">
+                                                <CheckCircle2 className="h-3 w-3" />
+                                                Location set: {parseFloat(s.addrForm.latitude).toFixed(6)}, {parseFloat(s.addrForm.longitude).toFixed(6)}
+                                            </p>
+                                        ) : (
+                                            <p className="text-[11px] text-[#8A8A8A] flex items-center gap-1">
+                                                <MapPinned className="h-3 w-3" />
+                                                Location will be set automatically from your address
+                                            </p>
+                                        )}
                                         <button
                                             type="button"
                                             onClick={fetchCurrentLocation}
                                             disabled={s.isFetchingLocation}
-                                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition disabled:opacity-60"
+                                            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition disabled:opacity-60"
                                         >
                                             {s.isFetchingLocation ? (
-                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                <Loader2 className="h-3 w-3 animate-spin" />
                                             ) : (
-                                                <MapPinned className="h-3.5 w-3.5" />
+                                                <MapPinned className="h-3 w-3" />
                                             )}
-                                            {s.isFetchingLocation ? "Fetching..." : "Capture Current Location"}
+                                            {s.isFetchingLocation ? "Fetching..." : "Use my current GPS location instead"}
                                         </button>
                                         {s.addrErrors.latitude && (
-                                            <p className="text-[11px] text-amber-600 mt-2 flex items-center gap-1">
+                                            <p className="text-[11px] text-amber-600 flex items-center gap-1">
                                                 <AlertTriangle className="h-3 w-3" />
                                                 {s.addrErrors.latitude}
-                                            </p>
-                                        )}
-                                        {(s.addrForm.latitude && s.addrForm.longitude) && (
-                                            <p className="text-[11px] text-emerald-600 mt-2 flex items-center gap-1">
-                                                <CheckCircle2 className="h-3 w-3" />
-                                                Location captured: {parseFloat(s.addrForm.latitude).toFixed(6)}, {parseFloat(s.addrForm.longitude).toFixed(6)}
                                             </p>
                                         )}
                                     </div>
@@ -1557,38 +1599,87 @@ const ProfilePage: React.FC = () => {
                                                                 <Loader2 className="h-4 w-4 animate-spin text-[#8B6914]" /> Loading delivery updates...
                                                             </div>
                                                         ) : tracking ? (
-                                                            <section className="rounded-xl border border-[#E8E0D5] bg-white p-4" aria-label="Delivery tracking">
-                                                                <div className="flex items-start justify-between gap-3">
-                                                                    <div className="flex min-w-0 items-start gap-2.5">
-                                                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F5EDD6] text-[#8B6914]"><Truck className="h-4 w-4" /></div>
+                                                            <section className="rounded-xl border border-[#E8E0D5] bg-white overflow-hidden" aria-label="Delivery tracking">
+                                                                {/* Status Banner */}
+                                                                <div className="bg-gradient-to-r from-[#1A1200] to-[#2C2000] px-4 py-3 flex items-center justify-between gap-3">
+                                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                                        <div className="h-8 w-8 rounded-lg bg-[#8B6914]/30 flex items-center justify-center shrink-0">
+                                                                            <Truck className="h-4 w-4 text-[#C9A84C]" />
+                                                                        </div>
                                                                         <div className="min-w-0">
-                                                                            <p className="text-[13px] font-semibold text-[#1A1A1A]">{tracking.statusLabel || "Delivery update"}</p>
-                                                                            <p className="mt-0.5 text-[11px] leading-4 text-[#6D6D6D]">{tracking.statusDescription || "We will keep you updated as your order moves."}</p>
+                                                                            <p className="text-[12px] font-semibold text-white truncate">{tracking.statusLabel || "In Transit"}</p>
+                                                                            <p className="text-[10px] text-[#8A7A50] mt-0.5 truncate">{tracking.statusDescription || "Your order is on its way"}</p>
                                                                         </div>
                                                                     </div>
-                                                                    <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">{tracking.statusLabel || tracking.status}</span>
+                                                                    <span className="shrink-0 rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400 whitespace-nowrap">
+                                                                        {tracking.statusLabel || tracking.status || "Active"}
+                                                                    </span>
                                                                 </div>
 
-                                                                <div className="mt-3 grid gap-2 border-y border-[#F0EBE1] py-3 text-[11px] sm:grid-cols-2">
-                                                                    <p className="text-[#8A8A8A]">Tracking ID <span className="ml-1 font-semibold text-[#1A1A1A]">{tracking.trackingNumber || "—"}</span></p>
-                                                                    {tracking.deliveryBoy && <p className="text-[#8A8A8A]">Delivery partner <span className="ml-1 font-semibold text-[#1A1A1A]">{`${tracking.deliveryBoy.firstName || ""} ${tracking.deliveryBoy.lastName || ""}`.trim() || "Assigned"}{tracking.deliveryBoy.vehicleNumber ? ` · ${tracking.deliveryBoy.vehicleNumber}` : ""}</span></p>}
-                                                                    {tracking.deliveryAddress && <p className="flex items-start gap-1.5 text-[#8A8A8A] sm:col-span-2"><MapPin className="mt-0.5 h-3 w-3 shrink-0 text-[#8B6914]" /><span className="leading-4">Delivering to {tracking.deliveryAddress}</span></p>}
-                                                                </div>
+                                                                <div className="p-4 space-y-3">
+                                                                    {/* Meta info */}
+                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                        {tracking.trackingNumber && (
+                                                                            <div className="flex items-center gap-2 bg-[#F5F2EE] rounded-lg px-3 py-2">
+                                                                                <span className="text-[10px] text-[#8A8A8A] shrink-0">Tracking ID</span>
+                                                                                <span className="text-[11px] font-semibold text-[#1A1A1A] truncate ml-auto">{tracking.trackingNumber}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        {tracking.deliveryBoy && (
+                                                                            <div className="flex items-center gap-2 bg-[#F5F2EE] rounded-lg px-3 py-2">
+                                                                                <span className="text-[10px] text-[#8A8A8A] shrink-0">Partner</span>
+                                                                                <span className="text-[11px] font-semibold text-[#1A1A1A] truncate ml-auto">
+                                                                                    {`${tracking.deliveryBoy.firstName || ""} ${tracking.deliveryBoy.lastName || ""}`.trim() || "Assigned"}
+                                                                                    {tracking.deliveryBoy.vehicleNumber ? ` · ${tracking.deliveryBoy.vehicleNumber}` : ""}
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+                                                                        {tracking.deliveryAddress && (
+                                                                            <div className="flex items-start gap-2 bg-[#F5F2EE] rounded-lg px-3 py-2 sm:col-span-2">
+                                                                                <MapPin className="h-3 w-3 text-[#8B6914] shrink-0 mt-0.5" />
+                                                                                <span className="text-[11px] text-[#1A1A1A] leading-4">{tracking.deliveryAddress}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
 
-                                                                {tracking.timeline?.length ? (
-                                                                    <ol className="mt-3 space-y-3">
-                                                                        {tracking.timeline.map((event, index) => (
-                                                                            <li key={`${event.status}-${event.timestamp}`} className="relative flex gap-3 pl-1">
-                                                                                {index < tracking.timeline!.length - 1 && <span className="absolute left-[7px] top-4 h-[calc(100%+2px)] w-px bg-[#E8E0D5]" />}
-                                                                                <CheckCircle2 className="relative z-10 mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                                                                                <div className="min-w-0"><p className="text-[11px] font-semibold text-[#1A1A1A]">{event.statusLabel}</p><p className="mt-0.5 text-[11px] leading-4 text-[#8A8A8A]">{event.description}</p><p className="mt-1 text-[10px] text-[#A39A8E]">{formatDate(event.timestamp)}</p></div>
-                                                                            </li>
-                                                                        ))}
-                                                                    </ol>
-                                                                ) : null}
+                                                                    {/* Timeline */}
+                                                                    {tracking.timeline?.length ? (
+                                                                        <div>
+                                                                            <p className="text-[10px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-2">Delivery Timeline</p>
+                                                                            <ol className="space-y-0">
+                                                                                {tracking.timeline.map((event, index) => {
+                                                                                    const isFirst = index === 0;
+                                                                                    const isLast = index === tracking.timeline!.length - 1;
+                                                                                    return (
+                                                                                        <li key={`${event.status}-${event.timestamp}`} className="relative flex gap-3">
+                                                                                            <div className="flex flex-col items-center">
+                                                                                                <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 z-10 mt-0.5 ${isFirst ? "bg-emerald-500" : "bg-[#E8E0D5]"}`}>
+                                                                                                    {isFirst
+                                                                                                        ? <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                                                                                                        : <span className="h-2 w-2 rounded-full bg-[#BEB5AA]" />}
+                                                                                                </div>
+                                                                                                {!isLast && <span className="w-px flex-1 bg-[#E8E0D5] my-1" />}
+                                                                                            </div>
+                                                                                            <div className={`pb-3 min-w-0 ${isLast ? "pb-0" : ""}`}>
+                                                                                                <p className={`text-[12px] font-semibold ${isFirst ? "text-[#1A1A1A]" : "text-[#8A8A8A]"}`}>{event.statusLabel}</p>
+                                                                                                {event.description && <p className="text-[11px] text-[#8A8A8A] mt-0.5 leading-4">{event.description}</p>}
+                                                                                                <p className="text-[10px] text-[#BEB5AA] mt-0.5">{formatDate(event.timestamp)}</p>
+                                                                                            </div>
+                                                                                        </li>
+                                                                                    );
+                                                                                })}
+                                                                            </ol>
+                                                                        </div>
+                                                                    ) : null}
+                                                                </div>
                                                             </section>
                                                         ) : trackingUnavailable ? (
-                                                            <div className="rounded-xl border border-[#E8E0D5] bg-white px-4 py-3 text-[12px] text-[#6D6D6D]">Delivery tracking will appear here once your order is assigned for delivery.</div>
+                                                            <div className="rounded-xl border border-[#E8E0D5] bg-[#FAFAF8] px-4 py-4 flex items-center gap-3">
+                                                                <div className="h-8 w-8 rounded-lg bg-[#F5EDD6] flex items-center justify-center shrink-0">
+                                                                    <Truck className="h-4 w-4 text-[#8B6914]" />
+                                                                </div>
+                                                                <p className="text-[12px] text-[#6D6D6D] leading-4">Tracking will appear here once your order is out for delivery.</p>
+                                                            </div>
                                                         ) : null}
 
                                                         {order.items?.map((item: any, i: number) => {
@@ -1612,25 +1703,37 @@ const ProfilePage: React.FC = () => {
                                                                             <p className="text-[11px] text-[#8A8A8A] mt-0.5">
                                                                                 Qty: {item.quantity} · {DISPLAY_INR(item.price)} per pc
                                                                             </p>
-                                                                            <div className="mt-2 flex items-center justify-between gap-2">
+                                                                            <div className="mt-2 space-y-1.5">
                                                                                 {existingReview && (
-                                                                                    <div className="flex items-center gap-0.5">
-                                                                                        {[1, 2, 3, 4, 5].map((star) => (
-                                                                                            <Star key={star} className="h-3.5 w-3.5"
-                                                                                                fill={star <= existingReview.rating ? "#F5B301" : "none"}
-                                                                                                stroke={star <= existingReview.rating ? "#F5B301" : "#D1C7BB"}
-                                                                                            />
-                                                                                        ))}
-                                                                                        <span className="ml-1.5 text-[11px] text-[#8A8A8A] font-medium">{REVIEW_RATING_LABELS[existingReview.rating]}</span>
+                                                                                    <div className="flex items-center justify-between gap-2">
+                                                                                        <div className="flex items-center gap-0.5">
+                                                                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                                                                <Star key={star} className="h-3 w-3"
+                                                                                                    fill={star <= existingReview.rating ? "#F5B301" : "none"}
+                                                                                                    stroke={star <= existingReview.rating ? "#F5B301" : "#D1C7BB"}
+                                                                                                />
+                                                                                            ))}
+                                                                                            <span className="ml-1 text-[11px] text-[#8A8A8A] font-medium">{REVIEW_RATING_LABELS[existingReview.rating]}</span>
+                                                                                        </div>
+                                                                                        {order.orderStatus?.toUpperCase() === "DELIVERED" && (
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => openProductReview(item)}
+                                                                                                className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B6914] hover:text-[#5f470d] shrink-0"
+                                                                                            >
+                                                                                                <Star className="h-3 w-3 shrink-0" fill="#F5B301" stroke="#8B6914" />
+                                                                                                Edit rating
+                                                                                            </button>
+                                                                                        )}
                                                                                     </div>
                                                                                 )}
                                                                                 {order.orderStatus?.toUpperCase() === "DELIVERED" && (
                                                                                     <button
                                                                                         type="button"
                                                                                         onClick={() => openProductReview(item)}
-                                                                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B6914] hover:text-[#5f470d] shrink-0"
+                                                                                        className={`inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B6914] hover:text-[#5f470d] ${existingReview ? "sm:hidden" : ""}`}
                                                                                     >
-                                                                                        <Star className="h-3 w-3" fill={existingReview ? "#F5B301" : "none"} stroke="#8B6914" />
+                                                                                        <Star className="h-3 w-3 shrink-0" fill={existingReview ? "#F5B301" : "none"} stroke="#8B6914" />
                                                                                         {existingReview ? "Edit rating" : "Rate product"}
                                                                                     </button>
                                                                                 )}
@@ -1650,18 +1753,14 @@ const ProfilePage: React.FC = () => {
                                                         </div>
 
                                                         {/* Payment Info */}
-                                                        <div className="flex items-center justify-between bg-[#1A1200] text-white rounded-lg px-4 py-3 mt-2">
-                                                            <div className="flex items-center gap-2">
-                                                                <CreditCard className="h-3.5 w-3.5 text-[#C9A84C]" />
-                                                                <span className="text-[11px] font-medium">{order.paymentMode}</span>
+                                                        <div className="bg-[#1A1200] text-white rounded-lg px-3 py-3 mt-2 flex items-center justify-between gap-2">
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                <CreditCard className="h-3.5 w-3.5 text-[#C9A84C] shrink-0" />
+                                                                <span className="text-[11px] font-medium truncate">{order.paymentMode}</span>
                                                             </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${getStatusColor(order.paymentStatus)}`}>
-                                                                    {order.paymentStatus}
-                                                                </span>
-                                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block" />
-                                                                <span className="text-[10px] text-[#8A7A50]">Verified</span>
-                                                            </div>
+                                                            <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(order.paymentStatus)}`}>
+                                                                {order.paymentStatus}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 )}
