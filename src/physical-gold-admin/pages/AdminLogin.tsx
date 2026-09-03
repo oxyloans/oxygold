@@ -9,7 +9,7 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
+  const loginRole = 'ADMIN';
   const handleLogin = async () => {
     setError('');
     if (!email || !password) {
@@ -20,7 +20,7 @@ const AdminLogin = () => {
     try {
       const data = await adminService.adminLogin(email, password);
       const token = data?.token || data?.data?.token || data?.result?.token || data?.accessToken || data?.data?.accessToken || '';
-      localStorage.setItem('admin', JSON.stringify({ email, isLoggedIn: true, token, role: 'admin', ...data }));
+      localStorage.setItem('admin', JSON.stringify({ email, isLoggedIn: true, token, role: loginRole, ...data }));
       navigate('/admin/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');

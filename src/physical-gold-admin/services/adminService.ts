@@ -111,25 +111,32 @@ export interface DeliveryPricingConfiguration {
   enabled: boolean;
 }
 
-export const fetchDeliveryPricing = async (): Promise<DeliveryPricingConfiguration> => {
-  const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/delivery-pricing`, {
-    headers: { Accept: "*/*" },
-  });
-  const result = await response.json().catch(() => null);
-  if (!response.ok || result?.success === false) {
-    throw new Error(result?.message || "Unable to load delivery pricing.");
-  }
-  return result?.data ?? result;
-};
+export const fetchDeliveryPricing =
+  async (): Promise<DeliveryPricingConfiguration> => {
+    const response = await adminAuthenticatedFetch(
+      `${BASE_URL}/admin/delivery-pricing`,
+      {
+        headers: { Accept: "*/*" },
+      },
+    );
+    const result = await response.json().catch(() => null);
+    if (!response.ok || result?.success === false) {
+      throw new Error(result?.message || "Unable to load delivery pricing.");
+    }
+    return result?.data ?? result;
+  };
 
 export const updateDeliveryPricing = async (
   configuration: DeliveryPricingConfiguration,
 ): Promise<DeliveryPricingConfiguration> => {
-  const response = await adminAuthenticatedFetch(`${BASE_URL}/admin/delivery-pricing`, {
-    method: "PUT",
-    headers: { Accept: "*/*" },
-    body: JSON.stringify(configuration),
-  });
+  const response = await adminAuthenticatedFetch(
+    `${BASE_URL}/admin/delivery-pricing`,
+    {
+      method: "PUT",
+      headers: { Accept: "*/*" },
+      body: JSON.stringify(configuration),
+    },
+  );
   const result = await response.json().catch(() => null);
   if (!response.ok || result?.success === false) {
     throw new Error(result?.message || "Unable to update delivery pricing.");
@@ -427,11 +434,15 @@ export const updateVariantPrice = async (
   return response.json();
 };
 
-export const adminLogin = async (email: string, password: string) => {
+export const adminLogin = async (
+  email: string,
+  password: string,
+  loginRole: "ADMIN" = "ADMIN",
+) => {
   const response = await fetch(`${BASE_URL}/auth/adminLogin`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, loginRole }),
   });
   const data = await response.json();
   if (!response.ok) {

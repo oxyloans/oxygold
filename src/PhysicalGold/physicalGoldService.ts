@@ -9,6 +9,26 @@ import {
 import { API_BASE_URL } from "../Config";
 const BASE_URL = `${API_BASE_URL}/oxygold-api`;
 
+export const hiddenLogin = async (mobileNumber: string) => {
+  const response = await fetch(`${BASE_URL}/auth/admin/hiddenlogin`, {
+    method: "POST",
+    headers: {
+      Accept: "*/*",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ mobileNumber }),
+  });
+
+  const result = await response.json().catch(() => null);
+  if (!response.ok || result?.success === false) {
+    throw new Error(result?.message || "Unable to sign in. Please try again.");
+  }
+  if (!result?.data?.accessToken) {
+    throw new Error("The login service did not return an access token.");
+  }
+  return result;
+};
+
 /**
  * Get current access token from localStorage
  */
@@ -110,7 +130,10 @@ const authenticatedFetch = async (
   // Some APIs return HTTP 200 even when the request failed. Convert that
   // response to an error response so every caller follows the same error path.
   if (response.ok) {
-    const result = await response.clone().json().catch(() => null);
+    const result = await response
+      .clone()
+      .json()
+      .catch(() => null);
     if (result?.success === false) {
       return new Response(await response.blob(), {
         status: 400,
@@ -127,7 +150,10 @@ const getResponseErrorMessage = async (
   response: Response,
   fallback: string,
 ): Promise<string> => {
-  const result = await response.clone().json().catch(() => null);
+  const result = await response
+    .clone()
+    .json()
+    .catch(() => null);
   return result?.message || result?.error || fallback;
 };
 
@@ -291,7 +317,9 @@ export const fetchProductRatings = async (
       `${BASE_URL}/ratings/product/${productId}?` +
         new URLSearchParams({
           ...(params.rating !== undefined && { rating: String(params.rating) }),
-          ...(params.verifiedPurchase !== undefined && { verifiedPurchase: String(params.verifiedPurchase) }),
+          ...(params.verifiedPurchase !== undefined && {
+            verifiedPurchase: String(params.verifiedPurchase),
+          }),
           ...(params.search && { search: params.search }),
           page: String(params.page ?? 0),
           size: String(params.size ?? 10),
@@ -374,7 +402,13 @@ export const fetchMainCategories = async (): Promise<Category[]> => {
   const response = await authenticatedFetch(
     `${BASE_URL}/admin/categories/parents`,
   );
-  if (!response.ok) throw new Error(await getResponseErrorMessage(response, "Failed to fetch main categories"));
+  if (!response.ok)
+    throw new Error(
+      await getResponseErrorMessage(
+        response,
+        "Failed to fetch main categories",
+      ),
+    );
   const data = await response.json();
 
   // Filter out null/undefined items and fetch images for all categories in parallel
@@ -402,7 +436,10 @@ export const fetchSubCategories = async (
   const response = await authenticatedFetch(
     `${BASE_URL}/admin/categories/${parentId}/subcategories`,
   );
-  if (!response.ok) throw new Error(await getResponseErrorMessage(response, "Failed to fetch sub-categories"));
+  if (!response.ok)
+    throw new Error(
+      await getResponseErrorMessage(response, "Failed to fetch sub-categories"),
+    );
   const data = await response.json();
 
   // Filter out null/undefined items and fetch images for all sub-categories in parallel
@@ -430,7 +467,10 @@ export const fetchProducts = async (
   const response = await authenticatedFetch(
     `${BASE_URL}/products/getAllProduct?categoryId=${subCategoryId}`,
   );
-  if (!response.ok) throw new Error(await getResponseErrorMessage(response, "Failed to fetch products"));
+  if (!response.ok)
+    throw new Error(
+      await getResponseErrorMessage(response, "Failed to fetch products"),
+    );
   const data = await response.json();
   const mappedData = data
     .filter((item: any) => item && item.id) // Filter out null/undefined items
@@ -462,7 +502,10 @@ export const fetchProductVariants = async (
     return { variants: [], product: null as any };
   }
 
-  if (!response.ok) throw new Error(await getResponseErrorMessage(response, "Failed to fetch variants"));
+  if (!response.ok)
+    throw new Error(
+      await getResponseErrorMessage(response, "Failed to fetch variants"),
+    );
 
   const result = await response.json();
   const variantsData = result.data;
@@ -523,7 +566,10 @@ export const generateModelImage = async (imageUrl: string): Promise<string> => {
   console.log(response);
   console.log(response.ok);
 
-  if (!response.ok) throw new Error(await getResponseErrorMessage(response, "Failed to generate model image"));
+  if (!response.ok)
+    throw new Error(
+      await getResponseErrorMessage(response, "Failed to generate model image"),
+    );
 
   const data = await response.text();
   console.log(data);
@@ -573,7 +619,10 @@ export const uploadUserImage = async (file: File): Promise<string> => {
     headers: {}, // Let browser set Content-Type with boundary
   });
 
-  if (!response.ok) throw new Error(await getResponseErrorMessage(response, "Failed to upload image"));
+  if (!response.ok)
+    throw new Error(
+      await getResponseErrorMessage(response, "Failed to upload image"),
+    );
 
   const data = await response.json();
   return data.url || data.data?.url || data;
@@ -674,9 +723,13 @@ export const decrementCartItems = async (cartData: any) => {
   return data;
 };
 
-export const fetchCustomerCartInfo = async (customerId: number, addressId?: string | number) => {
+export const fetchCustomerCartInfo = async (
+  customerId: number,
+  addressId?: string | number,
+) => {
   const query = new URLSearchParams({ customerId: String(customerId) });
-  if (addressId !== undefined && addressId !== "") query.set("addressId", String(addressId));
+  if (addressId !== undefined && addressId !== "")
+    query.set("addressId", String(addressId));
   const response = await authenticatedFetch(
     `${BASE_URL}/cart/customer-cart-info?${query.toString()}`,
   );
@@ -694,7 +747,10 @@ export const removeCartItem = async (cartId: number, userId: number) => {
       method: "DELETE",
     },
   );
-  if (!response.ok) throw new Error(await getResponseErrorMessage(response, "Failed to remove cart item"));
+  if (!response.ok)
+    throw new Error(
+      await getResponseErrorMessage(response, "Failed to remove cart item"),
+    );
   return response.json();
 };
 
@@ -795,7 +851,7 @@ export const createOrder = async (orderData: {
   userId: number;
   addressId: number;
   notes: string;
-  paymentMode: "WALLET" | "CASHFREE" | "COD" ;
+  paymentMode: "WALLET" | "CASHFREE" | "COD";
   returnUrl?: string;
 }) => {
   const response = await authenticatedFetch(`${BASE_URL}/order/createOrder`, {
@@ -832,18 +888,32 @@ export interface DeliveryTracking {
   status: string;
   statusLabel: string;
   statusDescription: string;
-  deliveryBoy?: { id: number; firstName: string; lastName?: string; phone?: string; vehicleNumber?: string; vehicleType?: string } | null;
+  deliveryBoy?: {
+    id: number;
+    firstName: string;
+    lastName?: string;
+    phone?: string;
+    vehicleNumber?: string;
+    vehicleType?: string;
+  } | null;
   deliveryAddress?: string;
   timeline?: DeliveryTrackingEvent[];
 }
 
 /** Get the shipment progress for a customer's order. */
-export const fetchOrderDeliveryTracking = async (orderId: number, userId: number): Promise<DeliveryTracking> => {
-  const response = await authenticatedFetch(`${BASE_URL}/admin/delivery/order/${orderId}`, {
-    headers: { "X-User-Id": String(userId) },
-  });
+export const fetchOrderDeliveryTracking = async (
+  orderId: number,
+  userId: number,
+): Promise<DeliveryTracking> => {
+  const response = await authenticatedFetch(
+    `${BASE_URL}/admin/delivery/order/${orderId}`,
+    {
+      headers: { "X-User-Id": String(userId) },
+    },
+  );
   const data = await response.json();
-  if (!response.ok || !data?.success) throw new Error(data?.message || "Delivery tracking is not available yet");
+  if (!response.ok || !data?.success)
+    throw new Error(data?.message || "Delivery tracking is not available yet");
   return data.data;
 };
 
@@ -915,7 +985,10 @@ export const getInvoicePdfUrl = async (orderNumber: string) => {
   const response = await authenticatedFetch(
     `${BASE_URL}/invoices/${orderNumber}/pdf`,
   );
-  if (!response.ok) throw new Error(await getResponseErrorMessage(response, "Failed to get invoice PDF"));
+  if (!response.ok)
+    throw new Error(
+      await getResponseErrorMessage(response, "Failed to get invoice PDF"),
+    );
   return response; // or response.blob() if you need to download it
 };
 
@@ -926,7 +999,10 @@ export const getInvoicePreviewUrl = async (orderNumber: string) => {
   const response = await authenticatedFetch(
     `${BASE_URL}/invoices/${orderNumber}/pdf/preview`,
   );
-  if (!response.ok) throw new Error(await getResponseErrorMessage(response, "Failed to get invoice preview"));
+  if (!response.ok)
+    throw new Error(
+      await getResponseErrorMessage(response, "Failed to get invoice preview"),
+    );
   return response;
 };
 

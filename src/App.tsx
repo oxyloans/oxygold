@@ -40,6 +40,7 @@ const VideoCreationPage = lazy(() => import('./AIVideosImages/VideoCreation'));
 const ImageCreation = lazy(() => import('./AIVideosImages/imagecreation'));
 const RealtimeVoice = lazy(() => import('./RealtimeVoice/components/RealTimeMainscreen'));
 const PhysicalGoldPage = lazy(() => import('./PhysicalGold/PhysicalGoldPageNew'));
+const HiddenLogin = lazy(() => import('./PhysicalGold/HiddenLogin'));
 const CartPage = lazy(() => import('./PhysicalGold/CartSlider'));
 const ProfilePage = lazy(() => import('./PhysicalGold/ProfileSlider'));
 const PaymentStatusPage = lazy(() => import('./PhysicalGold/PaymentStatus'));
@@ -112,7 +113,7 @@ function GoogleAnalyticsTracker() {
 function AppContent() {
   const [transactionData, setTransactionData] = useState<any>(null);
   const location = useLocation();
-  const isAuthPage = ['/login', '/register'].includes(location.pathname);
+  const isAuthPage = ['/login', '/register', '/hiddenlogin'].includes(location.pathname);
   const isTestPage = location.pathname === '/api-test';
   const isFullPageFlow = [
     '/review-order',
@@ -152,6 +153,7 @@ function AppContent() {
             {/* Auth & Utility */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/hiddenlogin" element={<HiddenLogin />} />
             <Route path="/api-test" element={<APITest />} />
             <Route path="/select-gold" element={<ProtectedRoute> <GoldSelection /> </ProtectedRoute>} />
             <Route path="/bis-certificate" element={<BISCertificate />} />

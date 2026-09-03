@@ -21,26 +21,25 @@ interface Product {
   price: number;
 }
 
-interface SubCategoryResponse {
+interface ProductResponse {
   id: number;
   name: string;
-  status: string;
-  parentId: number;
   description: string | null;
-  price: number | null;
   image: string | null;
+  price: number | null;
+  status?: string;
 }
 
 interface CategoryResponse {
   id: number;
   name: string;
   status: string;
-  subCategories: SubCategoryResponse[];
+  products: ProductResponse[];
 }
 
 const API_URL =
   import.meta.env.VITE_OXYGOLD_CATEGORIES_API_URL?.trim() ||
-  "https://meta.oxyloans.com/api/oxygold-api/admin/categories/active-with-subcategories";
+  "https://meta.oxyloans.com/api/oxygold-api/admin/categories/categories-with-products";
 
 const currency = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -195,17 +194,17 @@ export default function GoldProductsLanding() {
         const mappedProducts = categoryData
           .filter((item) => item.status === "ACTIVE")
           .flatMap((parentCategory) =>
-            (parentCategory.subCategories ?? [])
-              .filter((subCategory) => subCategory.status === "ACTIVE")
-              .map<Product>((subCategory) => ({
-                id: subCategory.id,
-                name: subCategory.name,
-                description: subCategory.description?.trim() ?? "",
-                categoryId: subCategory.parentId,
+            (parentCategory.products ?? [])
+              .filter((product) => !product.status || product.status === "ACTIVE")
+              .map<Product>((product) => ({
+                id: product.id,
+                name: product.name,
+                description: product.description?.trim() ?? "",
+                categoryId: parentCategory.id,
                 categoryName: parentCategory.name,
-                frontViewurl: subCategory.image?.trim() || null,
-                status: subCategory.status,
-                price: Number(subCategory.price) || 0,
+                frontViewurl: product.image?.trim() || null,
+                status: product.status ?? "ACTIVE",
+                price: Number(product.price) || 0,
               }))
           );
 
@@ -275,7 +274,7 @@ export default function GoldProductsLanding() {
 
     setCanScrollTabsRight(
       tabs.scrollLeft + tabs.clientWidth <
-        tabs.scrollWidth - 4
+      tabs.scrollWidth - 4
     );
   }, []);
 
@@ -360,11 +359,10 @@ export default function GoldProductsLanding() {
               onClick={() => scrollTabs("left")}
               disabled={!canScrollTabsLeft}
               aria-label="Previous categories"
-              className={`absolute left-0 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-[#2B0A59]/95 text-white shadow-lg transition hover:border-[#D4AF37]/60 hover:text-[#F5D36C] sm:grid ${
-                canScrollTabsLeft
+              className={`absolute left-0 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-[#2B0A59]/95 text-white shadow-lg transition hover:border-[#D4AF37]/60 hover:text-[#F5D36C] sm:grid ${canScrollTabsLeft
                   ? "visible opacity-100"
                   : "invisible pointer-events-none opacity-0"
-              }`}
+                }`}
             >
               <ChevronLeft size={17} />
             </button>
@@ -380,11 +378,10 @@ export default function GoldProductsLanding() {
                   type="button"
                   onClick={() => setCategory(item)}
                   aria-pressed={category === item}
-                  className={`shrink-0 snap-start rounded-lg border px-4 py-2.5 text-xs font-bold transition sm:px-5 sm:text-sm ${
-                    category === item
+                  className={`shrink-0 snap-start rounded-lg border px-4 py-2.5 text-xs font-bold transition sm:px-5 sm:text-sm ${category === item
                       ? "border-[#D4AF37] bg-gradient-to-r from-[#D4AF37] to-[#F5D36C] text-[#2B0A59] shadow-[0_8px_22px_rgba(212,175,55,.20)]"
                       : "border-white/15 bg-white/[0.06] text-white/75 hover:border-[#D4AF37]/60 hover:text-[#F5D36C]"
-                  }`}
+                    }`}
                 >
                   {item}
                 </button>
@@ -396,11 +393,10 @@ export default function GoldProductsLanding() {
               onClick={() => scrollTabs("right")}
               disabled={!canScrollTabsRight}
               aria-label="More categories"
-              className={`absolute right-0 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-[#2B0A59]/95 text-white shadow-lg transition hover:border-[#D4AF37]/60 hover:text-[#F5D36C] sm:grid ${
-                canScrollTabsRight
+              className={`absolute right-0 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-[#2B0A59]/95 text-white shadow-lg transition hover:border-[#D4AF37]/60 hover:text-[#F5D36C] sm:grid ${canScrollTabsRight
                   ? "visible opacity-100"
                   : "invisible pointer-events-none opacity-0"
-              }`}
+                }`}
             >
               <ChevronRight size={17} />
             </button>
@@ -498,31 +494,31 @@ export default function GoldProductsLanding() {
           !error &&
           filteredProducts.length > 0 && (
             <div className="mt-6 w-full sm:mt-8">
-                <div
-                  className={
-                    isSingleProduct
-                      ? "mx-auto grid max-w-3xl grid-cols-1"
-                      : useFeaturedCards
+              <div
+                className={
+                  isSingleProduct
+                    ? "mx-auto grid max-w-3xl grid-cols-1"
+                    : useFeaturedCards
                       ? "grid grid-cols-2 gap-3 sm:grid-cols-1 sm:gap-4 md:grid-cols-2 md:gap-5"
                       : "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5"
-                  }
-                >
-                  {filteredProducts.map((product) => (
-                    <article
-                      key={product.id}
-                      role="link"
-                      tabIndex={0}
-                      onClick={() => openProduct(product)}
-                      onKeyDown={(event) => {
-                        if (
-                          event.key === "Enter" ||
-                          event.key === " "
-                        ) {
-                          event.preventDefault();
-                          openProduct(product);
-                        }
-                      }}
-                      className={`
+                }
+              >
+                {filteredProducts.map((product) => (
+                  <article
+                    key={product.id}
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => openProduct(product)}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === "Enter" ||
+                        event.key === " "
+                      ) {
+                        event.preventDefault();
+                        openProduct(product);
+                      }
+                    }}
+                    className={`
                         group
                         w-full
                         min-w-0
@@ -543,79 +539,73 @@ export default function GoldProductsLanding() {
                         focus:ring-[#F5D36C]
 
                         sm:rounded-2xl
-                        ${
-                          useFeaturedCards
-                            ? isSingleProduct
-                              ? "sm:flex sm:min-h-[230px]"
-                              : "sm:flex sm:min-h-[250px] md:last:odd:col-span-2"
-                            : ""
-                        }
+                        ${useFeaturedCards
+                        ? isSingleProduct
+                          ? "sm:flex sm:min-h-[230px]"
+                          : "sm:flex sm:min-h-[250px] md:last:odd:col-span-2"
+                        : ""
+                      }
                       `}
+                  >
+                    <div
+                      className={`relative overflow-hidden bg-gradient-to-br from-[#fffdf8] to-[#f3eadc] ${useFeaturedCards
+                          ? isSingleProduct
+                            ? "aspect-[16/9] sm:aspect-auto sm:w-[42%] sm:shrink-0"
+                            : "aspect-square sm:aspect-auto sm:w-[44%] sm:shrink-0"
+                          : "aspect-square"
+                        }`}
                     >
-                      <div
-                        className={`relative overflow-hidden bg-gradient-to-br from-[#fffdf8] to-[#f3eadc] ${
-                          useFeaturedCards
-                            ? isSingleProduct
-                              ? "aspect-[16/9] sm:aspect-auto sm:w-[42%] sm:shrink-0"
-                              : "aspect-square sm:aspect-auto sm:w-[44%] sm:shrink-0"
-                            : "aspect-square"
+                      <ProductImage product={product} />
+                    </div>
+
+                    <div
+                      className={`p-2.5 sm:p-4 ${useFeaturedCards
+                          ? "sm:flex sm:flex-1 sm:flex-col sm:justify-center sm:p-5 lg:p-6"
+                          : ""
                         }`}
-                      >
-                        <ProductImage product={product} />
-                      </div>
-
-                      <div
-                        className={`p-2.5 sm:p-4 ${
-                          useFeaturedCards
-                            ? "sm:flex sm:flex-1 sm:flex-col sm:justify-center sm:p-5 lg:p-6"
-                            : ""
-                        }`}
-                      >
-                        <h2
-                          className={`font-playfair font-bold text-white ${
-                            useFeaturedCards
-                              ? "line-clamp-2 min-h-9 text-xs leading-[1.15rem] sm:min-h-0 sm:text-xl sm:leading-7"
-                              : "line-clamp-2 min-h-9 text-xs leading-[1.15rem] sm:min-h-10 sm:text-base sm:leading-5"
+                    >
+                      <h2
+                        className={`font-playfair font-bold text-white ${useFeaturedCards
+                            ? "line-clamp-2 min-h-9 text-xs leading-[1.15rem] sm:min-h-0 sm:text-xl sm:leading-7"
+                            : "line-clamp-2 min-h-9 text-xs leading-[1.15rem] sm:min-h-10 sm:text-base sm:leading-5"
                           }`}
-                        >
-                          {product.name}
-                        </h2>
+                      >
+                        {product.name}
+                      </h2>
 
-                        {useFeaturedCards && product.description && (
-                          <p className="mt-2 hidden line-clamp-3 text-sm leading-6 text-white/65 sm:block">
-                            {product.description}
-                          </p>
-                        )}
-
-                        <p
-                          className={`font-black text-[#F5D36C] ${
-                            useFeaturedCards
-                              ? "mt-1.5 text-sm sm:mt-3 sm:text-xl"
-                              : "mt-1.5 text-sm sm:mt-2 sm:text-lg"
-                          }`}
-                        >
-                          {currency.format(product.price)}
+                      {useFeaturedCards && product.description && (
+                        <p className="mt-2 hidden line-clamp-3 text-sm leading-6 text-white/65 sm:block">
+                          {product.description}
                         </p>
+                      )}
 
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openProduct(product);
-                          }}
-                          className={`mt-2.5 inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#D4AF37] to-[#F5D36C] px-2 text-[11px] font-black text-[#2B0A59] shadow-[0_7px_18px_rgba(212,175,55,.18)] transition hover:-translate-y-0.5 hover:brightness-105 active:scale-95 sm:mt-3 sm:rounded-xl sm:px-3 sm:text-xs ${
-                            useFeaturedCards
-                              ? "w-full sm:w-fit sm:min-w-32"
-                              : "w-full"
+                      <p
+                        className={`font-black text-[#F5D36C] ${useFeaturedCards
+                            ? "mt-1.5 text-sm sm:mt-3 sm:text-xl"
+                            : "mt-1.5 text-sm sm:mt-2 sm:text-lg"
                           }`}
-                        >
-                          Buy Now
-                          <ArrowRight size={14} />
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+                      >
+                        {currency.format(product.price)}
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openProduct(product);
+                        }}
+                        className={`mt-2.5 inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#D4AF37] to-[#F5D36C] px-2 text-[11px] font-black text-[#2B0A59] shadow-[0_7px_18px_rgba(212,175,55,.18)] transition hover:-translate-y-0.5 hover:brightness-105 active:scale-95 sm:mt-3 sm:rounded-xl sm:px-3 sm:text-xs ${useFeaturedCards
+                            ? "w-full sm:w-fit sm:min-w-32"
+                            : "w-full"
+                          }`}
+                      >
+                        Buy Now
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
           )}
       </div>
