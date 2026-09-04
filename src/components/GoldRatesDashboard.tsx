@@ -539,7 +539,7 @@ export default function GoldRatesDashboard() {
 const styles = `
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
-.grdRoot{ width: 100%; padding: 32px 0; box-sizing: border-box; }
+.grdRoot{ width: 100%; padding: 24px 0; box-sizing: border-box; }
 .grdRoot .page{ width: 100%; padding: 0; }
 
 .grdRoot .panel{

@@ -133,6 +133,8 @@ function AppContent() {
     "/videoCreation/",
     "/verified",
     "/verified/",
+    "/hiddenlogin",
+    "/hiddenlogin/",
   ].includes(location.pathname) ||
     location.pathname.startsWith("/physical-gold") ||
     location.pathname.startsWith("/admin") ||

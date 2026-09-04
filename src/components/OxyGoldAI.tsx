@@ -172,8 +172,9 @@ export default function OxyGoldLandingPage({ assets }: Props) {
   return (
     <div
       id="top"
-      className="min-h-screen overflow-x-hidden bg-[#0B021D] font-poppins text-white"
+      className="min-h-screen w-full overflow-x-hidden bg-[#0B021D] font-poppins text-white"
       style={{
+        backgroundColor: "#0B021D",
         background:
           "linear-gradient(180deg, #2B0A59 0%, #1B063D 50%, #0B021D 100%)",
       }}
@@ -196,12 +197,12 @@ export default function OxyGoldLandingPage({ assets }: Props) {
         </section>
 
         {/* Buy Gold Coins */}
-        <section
+        {/* <section
           id="buy-coins"
           className="scroll-mt-28"
         >
           <BuyGoldCoins />
-        </section>
+        </section> */}
 
         {/* Main Container */}
         <div className="mx-auto w-full max-w-[1464px] px-4 sm:px-6 lg:px-8">
@@ -465,12 +466,12 @@ export default function OxyGoldLandingPage({ assets }: Props) {
             </section>
 
             {/* Buy Silver Coins */}
-            <section
+            {/* <section
               id="buy-silver-coins"
               className="-mx-4 w-[calc(100%+2rem)] scroll-mt-28 sm:-mx-6 sm:w-[calc(100%+3rem)] lg:-mx-8 lg:w-[calc(100%+4rem)]"
             >
               <BuySilverSection />
-            </section>
+            </section> */}
 
             {/* AI Book */}
             <section

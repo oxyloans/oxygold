@@ -112,7 +112,7 @@ const CookiePolicy: React.FC = () => {
               <h2 className="text-[18px] font-semibold text-[#1A1A1A] mb-3">8. Contact Us</h2>
               <p className="mb-3">If you have questions about our use of cookies, please contact us:</p>
               <div className="mt-3 p-4 bg-[#F5F2EE] rounded-lg border border-[#E8E0D5]">
-                <p className="font-semibold text-[#1A1A1A]">OXYKART TECHNOLOGIES PVT LTD</p>
+                <p className="font-semibold text-[#1A1A1A]">OXYIDEAS PARTNERS LLP</p>
                 <p>Email: support@oxygold.ai</p>
                 <p>Phone: +91 81432 71103</p>
               </div>

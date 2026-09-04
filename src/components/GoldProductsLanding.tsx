@@ -339,7 +339,7 @@ export default function GoldProductsLanding() {
     >
       <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(rgba(255,255,255,.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.14)_1px,transparent_1px)] [background-size:52px_52px]" />
 
-      <div className="relative mx-auto w-full max-w-[1464px] px-3 pb-8 pt-4 min-[380px]:px-4 sm:px-6 sm:pb-10 sm:pt-8 lg:px-8 lg:pb-12 lg:pt-10">
+      <div className="relative mx-auto w-full max-w-[1464px] px-3 pb-6 pt-4 min-[380px]:px-4 sm:px-6 sm:pb-10 sm:pt-8 lg:px-8 lg:pb-8 lg:pt-6">
         <header className="mx-auto max-w-3xl text-center">
           <h1
             id="gold-products-title"

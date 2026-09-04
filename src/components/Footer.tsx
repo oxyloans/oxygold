@@ -34,7 +34,7 @@ const Footer = () => {
       {/* <div className="footer-section">
             <h4 className="footer-heading">Company</h4>
             <div className="footer-contact">
-              <p className="company-name">OXYKART TECHNOLOGIES PVT LTD</p>
+              <p className="company-name">OXYIDEAS PARTNERS LLP</p>
               <p className="company-address">
                 Miyapur Metro, ASKOXY.AI<br />
                 Hyderabad, Telangana - 500049
