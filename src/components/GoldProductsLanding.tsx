@@ -542,7 +542,7 @@ export default function GoldProductsLanding() {
                         ${useFeaturedCards
                         ? isSingleProduct
                           ? "sm:flex sm:min-h-[230px]"
-                          : "sm:flex sm:min-h-[250px] md:last:odd:col-span-2"
+                          : "sm:flex sm:min-h-[250px]"
                         : ""
                       }
                       `}

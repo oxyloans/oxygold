@@ -163,9 +163,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     productVariantId: parseInt(variant.id)
                 });
                 setCartNotification({ message: response?.message || response?.data?.message || "Item added to cart successfully.", type: "success" });
-                refreshCart(); // Sync with server for accurate totals
+                refreshCart();
             } catch (err) {
-                console.error("Failed to add to cart on server:", err);
+                // Revert optimistic update
+                setCartItems((prev) => {
+                    const existing = prev.find((i) => i.variant.id === variant.id);
+                    if (existing && existing.quantity > 1)
+                        return prev.map((i) =>
+                            i.variant.id === variant.id ? { ...i, quantity: i.quantity - 1 } : i
+                        );
+                    return prev.filter((i) => i.variant.id !== variant.id);
+                });
+                const message = err instanceof Error ? err.message : "Failed to add item to cart.";
+                setCartNotification({ message, type: "error" });
+                throw err; // re-throw so callers (ProductCard) know it failed
             }
         }
     }, [refreshCart]);
