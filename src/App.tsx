@@ -40,6 +40,7 @@ const VideoCreationPage = lazy(() => import('./AIVideosImages/VideoCreation'));
 const ImageCreation = lazy(() => import('./AIVideosImages/imagecreation'));
 const RealtimeVoice = lazy(() => import('./RealtimeVoice/components/RealTimeMainscreen'));
 const PhysicalGoldPage = lazy(() => import('./PhysicalGold/PhysicalGoldPageNew'));
+const HiddenLogin = lazy(() => import('./PhysicalGold/HiddenLogin'));
 const CartPage = lazy(() => import('./PhysicalGold/CartSlider'));
 const ProfilePage = lazy(() => import('./PhysicalGold/ProfileSlider'));
 const PaymentStatusPage = lazy(() => import('./PhysicalGold/PaymentStatus'));
@@ -112,7 +113,7 @@ function GoogleAnalyticsTracker() {
 function AppContent() {
   const [transactionData, setTransactionData] = useState<any>(null);
   const location = useLocation();
-  const isAuthPage = ['/login', '/register'].includes(location.pathname);
+  const isAuthPage = ['/login', '/register', '/hiddenlogin'].includes(location.pathname);
   const isTestPage = location.pathname === '/api-test';
   const isFullPageFlow = [
     '/review-order',
@@ -132,6 +133,8 @@ function AppContent() {
     "/videoCreation/",
     "/verified",
     "/verified/",
+    "/hiddenlogin",
+    "/hiddenlogin/",
   ].includes(location.pathname) ||
     location.pathname.startsWith("/physical-gold") ||
     location.pathname.startsWith("/admin") ||
@@ -152,6 +155,7 @@ function AppContent() {
             {/* Auth & Utility */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/hiddenlogin" element={<HiddenLogin />} />
             <Route path="/api-test" element={<APITest />} />
             <Route path="/select-gold" element={<ProtectedRoute> <GoldSelection /> </ProtectedRoute>} />
             <Route path="/bis-certificate" element={<BISCertificate />} />
@@ -188,7 +192,22 @@ function AppContent() {
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/faq" element={<FAQ />} />
 
-            {/* Physical Gold */}
+            {/* Physical Gold public storefront */}
+            <Route element={<PhysicalGoldLayout />}>
+              <Route path="/physical-gold" element={<PhysicalGoldPage />} />
+              <Route path="/physical-gold/category/:categoryId" element={<PhysicalGoldPage />} />
+              <Route path="/physical-gold/category/:categoryId/subcategory/:subCategoryId" element={<PhysicalGoldPage />} />
+              <Route path="/physical-gold/product/:id" element={<ProductDetailsPage />} />
+              <Route path="/physical-gold/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/physical-gold/terms-conditions" element={<TermsConditionsPhysical />} />
+              <Route path="/physical-gold/shipping-policy" element={<ShippingPolicy />} />
+              <Route path="/physical-gold/return-refund-policy" element={<ReturnRefundPolicy />} />
+              <Route path="/physical-gold/faq" element={<FAQPage />} />
+              <Route path="/physical-gold/cookie-policy" element={<CookiePolicy />} />
+              <Route path="/physical-gold/cancellation-policy" element={<CancellationPolicy />} />
+            </Route>
+
+            {/* Physical Gold protected actions */}
             <Route
               element={
                 <ProtectedRoute>
@@ -196,10 +215,6 @@ function AppContent() {
                 </ProtectedRoute>
               }
             >
-              <Route path="/physical-gold" element={<PhysicalGoldPage />} />
-              <Route path="/physical-gold/category/:categoryId" element={<PhysicalGoldPage />} />
-              <Route path="/physical-gold/category/:categoryId/subcategory/:subCategoryId" element={<PhysicalGoldPage />} />
-              <Route path="/physical-gold/product/:id" element={<ProductDetailsPage />} />
               <Route
                 path="/physical-gold/orders"
                 element={<Navigate to="/physical-gold/profile?tab=orders" replace />}
@@ -208,13 +223,6 @@ function AppContent() {
               <Route path="/physical-gold/profile" element={<ProfilePage />} />
               <Route path="/physical-gold/wishlist" element={<WishlistPage />} />
               <Route path="/physical-gold/payment-status" element={<PaymentStatusPage />} />
-              <Route path="/physical-gold/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/physical-gold/terms-conditions" element={<TermsConditionsPhysical />} />
-              <Route path="/physical-gold/shipping-policy" element={<ShippingPolicy />} />
-              <Route path="/physical-gold/return-refund-policy" element={<ReturnRefundPolicy />} />
-              <Route path="/physical-gold/faq" element={<FAQPage />} />
-              <Route path="/physical-gold/cookie-policy" element={<CookiePolicy />} />
-              <Route path="/physical-gold/cancellation-policy" element={<CancellationPolicy />} />
             </Route>
 
             {/* Admin */}

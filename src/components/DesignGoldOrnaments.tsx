@@ -6,7 +6,6 @@ import {
   AudioOutlined,
   PictureOutlined,
   VideoCameraOutlined,
-  ShoppingCartOutlined,
 } from "@ant-design/icons";
 import GoldJewelleryImage from "../assets/goldbanner1.png";
 
@@ -16,7 +15,10 @@ interface PersonaliseModalProps {
   onClose: () => void;
 }
 
-const PersonaliseModal: React.FC<PersonaliseModalProps> = ({ route, onClose }) => {
+const PersonaliseModal: React.FC<PersonaliseModalProps> = ({
+  route,
+  onClose,
+}) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     gender: "",
@@ -25,7 +27,12 @@ const PersonaliseModal: React.FC<PersonaliseModalProps> = ({ route, onClose }) =
     event: "",
   });
 
-  const isComplete = !!(formData.gender && formData.age && formData.skinTone && formData.event);
+  const isComplete = !!(
+    formData.gender &&
+    formData.age &&
+    formData.skinTone &&
+    formData.event
+  );
 
   const handleSubmit = () => {
     const userContext = `Gender: ${formData.gender}, Age: ${formData.age}, Skin Tone: ${formData.skinTone}, Event: ${formData.event}`;
@@ -68,7 +75,14 @@ const PersonaliseModal: React.FC<PersonaliseModalProps> = ({ route, onClose }) =
               label: "Event / Celebration",
               key: "event",
               type: "select",
-              options: ["Wedding", "Party", "Official/Formal", "Ethnic/Traditional", "Casual", "Festival"],
+              options: [
+                "Wedding",
+                "Party",
+                "Official/Formal",
+                "Ethnic/Traditional",
+                "Casual",
+                "Festival",
+              ],
             },
           ].map(({ label, key, type, options }) => (
             <div key={key}>
@@ -76,19 +90,25 @@ const PersonaliseModal: React.FC<PersonaliseModalProps> = ({ route, onClose }) =
               {type === "select" ? (
                 <select
                   value={(formData as any)[key]}
-                  onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, [key]: e.target.value })
+                  }
                   style={modalStyles.input}
                 >
                   <option value="">Select {label}</option>
                   {options!.map((o) => (
-                    <option key={o} value={o}>{o}</option>
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
                   ))}
                 </select>
               ) : (
                 <input
                   type="number"
                   value={(formData as any)[key]}
-                  onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, [key]: e.target.value })
+                  }
                   placeholder="Enter age"
                   style={modalStyles.input}
                 />
@@ -172,7 +192,7 @@ const OxyGoldAIPage: React.FC = () => {
 
   const handleCardClick = (card: (typeof cards)[0]) => {
     if (card.route.startsWith("http")) {
-      window.open(card.route, "_blank");
+      window.open(card.route, "_blank", "noopener,noreferrer");
     } else if (card.showModal) {
       setModalRoute(card.route);
     } else {
@@ -181,13 +201,12 @@ const OxyGoldAIPage: React.FC = () => {
   };
 
   return (
-    <section className="oxygold-section">
+    <section className="oxygold-section" style={styles.section}>
       <div style={styles.container}>
         {/* Outer card — identical to BuyGoldSection */}
         <div style={styles.card} className="oxygold-card">
           <div style={styles.inner}>
             <div style={styles.heroRow} className="oxygold-hero">
-
               {/* ── LEFT: Content ── */}
               <div style={styles.left}>
                 {/* Badge row */}
@@ -196,19 +215,17 @@ const OxyGoldAIPage: React.FC = () => {
                     <span style={styles.badgeDot} />
                     OXYGOLD.AI • Intelligence Suite
                   </div>
-                  <div style={styles.pill}>
-                    <span style={styles.pillText}>Images &amp; Videos</span>
-                  </div>
                 </div>
 
                 {/* Heading */}
                 <div style={styles.header}>
                   <h2 style={styles.title}>
-                    Design Your Own{" "}
-                    <span style={styles.goldText}>Jewellery</span>
+                    Design Gold{" "}
+                    <span style={styles.goldText}>Jewellery with AI</span>
                   </h2>
                   <p style={styles.subtitle}>
-                    Create AI-powered images, videos &amp; voice experiences with OXYGOLD.AI
+                    Create jewellery ideas through AI chat, voice, images and
+                    videos.
                   </p>
                 </div>
 
@@ -221,14 +238,24 @@ const OxyGoldAIPage: React.FC = () => {
                         key={card.id}
                         style={{
                           ...styles.feature,
-                          ...(isHov ? {
-                            borderColor: `${card.accent}66`,
-                            background: "rgba(255,255,255,0.12)",
-                            transform: "translateY(-3px)",
-                          } : {}),
+                          ...(isHov
+                            ? {
+                                borderColor: `${card.accent}66`,
+                                background: "rgba(255,255,255,0.12)",
+                                transform: "translateY(-3px)",
+                              }
+                            : {}),
                         }}
                         className="feature-card flex items-center"
+                        role="button"
+                        tabIndex={0}
                         onClick={() => handleCardClick(card)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            handleCardClick(card);
+                          }
+                        }}
                         onMouseEnter={() => setHovered(card.id)}
                         onMouseLeave={() => setHovered(null)}
                       >
@@ -247,11 +274,6 @@ const OxyGoldAIPage: React.FC = () => {
                     );
                   })}
                 </div>
-
-                {/* Note */}
-                <p style={styles.smallNote}>
-                  Create your own images and videos.
-                </p>
               </div>
 
               {/* ── RIGHT: Image ── */}
@@ -269,7 +291,10 @@ const OxyGoldAIPage: React.FC = () => {
       </div>
 
       {modalRoute && (
-        <PersonaliseModal route={modalRoute} onClose={() => setModalRoute(null)} />
+        <PersonaliseModal
+          route={modalRoute}
+          onClose={() => setModalRoute(null)}
+        />
       )}
 
       <style>{responsiveStyles}</style>
@@ -281,22 +306,31 @@ export default OxyGoldAIPage;
 
 // ── Styles ──
 const styles: Record<string, React.CSSProperties> = {
+  section: {
+    width: "100%",
+    padding: "0",
+    position: "relative",
+    overflow: "hidden",
+    background: "transparent",
+  },
+
   container: {
-    maxWidth: "1200px",
+    width: "100%",
+    maxWidth: "1400px",
     margin: "0 auto",
   },
 
   card: {
-    borderRadius: "28px",
+    borderRadius: "20px",
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(255,255,255,0.06)",
-    boxShadow: "0 28px 80px rgba(0,0,0,0.35)",
+    boxShadow: "0 12px 32px rgba(8,2,24,0.20)",
     backdropFilter: "blur(12px)",
     overflow: "hidden",
   },
 
   inner: {
-    padding: "42px",
+    padding: "32px",
   },
 
   heroRow: {
@@ -464,10 +498,12 @@ const modalStyles: Record<string, React.CSSProperties> = {
   card: {
     background: "#fff",
     borderRadius: "20px",
-    boxShadow: "0 32px 80px rgba(0,0,0,0.3)",
+    boxShadow: "0 16px 42px rgba(8,2,24,0.25)",
     maxWidth: "440px",
     width: "100%",
     padding: "28px",
+    maxHeight: "90vh",
+    overflowY: "auto",
     position: "relative",
     animation: "modal-slide-up 0.3s ease-out",
   },
@@ -511,8 +547,8 @@ const modalStyles: Record<string, React.CSSProperties> = {
     padding: "13px",
     borderRadius: "12px",
     border: "none",
-    background: "linear-gradient(135deg, #7C3AED, #DB2777)",
-    color: "#fff",
+    background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
+    color: "#2B0A59",
     fontSize: "15px",
     fontWeight: 700,
     cursor: "pointer",
@@ -557,13 +593,20 @@ const responsiveStyles = `
 
   /* Mobile */
   @media (max-width: 640px) {
-    .oxygold-section { padding: 16px 12px !important; }
+    .oxygold-section { padding: 20px 0 !important; }
     .oxygold-card > div {
       padding: 16px !important;
     }
     .oxygold-grid {
       grid-template-columns: 1fr !important;
       gap: 12px !important;
+    }
+    .oxygold-right {
+      justify-content: center !important;
+    }
+    .oxygold-banner-img {
+      max-height: 300px !important;
+      object-fit: contain !important;
     }
   }
 `;

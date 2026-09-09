@@ -3,7 +3,7 @@ import ibjaPartner from "../assets/IBJApartner.png";
 
 export default function IBJAPartnerSection() {
   return (
-    <section>
+    <section className="ibja-section">
       <div style={styles.container} className="ibja-container">
         <div style={styles.card} className="ibja-card">
           <div style={styles.inner} className="ibja-inner">
@@ -20,33 +20,37 @@ export default function IBJAPartnerSection() {
 
               {/* RIGHT: Content */}
               <div style={styles.right} className="ibja-right">
-
                 <h2 style={styles.title}>
                   <span style={styles.goldText}>IBJA </span> • Platinum Partner
                 </h2>
 
                 <p style={styles.subtitle}>
-                  Aligning our digital gold ecosystem with India’s most respected bullion authority.
+                  Aligning our digital gold ecosystem with India’s most
+                  respected bullion authority.
                 </p>
 
                 <p style={styles.description}>
-                  OXYGOLD.AI is proud to be an IBJA Platinum Partner, aligning our digital gold
-                  ecosystem with India’s most respected bullion authority.
+                  OXYGOLD.AI is proud to be an IBJA Platinum Partner, aligning
+                  our digital gold ecosystem with India’s most respected bullion
+                  authority.
                 </p>
 
                 <p style={styles.description}>
-                  Our pricing intelligence, transparency framework, and compliance standards are
-                  powered by IBJA benchmark data — ensuring trust, authenticity, and market integrity.
+                  Our pricing intelligence, transparency framework, and
+                  compliance standards are powered by IBJA benchmark data —
+                  ensuring trust, authenticity, and market integrity.
                 </p>
 
                 <div style={styles.listCard}>
-                  <div style={styles.listTitle}>As a Platinum Partner, OXYGOLD.AI operates at the intersection of:</div>
+                  <div style={styles.listTitle}>
+                    As a Platinum Partner, OXYGOLD.AI operates at the
+                    intersection of:
+                  </div>
                   <ul style={styles.list}>
                     <li style={styles.listItem}>Real-time benchmark pricing</li>
                     <li style={styles.listItem}>Gold market intelligence</li>
                   </ul>
                 </div>
-
               </div>
             </div>
           </div>
@@ -60,9 +64,11 @@ export default function IBJAPartnerSection() {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
+    width: "100%",
+    boxSizing: "border-box",
     maxWidth: "1400px",
     margin: "0 auto",
-    // padding: "60px 20px",
+    padding: "0",
   },
 
   card: {
@@ -70,7 +76,7 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: "hidden",
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(255,255,255,0.06)",
-    boxShadow: "0 30px 90px rgba(0,0,0,0.35)",
+    boxShadow: "0 12px 32px rgba(8,2,24,0.20)",
     backdropFilter: "blur(14px)",
   },
 
@@ -243,7 +249,7 @@ const responsiveStyles = `
   .ibja-cta:active{ transform: translateY(0px) scale(0.99); }
 
   @media (max-width: 980px){
-    .ibja-container{ padding: 40px 16px !important; }
+    .ibja-container{ padding: 28px 0 !important; }
     .ibja-grid{
       grid-template-columns: 1fr !important;
       gap: 28px !important;
@@ -258,7 +264,7 @@ const responsiveStyles = `
   }
 
   @media (max-width: 640px){
-    .ibja-container{ padding: 16px 12px !important; }
+    .ibja-container{ padding: 20px 0 !important; }
     .ibja-inner{ padding: 16px !important; }
     .ibja-card{ border-radius: 20px !important; }
     .ibja-grid{ gap: 24px !important; }

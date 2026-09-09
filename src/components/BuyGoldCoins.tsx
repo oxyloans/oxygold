@@ -11,7 +11,7 @@ import goldBanner from "../assets/goldbanner.png";
 export default function BuyGoldSection() {
   const navigate = useNavigate();
   const handleBuyNow = () => {
-   navigate("/login");
+    navigate("/login");
   };
 
   const handlePlayStore = () => {
@@ -25,7 +25,7 @@ export default function BuyGoldSection() {
 
   const handleBISCertificate = () => {
     navigate("/bis-certificate");
-  }
+  };
 
   const handleAppStore = () => {
     // ✅ replace with your real App Store link
@@ -37,7 +37,7 @@ export default function BuyGoldSection() {
   };
 
   return (
-    <section >
+    <section style={styles.section} className="buy-gold-section">
       <div style={styles.container}>
         {/* ✅ AI-book style card */}
         <div style={styles.card} className="buy-gold-card">
@@ -54,7 +54,6 @@ export default function BuyGoldSection() {
                     <span style={styles.pillText}>24K / 22K Coins</span>
                   </div>
                 </div>
-
                 <div style={styles.header}>
                   <h2 style={styles.title}>
                     Buy <span style={styles.goldText}>Gold Coins</span>
@@ -63,7 +62,6 @@ export default function BuyGoldSection() {
                     Secure digital gold with physical reserve backing.
                   </p>
                 </div>
-
                 {/* ✅ Simplified + shorter feature boxes */}
                 <div style={styles.grid} className="buy-gold-grid">
                   <div style={styles.feature} className="feature-card">
@@ -91,11 +89,22 @@ export default function BuyGoldSection() {
                   </div>
                 </div>
                 <div style={styles.bisCard} className="feature-card">
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      flex: 1,
+                    }}
+                  >
                     <SafetyCertificateOutlined style={styles.bisIcon} />
                     <div>
-                      <h3 style={styles.featureTitle}>BIS Hallmark Certified</h3>
-                      <p style={styles.featureText}>Trusted purity. Transparent pricing.</p>
+                      <h3 style={styles.featureTitle}>
+                        BIS Hallmark Certified
+                      </h3>
+                      <p style={styles.featureText}>
+                        Trusted purity. Transparent pricing.
+                      </p>
                     </div>
                   </div>
                   <button
@@ -108,7 +117,6 @@ export default function BuyGoldSection() {
                   </button>
                 </div>
                 <div style={{ height: "12px" }} /> {/* small spacer */}
-
                 <div style={styles.ctaWrapper}>
                   <button
                     onClick={handleBuyNow}
@@ -191,7 +199,9 @@ export default function BuyGoldSection() {
                     </button>
                   </div>
 
-                  <p style={styles.smallNote}>Available on Web • Android • iOS</p>
+                  <p style={styles.smallNote}>
+                    Available on Web • Android • iOS
+                  </p>
                 </div>
               </div>
 
@@ -217,23 +227,24 @@ export default function BuyGoldSection() {
 const styles: Record<string, React.CSSProperties> = {
   section: {
     width: "100%",
-    background:
-      "radial-gradient(1200px 700px at 20% 10%, rgba(138,91,255,0.22) 0%, rgba(43,10,89,1) 60%), linear-gradient(180deg, #2B0A59 0%, #160537 100%)",
-    padding: "50px 20px",
+    boxSizing: "border-box",
+    background: "transparent",
+    padding: "0 clamp(16px, 3vw, 32px)",
     position: "relative",
     overflow: "hidden",
   },
 
   container: {
     maxWidth: "1400px",
-    margin: "50px 20px 0 20px",
+    margin: "0 auto",
+    width: "100%",
   },
 
   card: {
     borderRadius: "20px",
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(255,255,255,0.06)",
-    boxShadow: "0 28px 80px rgba(0,0,0,0.35)",
+    boxShadow: "0 12px 32px rgba(8,2,24,0.20)",
     backdropFilter: "blur(12px)",
     overflow: "hidden",
   },
@@ -360,7 +371,6 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: "72px", // reduced height
   },
 
-
   icon: {
     fontSize: "26px",
     color: "#D4AF37",
@@ -393,7 +403,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     borderRadius: "14px",
     cursor: "pointer",
-    boxShadow: "0 6px 22px rgba(212,175,55,0.28)",
+    boxShadow: "0 8px 20px rgba(212,175,55,0.20)",
     transition: "all 0.3s ease",
   },
 
@@ -465,7 +475,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "10px",
     cursor: "pointer",
     whiteSpace: "nowrap" as const,
-    boxShadow: "0 4px 14px rgba(212,175,55,0.30)",
+    boxShadow: "0 5px 14px rgba(212,175,55,0.18)",
     transition: "all 0.25s ease",
     flexShrink: 0,
   },
@@ -482,13 +492,13 @@ const responsiveStyles = `
     .buy-gold-cta:hover {
       filter: brightness(1.02);
       transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(212,175,55,0.45) !important;
+      box-shadow: 0 8px 20px rgba(212,175,55,0.22) !important;
     }
 
     .bis-view-btn:hover {
       filter: brightness(1.08);
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(212,175,55,0.45);
+      box-shadow: 0 6px 16px rgba(212,175,55,0.20);
     }
 
     .store-btn:hover{
@@ -527,8 +537,8 @@ const responsiveStyles = `
 
   /* Mobile */
   @media (max-width: 640px) {
-    section {
-      padding: 16px 12px !important;
+    .buy-gold-section {
+      padding: 20px 16px !important;
     }
     .buy-gold-card {
       border-radius: 20px !important;
@@ -536,12 +546,17 @@ const responsiveStyles = `
     .buy-gold-card > div{
       padding: 16px !important;
     }
+    .buy-gold-right{
+      order: -1;
+      justify-content: center !important;
+      margin-bottom: 4px;
+    }
     .buy-gold-grid{
       grid-template-columns: 1fr !important;
       gap: 10px !important;
       margin-bottom: 20px !important;
     }
-    section button.buy-gold-cta{
+    .buy-gold-section button.buy-gold-cta{
       width: 100%;
       justify-content: center;
       padding: 16px 20px !important;
@@ -559,6 +574,7 @@ const responsiveStyles = `
     }
     .gold-banner-img{
       max-width: 100% !important;
+      max-height: 290px !important;
     }
     .bis-view-btn{
       width: 100% !important;
@@ -568,8 +584,8 @@ const responsiveStyles = `
 
   /* Extra small mobile */
   @media (max-width: 400px) {
-    section {
-      padding: 12px 12px !important;
+    .buy-gold-section {
+      padding: 16px !important;
     }
     .buy-gold-card > div{
       padding: 16px !important;

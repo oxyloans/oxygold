@@ -10,7 +10,7 @@ export default function AIBookSection() {
   };
 
   return (
-    <section className="ai-book-section">
+    <section className="ai-book-section" style={styles.section}>
       <div style={styles.container}>
         {/* ✅ use SAME div (no new div) + make it the rounded card */}
         <div
@@ -129,7 +129,7 @@ export default function AIBookSection() {
             .ai-book-grid{ grid-template-columns: 0.95fr 1.05fr !important; }
           }
           @media (max-width: 640px){
-            .ai-book-section { padding: 16px 12px !important; }
+            .ai-book-section { padding: 20px 0 !important; }
             .ai-book-card{ border-radius: 16px !important; padding: 16px !important; }
             .ai-book-left{ padding: 0 10px; }
           }
@@ -147,14 +147,14 @@ export default function AIBookSection() {
 const styles: Record<string, React.CSSProperties> = {
   section: {
     width: "100%",
-    padding: "40px 20px",
+    padding: "0",
     position: "relative",
     overflow: "hidden",
-    background:
-      "radial-gradient(1200px 700px at 20% 10%, rgba(138,91,255,0.22) 0%, rgba(43,10,89,1) 60%), linear-gradient(180deg, #2B0A59 0%, #160537 100%)",
+    background: "transparent",
   },
 
   container: {
+    width: "100%",
     maxWidth: "1400px",
     margin: "0 auto",
     padding: "0 0px",
@@ -166,12 +166,12 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "0px",
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(255,255,255,0.06)",
-    boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+    boxShadow: "0 12px 32px rgba(8,2,24,0.20)",
     backdropFilter: "blur(12px)",
   },
 
   inner: {
-    padding: "0px",
+    padding: "32px",
   },
 
   // ✅ Top title (gold)
@@ -220,7 +220,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: "auto",
     objectFit: "contain",
     display: "block",
-    filter: "drop-shadow(0 18px 30px rgba(0,0,0,0.35))",
+    filter: "drop-shadow(0 12px 22px rgba(8,2,24,0.22))",
   },
 
   content: {
@@ -331,6 +331,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
+    boxShadow: "0 7px 18px rgba(8,2,24,0.16)",
   },
 };

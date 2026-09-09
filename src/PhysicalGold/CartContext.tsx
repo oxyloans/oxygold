@@ -16,7 +16,7 @@ interface CartContextType {
     decrementQuantity: (variantId: string, cartId: number | undefined) => Promise<void>;
     removeFromCart: (variantId: string) => Promise<void>;
     clearCart: () => void;
-    refreshCart: (addressId?: string | number) => Promise<void>;
+    refreshCart: (addressId?: string | number) => Promise<boolean>;
     totalItems: number;
     cartSubtotal: number;
     totalGstCharges: number;
@@ -64,7 +64,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const refreshCart = useCallback(async (addressId?: string | number) => {
         const userId = GET_USER_ID();
-        if (!userId) return;
+        if (!userId) return false;
         if (addressId !== undefined && addressId !== "") selectedAddressIdRef.current = addressId;
 
         try {
@@ -111,20 +111,27 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setDeliveryFee(data.deliveryFee || 0);
                 setDeliveryDistanceKm(data.deliveryDistanceKm ?? null);
                 setRatePerKm(data.ratePerKm ?? null);
-            } else {
-                setCartItems([]);
-                setTotalItems(0);
-                setCartSubtotal(0);
-                setTotalGstCharges(0);
-                setTotalMakingCharges(0);
-                setTotalPayableAmount(0);
-                setTotalCartItemWeight(0);
-                setDeliveryFee(0);
-                setDeliveryDistanceKm(null);
-                setRatePerKm(null);
+                setCartNotification(null);
+                return true;
             }
+
+            setCartItems([]);
+            setTotalItems(0);
+            setCartSubtotal(0);
+            setTotalGstCharges(0);
+            setTotalMakingCharges(0);
+            setTotalPayableAmount(0);
+            setTotalCartItemWeight(0);
+            setDeliveryFee(0);
+            setDeliveryDistanceKm(null);
+            setRatePerKm(null);
+            setCartNotification(null);
+            return true;
         } catch (err) {
+            const message = err instanceof Error ? err.message : "Unable to refresh cart details.";
             console.error("Failed to refresh cart:", err);
+            setCartNotification({ message, type: "error" });
+            return false;
         } finally {
             setIsLoading(false);
         }
@@ -156,9 +163,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     productVariantId: parseInt(variant.id)
                 });
                 setCartNotification({ message: response?.message || response?.data?.message || "Item added to cart successfully.", type: "success" });
-                refreshCart(); // Sync with server for accurate totals
+                refreshCart();
             } catch (err) {
-                console.error("Failed to add to cart on server:", err);
+                // Revert optimistic update
+                setCartItems((prev) => {
+                    const existing = prev.find((i) => i.variant.id === variant.id);
+                    if (existing && existing.quantity > 1)
+                        return prev.map((i) =>
+                            i.variant.id === variant.id ? { ...i, quantity: i.quantity - 1 } : i
+                        );
+                    return prev.filter((i) => i.variant.id !== variant.id);
+                });
+                const message = err instanceof Error ? err.message : "Failed to add item to cart.";
+                setCartNotification({ message, type: "error" });
+                throw err; // re-throw so callers (ProductCard) know it failed
             }
         }
     }, [refreshCart]);

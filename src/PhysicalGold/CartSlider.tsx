@@ -37,6 +37,8 @@ interface Address {
     address: string;
     pinCode: string;
     state: string;
+    latitude: string;
+    longitude: string;
 }
 
 interface PageState {
@@ -49,6 +51,7 @@ interface PageState {
     orderSuccess: { orderNumber: string } | null;
     incrementingId: string | null;
     decrementingId: string | null;
+    cartError: string;
     walletConfirmOpen: boolean;
     removeConfirmVariantId: string | null;
     confirmOrderModalOpen: boolean;
@@ -185,7 +188,6 @@ const CartPage: React.FC = () => {
         totalGstCharges,
         totalMakingCharges,
         totalPayableAmount,
-        totalCartItemWeight,
         deliveryFee,
         deliveryDistanceKm,
         ratePerKm,
@@ -201,6 +203,7 @@ const CartPage: React.FC = () => {
         orderSuccess: null,
         incrementingId: null,
         decrementingId: null,
+        cartError: "",
         walletConfirmOpen: false,
         removeConfirmVariantId: null,
         confirmOrderModalOpen: false,
@@ -235,7 +238,7 @@ const CartPage: React.FC = () => {
                 const addrRes = addrResult.status === "fulfilled" ? addrResult.value : null;
                 const balRes = balResult.status === "fulfilled" ? balResult.value : null;
 
-                const mapped: Address[] = (addrRes?.data || addrRes || []).map((a: any) => ({
+                const mapped: Address[] = (addrRes?.data.reverse() || addrRes || []).map((a: any) => ({
                     id: String(a.id),
                     type: a.type || "Home",
                     flatNo: a.flatNo || "",
@@ -243,11 +246,15 @@ const CartPage: React.FC = () => {
                     address: a.address || "",
                     pinCode: a.pinCode || "",
                     state: a.state || "",
+                    latitude: a.latitude || "",
+                    longitude: a.longitude || "",
                 }));
+
+                const preferredDefault = mapped.find((a) => a.latitude && a.longitude) ?? mapped[0];
 
                 patch({
                     addresses: mapped,
-                    selectedAddressId: mapped[0]?.id ?? "",
+                    selectedAddressId: preferredDefault?.id ?? "",
                     walletBalance: balRes?.success ? (balRes.data?.balance ?? 0) : null,
                     loadingAddresses: false,
                 });
@@ -259,8 +266,21 @@ const CartPage: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (s.selectedAddressId) refreshCart(s.selectedAddressId);
-    }, [s.selectedAddressId, refreshCart]);
+        if (!s.selectedAddressId) return;
+
+        const syncAddressCart = async () => {
+            const ok = await refreshCart(s.selectedAddressId);
+            if (!ok) {
+                patch({
+                    cartError: "This address is missing location coordinates. Please update the address and capture current location to continue."
+                });
+            } else {
+                patch({ cartError: "" });
+            }
+        };
+
+        syncAddressCart();
+    }, [s.selectedAddressId, refreshCart, patch]);
 
     const handleIncrement = useCallback(
         async (variantId: string) => {
@@ -294,6 +314,16 @@ const CartPage: React.FC = () => {
 
     const handleCheckoutClick = () => {
         if (!s.selectedAddressId) return;
+        const selectedAddr = s.addresses.find((a) => a.id === s.selectedAddressId);
+        const missingLocation = !!selectedAddr && (!selectedAddr.latitude || !selectedAddr.longitude);
+
+        if (missingLocation) {
+            patch({
+                cartError: "This address is missing location coordinates. Please update the address and capture current location to continue."
+            });
+            return;
+        }
+
         if (s.paymentMode === "WALLET") patch({ walletConfirmOpen: true });
         else executeCheckout();
     };
@@ -533,7 +563,7 @@ const CartPage: React.FC = () => {
                                                 </div>
                                                 <p className="text-[11px] text-[#8A8A8A] mt-0.5">
                                                     {variant.purity} {" "}
-                                                    {variant.weight}g 
+                                                    {variant.weight}g
                                                     {/* {variant.size || "Standard"} */}
                                                 </p>
                                                 <div className="flex items-center justify-between mt-3">
@@ -564,70 +594,60 @@ const CartPage: React.FC = () => {
                                             Manage Addresses
                                         </button>
                                     </div>
-                                    <div className="space-y-2">
-                                        {s.addresses.map((addr) => (
-                                            <button
-                                                key={addr.id}
-                                            onClick={() => selectAddress(addr.id)}
-                                                className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${s.selectedAddressId === addr.id ? "border-[#8B6914] bg-[#F5EDD6]/30" : "border-[#E8E0D5] hover:border-[#C9B87A]"}`}
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <MapPin size={14} className={`mt-0.5 shrink-0 ${s.selectedAddressId === addr.id ? "text-[#8B6914]" : "text-[#D1C7BB]"}`} />
-                                                    <div>
-                                                        <p className="text-[11px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-0.5">{addr.type}</p>
-                                                        <p className="text-[13px] font-medium text-[#1A1A1A]">{addr.address}</p>
-                                                        <p className="text-[11px] text-[#8A8A8A]">{addr.landMark}, {addr.flatNo}</p>
+                                    <div className="space-y-2 max-h-[17rem] overflow-y-auto pr-1 overscroll-contain">
+                                        {s.addresses.map((addr) => {
+                                            const missingLocation = !addr.latitude || !addr.longitude;
+                                            return (
+                                                <button
+                                                    key={addr.id}
+                                                    onClick={() => selectAddress(addr.id)}
+                                                    className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${s.selectedAddressId === addr.id ? "border-[#8B6914] bg-[#F5EDD6]/30" : "border-[#E8E0D5] hover:border-[#C9B87A]"}`}
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        <MapPin size={14} className={`mt-0.5 shrink-0 ${s.selectedAddressId === addr.id ? "text-[#8B6914]" : "text-[#D1C7BB]"}`} />
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-[11px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-0.5">{addr.type}</p>
+                                                            <p className="text-[13px] font-medium text-[#1A1A1A]">{addr.address}</p>
+                                                            <p className="text-[11px] text-[#8A8A8A]">{addr.landMark}, {addr.flatNo}</p>
+                                                            {missingLocation && (
+                                                                <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
+                                                                    <AlertTriangle size={10} /> Location not captured — edit address to add
+                                                                </p>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </button>
-                                        ))}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
                                 {/* Payment Method */}
                                 <div className="bg-white border border-[#E8E0D5] rounded-xl p-5">
                                     <h3 className="text-[14px] font-semibold text-[#1A1A1A] mb-4">Payment Method</h3>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {/* {(["CASHFREE", "WALLET", "COD"] as const).map((mode) => (
-                                            <button
-                                                key={mode}
-                                                onClick={() => patch({ paymentMode: mode })}
-                                                className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${s.paymentMode === mode ? "border-[#8B6914] bg-[#F5EDD6]/30" : "border-[#E8E0D5] hover:border-[#C9B87A]"}`}
-                                            >
-                                                <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${s.paymentMode === mode ? "bg-[#8B6914] text-white" : "bg-[#F5F2EE] text-[#D1C7BB]"}`}>
-                                                    {mode === "COD" ? <Coins size={16} /> : <CreditCard size={16} />}
-                                                </div>
-                                                <div className="text-left">
-                                                    <p className={`text-[12px] font-semibold ${s.paymentMode === mode ? "text-[#8B6914]" : "text-[#1A1A1A]"}`}>
-                                                        {mode === "COD" ? "Cash on Delivery" : "Online Payment"}
-                                                    </p>
-                                                    <p className="text-[11px] text-[#8A8A8A]">
-                                                        {mode === "WALLET" && s.walletBalance !== null
-                                                            ? formatINR(s.walletBalance)
-                                                            : "UPI, Cards, Net Banking"}
-                                                    </p>
-                                                </div>
-                                            </button>
-                                        ))} */}
+                                    <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3">
                                         {(["CASHFREE", "COD"] as const).map((mode) => (
                                             <button
                                                 key={mode}
                                                 onClick={() => patch({ paymentMode: mode })}
-                                                className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${s.paymentMode === mode ? "border-[#8B6914] bg-[#F5EDD6]/30" : "border-[#E8E0D5] hover:border-[#C9B87A]"}`}
+                                                className={`flex items-center gap-3 px-4 py-3.5 rounded-lg border transition-all text-left w-full ${s.paymentMode === mode ? "border-[#8B6914] bg-[#F5EDD6]/30" : "border-[#E8E0D5] hover:border-[#C9B87A]"}`}
                                             >
                                                 <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${s.paymentMode === mode ? "bg-[#8B6914] text-white" : "bg-[#F5F2EE] text-[#D1C7BB]"}`}>
                                                     {mode === "COD" ? <Coins size={16} /> : <CreditCard size={16} />}
                                                 </div>
-                                                <div className="text-left">
-                                                    <p className={`text-[12px] font-semibold ${s.paymentMode === mode ? "text-[#8B6914]" : "text-[#1A1A1A]"}`}>
-                                                        { mode === "COD" ? "Cash on Delivery" : "Online Payment"}
+                                                <div className="min-w-0">
+                                                    <p className={`text-[13px] font-semibold leading-tight ${s.paymentMode === mode ? "text-[#8B6914]" : "text-[#1A1A1A]"}`}>
+                                                        {mode === "COD" ? "Cash on Delivery" : "Online Payment"}
                                                     </p>
-                                                    <p className="text-[11px] text-[#8A8A8A]">
-                                                        { mode === "COD"
-                                                            ? "Cash on Delivery"
-                                                            : "UPI, Cards, Net Banking"}
+                                                    <p className="text-[11px] text-[#8A8A8A] mt-0.5">
+                                                        {mode === "COD" ? "Pay when order arrives" : "UPI, Cards, Net Banking"}
                                                     </p>
                                                 </div>
+                                                {s.paymentMode === mode && (
+                                                    <div className="ml-auto shrink-0 h-4 w-4 rounded-full bg-[#8B6914] flex items-center justify-center">
+                                                        <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                                                    </div>
+                                                )}
                                             </button>
                                         ))}
                                     </div>
@@ -684,17 +704,40 @@ const CartPage: React.FC = () => {
                                     Proceed to Checkout
                                     <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                                 </button>
-                            ) : (
-                                <button
-                                    disabled={!s.selectedAddressId || s.loadingCheckout}
-                                    onClick={handleCheckoutClick}
-                                    className="w-full py-2.5 rounded-lg bg-[#8B6914] text-white text-[13px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-50 flex items-center justify-center"
-                                >
-                                    {s.loadingCheckout
-                                        ? <Loader2 size={15} className="animate-spin" />
-                                        : "Place Order"}
-                                </button>
-                            )}
+                            ) : (() => {
+                                const selectedAddr = s.addresses.find(a => a.id === s.selectedAddressId);
+                                const missingLocation = selectedAddr && (!selectedAddr.latitude || !selectedAddr.longitude);
+                                const locationMessage = s.cartError || (missingLocation ? "This address is missing location coordinates. Please edit the address and capture your current location to proceed." : "");
+                                return (
+                                    <>
+                                        {locationMessage && (
+                                            <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+                                                <AlertTriangle size={13} className="text-amber-600 shrink-0 mt-0.5" />
+                                                <p className="text-[11px] text-amber-700 leading-snug">
+                                                    {locationMessage.includes("edit the address") ? (
+                                                        <>
+                                                            {locationMessage.split("Please ")[0]}
+                                                            <button onClick={() => navigate("/physical-gold/profile?tab=address")} className="underline font-semibold">edit the address</button>
+                                                            {locationMessage.includes("to proceed") ? " to proceed." : ""}
+                                                        </>
+                                                    ) : (
+                                                        locationMessage
+                                                    )}
+                                                </p>
+                                            </div>
+                                        )}
+                                        <button
+                                            disabled={!s.selectedAddressId || s.loadingCheckout || !!missingLocation}
+                                            onClick={handleCheckoutClick}
+                                            className="w-full py-2.5 rounded-lg bg-[#8B6914] text-white text-[13px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-50 flex items-center justify-center"
+                                        >
+                                            {s.loadingCheckout
+                                                ? <Loader2 size={15} className="animate-spin" />
+                                                : "Place Order"}
+                                        </button>
+                                    </>
+                                );
+                            })()}
 
                             <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-[#8A8A8A]">
                                 <Shield size={11} className="text-[#8B6914]" />

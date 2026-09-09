@@ -79,7 +79,7 @@ const Footer: React.FC = () => {
               </li>
               <li className="flex items-center gap-2">
                 <Mail size={16} className="flex-shrink-0" style={{ color: "hsl(38, 80%, 55%)" }} />
-                <span>support@askoxy.ai</span>
+                <span>support@oxygold.ai</span>
               </li>
             </ul>
           </div>

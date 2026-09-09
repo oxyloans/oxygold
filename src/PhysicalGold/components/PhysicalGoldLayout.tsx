@@ -4,17 +4,19 @@ import Header from "./Header";
 import Footer from "./Footer";
 import { fetchMainCategories } from "../physicalGoldService";
 import { Category } from "../physicalGoldData";
+import LoadingSpinner from "./LoadingSpinner";
 
 const PhysicalGoldLayout: React.FC = () => {
     const [categories, setCategories] = useState<Category[]>([]);
+    const [categoriesLoaded, setCategoriesLoaded] = useState(false);
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
     const navigate = useNavigate();
     const location = useLocation();
 
     useEffect(() => {
         fetchMainCategories()
-            .then((data) => setCategories(data))
-            .catch((error) => console.error("Failed to load layout categories:", error));
+            .then((data) => { setCategories(data); setCategoriesLoaded(true); })
+            .catch((error) => { console.error("Failed to load layout categories:", error); setCategoriesLoaded(true); });
     }, []);
 
     useEffect(() => {
@@ -54,7 +56,10 @@ const PhysicalGoldLayout: React.FC = () => {
                 selectedCategoryId={selectedCategoryId}
             />
             <div className="flex-1">
-                <Outlet context={{ categories, selectedCategoryId, setSelectedCategoryId }} />
+                {categoriesLoaded
+                    ? <Outlet context={{ categories, selectedCategoryId, setSelectedCategoryId }} />
+                    : <LoadingSpinner fullScreen message="Loading Collection..." />
+                }
             </div>
             <Footer />
         </div>

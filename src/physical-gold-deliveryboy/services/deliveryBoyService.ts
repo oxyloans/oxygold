@@ -1,8 +1,8 @@
-import { API_BASE_URL } from '../../Config';
+import { API_BASE_URL } from "../../Config";
 
 const BASE_URL = `${API_BASE_URL}/oxygold-api`;
-const SESSION_KEY = 'deliveryBoy';
-export const DELIVERY_BOY_ID_KEY = 'DeliveryBoy-Id';
+const SESSION_KEY = "deliveryBoy";
+export const DELIVERY_BOY_ID_KEY = "DeliveryBoy-Id";
 
 export interface DeliveryBoySession {
   email: string;
@@ -31,14 +31,14 @@ export interface DeliveryAssignment {
 }
 
 export type DeliveryStatus =
-  | 'ASSIGNED'
-  | 'ACCEPTED'
-  | 'REJECTED'
-  | 'PICKED_UP'
-  | 'OUT_FOR_DELIVERY'
-  | 'DELIVERED'
-  | 'FAILED'
-  | 'REASSIGNED';
+  | "ASSIGNED"
+  | "ACCEPTED"
+  | "REJECTED"
+  | "PICKED_UP"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "FAILED"
+  | "REASSIGNED";
 
 export interface DeliverySummary {
   deliveryBoyId: number;
@@ -94,27 +94,31 @@ const firstValue = (result: any, key: string) =>
 
 export const deliveryBoyLogin = async (email: string, password: string) => {
   const response = await fetch(`${BASE_URL}/auth/adminLogin`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: '*/*' },
-    body: JSON.stringify({ email, password }),
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "*/*" },
+    body: JSON.stringify({ email, password, loginRole: "DELIVERY" }),
   });
   const result = await response.json();
   if (!response.ok || result.success === false) {
-    throw new Error(result.message || result.error || 'Unable to sign in');
+    throw new Error(result.message || result.error || "Unable to sign in");
   }
   return result;
 };
 
 export const saveDeliveryBoySession = (email: string, result: any) => {
   const token = String(
-    firstValue(result, 'token') ?? firstValue(result, 'accessToken') ?? '',
+    firstValue(result, "token") ?? firstValue(result, "accessToken") ?? "",
   );
-  const role = String(firstValue(result, 'role') || 'DELIVERY_BOY').toUpperCase();
-  const refreshToken = String(firstValue(result, 'refreshToken') ?? '');
-  const deliveryBoyId = Number(firstValue(result, 'deliveryBoyId'));
+  const role = String(
+    firstValue(result, "role") || "DELIVERY_BOY",
+  ).toUpperCase();
+  const refreshToken = String(firstValue(result, "refreshToken") ?? "");
+  const deliveryBoyId = Number(firstValue(result, "deliveryBoyId"));
 
   if (!Number.isInteger(deliveryBoyId) || deliveryBoyId <= 0) {
-    throw new Error('Delivery partner ID was not returned by the login service.');
+    throw new Error(
+      "Delivery partner ID was not returned by the login service.",
+    );
   }
 
   const session: DeliveryBoySession = {
@@ -158,18 +162,28 @@ export const deliveryBoyLogout = () => {
   localStorage.removeItem(DELIVERY_BOY_ID_KEY);
 };
 
-const updateDeliveryBoyTokens = (accessToken: string, refreshToken?: string) => {
+const updateDeliveryBoyTokens = (
+  accessToken: string,
+  refreshToken?: string,
+) => {
   const session = getDeliveryBoySession();
-  if (!session) throw new Error('Delivery session was not found.');
-  const nextRefreshToken = refreshToken || session.refreshToken || String(firstValue(session, 'refreshToken') || '');
+  if (!session) throw new Error("Delivery session was not found.");
+  const nextRefreshToken =
+    refreshToken ||
+    session.refreshToken ||
+    String(firstValue(session, "refreshToken") || "");
   const updatedSession: DeliveryBoySession = {
     ...session,
     token: accessToken,
     accessToken,
     refreshToken: nextRefreshToken,
   };
-  if (updatedSession.data && typeof updatedSession.data === 'object') {
-    updatedSession.data = { ...updatedSession.data, accessToken, refreshToken: nextRefreshToken };
+  if (updatedSession.data && typeof updatedSession.data === "object") {
+    updatedSession.data = {
+      ...updatedSession.data,
+      accessToken,
+      refreshToken: nextRefreshToken,
+    };
   }
   localStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
 };
@@ -180,20 +194,32 @@ export const refreshDeliveryBoyAccessToken = async (): Promise<string> => {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
     const session = getDeliveryBoySession();
-    const refreshToken = String(session?.refreshToken || firstValue(session, 'refreshToken') || '');
-    if (!refreshToken) throw new Error('Your session has expired. Please sign in again.');
+    const refreshToken = String(
+      session?.refreshToken || firstValue(session, "refreshToken") || "",
+    );
+    if (!refreshToken)
+      throw new Error("Your session has expired. Please sign in again.");
 
     const response = await fetch(`${BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: '*/*' },
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "*/*" },
       body: JSON.stringify({ refreshToken }),
     });
     const result = await response.json().catch(() => ({}));
-    const accessToken = String(firstValue(result, 'accessToken') ?? firstValue(result, 'token') ?? '');
+    const accessToken = String(
+      firstValue(result, "accessToken") ?? firstValue(result, "token") ?? "",
+    );
     if (!response.ok || result.success === false || !accessToken) {
-      throw new Error(result.message || result.error || 'Your session has expired. Please sign in again.');
+      throw new Error(
+        result.message ||
+          result.error ||
+          "Your session has expired. Please sign in again.",
+      );
     }
-    updateDeliveryBoyTokens(accessToken, String(firstValue(result, 'refreshToken') || refreshToken));
+    updateDeliveryBoyTokens(
+      accessToken,
+      String(firstValue(result, "refreshToken") || refreshToken),
+    );
     return accessToken;
   })();
 
@@ -201,26 +227,37 @@ export const refreshDeliveryBoyAccessToken = async (): Promise<string> => {
     return await refreshPromise;
   } catch (error) {
     deliveryBoyLogout();
-    window.dispatchEvent(new Event('delivery-session-expired'));
+    window.dispatchEvent(new Event("delivery-session-expired"));
     throw error;
   } finally {
     refreshPromise = null;
   }
 };
 
-const authenticatedDeliveryFetch = async (url: string, options: RequestInit, deliveryBoyId: number) => {
+const authenticatedDeliveryFetch = async (
+  url: string,
+  options: RequestInit,
+  deliveryBoyId: number,
+) => {
   const headers = new Headers(options.headers);
-  headers.set('Accept', '*/*');
-  headers.set('Authorization', `Bearer ${getDeliveryBoySession()?.token || ''}`);
-  headers.set('X-DeliveryBoy-Id', String(deliveryBoyId));
-  if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
+  headers.set("Accept", "*/*");
+  headers.set(
+    "Authorization",
+    `Bearer ${getDeliveryBoySession()?.token || ""}`,
+  );
+  headers.set("X-DeliveryBoy-Id", String(deliveryBoyId));
+  if (
+    options.body &&
+    !(options.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
+    headers.set("Content-Type", "application/json");
   }
 
   let response = await fetch(url, { ...options, headers });
   if (response.status === 401) {
     const accessToken = await refreshDeliveryBoyAccessToken();
-    headers.set('Authorization', `Bearer ${accessToken}`);
+    headers.set("Authorization", `Bearer ${accessToken}`);
     response = await fetch(url, { ...options, headers });
   }
   return response;
@@ -233,79 +270,127 @@ const deliveryRequest = async <T>(
   const session = getDeliveryBoySession();
   const deliveryBoyId = getDeliveryBoyId();
   if (!session?.token || !deliveryBoyId) {
-    throw new Error('Your delivery session is invalid. Please sign in again.');
+    throw new Error("Your delivery session is invalid. Please sign in again.");
   }
 
-  const response = await authenticatedDeliveryFetch(`${BASE_URL}${path}`, options, deliveryBoyId);
+  const response = await authenticatedDeliveryFetch(
+    `${BASE_URL}${path}`,
+    options,
+    deliveryBoyId,
+  );
   const result = await response.json().catch(() => ({}));
   if (!response.ok || result.success === false) {
-    throw new Error(result.message || result.error || 'Delivery request failed');
+    throw new Error(
+      result.message || result.error || "Delivery request failed",
+    );
   }
   return result;
 };
 
 const postDeliveryAction = <T>(path: string, body: Record<string, unknown>) =>
-  deliveryRequest<T>(path, { method: 'POST', body: JSON.stringify(body) });
+  deliveryRequest<T>(path, { method: "POST", body: JSON.stringify(body) });
 
 export const fetchAssignedDeliveries = () =>
-  deliveryRequest<DeliveryAssignment[]>('/delivery/assigned');
+  deliveryRequest<DeliveryAssignment[]>("/delivery/assigned");
 export const fetchActiveDeliveries = () =>
-  deliveryRequest<DeliveryAssignment[]>('/delivery/active');
+  deliveryRequest<DeliveryAssignment[]>("/delivery/active");
 export const fetchDeliverySummary = () => {
   const deliveryBoyId = getDeliveryBoyId();
-  if (!deliveryBoyId) return Promise.reject(new Error('Delivery partner ID is missing. Please sign in again.'));
-  return deliveryRequest<DeliverySummary>(`/delivery/boy/${deliveryBoyId}/summary`);
+  if (!deliveryBoyId)
+    return Promise.reject(
+      new Error("Delivery partner ID is missing. Please sign in again."),
+    );
+  return deliveryRequest<DeliverySummary>(
+    `/delivery/boy/${deliveryBoyId}/summary`,
+  );
 };
-export const fetchDeliveryOrders = (status: DeliveryStatus, page = 0, size = 10) => {
+export const fetchDeliveryOrders = (
+  status: DeliveryStatus,
+  page = 0,
+  size = 10,
+) => {
   const deliveryBoyId = getDeliveryBoyId();
-  if (!deliveryBoyId) return Promise.reject(new Error('Delivery partner ID is missing. Please sign in again.'));
-  const query = new URLSearchParams({ status, page: String(page), size: String(size) });
-  return deliveryRequest<DeliveryOrdersPage>(`/delivery/boy/${deliveryBoyId}/orders?${query}`);
+  if (!deliveryBoyId)
+    return Promise.reject(
+      new Error("Delivery partner ID is missing. Please sign in again."),
+    );
+  const query = new URLSearchParams({
+    status,
+    page: String(page),
+    size: String(size),
+  });
+  return deliveryRequest<DeliveryOrdersPage>(
+    `/delivery/boy/${deliveryBoyId}/orders?${query}`,
+  );
 };
-export const fetchCurrentDeliveries = async (): Promise<DeliveryAssignment[]> => {
-  const activeStatuses: DeliveryStatus[] = ['ASSIGNED', 'ACCEPTED', 'PICKED_UP', 'OUT_FOR_DELIVERY'];
-  const results = await Promise.allSettled(activeStatuses.map(status => fetchDeliveryOrders(status, 0, 50)));
-  const successful = results.filter((result): result is PromiseFulfilledResult<ApiResponse<DeliveryOrdersPage>> => result.status === 'fulfilled');
+export const fetchCurrentDeliveries = async (): Promise<
+  DeliveryAssignment[]
+> => {
+  const activeStatuses: DeliveryStatus[] = [
+    "ASSIGNED",
+    "ACCEPTED",
+    "PICKED_UP",
+    "OUT_FOR_DELIVERY",
+  ];
+  const results = await Promise.allSettled(
+    activeStatuses.map((status) => fetchDeliveryOrders(status, 0, 50)),
+  );
+  const successful = results.filter(
+    (
+      result,
+    ): result is PromiseFulfilledResult<ApiResponse<DeliveryOrdersPage>> =>
+      result.status === "fulfilled",
+  );
   if (!successful.length) {
-    const failed = results.find((result): result is PromiseRejectedResult => result.status === 'rejected');
-    throw failed?.reason || new Error('Unable to load current deliveries.');
+    const failed = results.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    throw failed?.reason || new Error("Unable to load current deliveries.");
   }
   const byId = new Map<number, DeliveryAssignment>();
-  successful.flatMap(result => result.value.data?.content || []).forEach(order => {
-    byId.set(order.deliveryId, {
-      id: order.deliveryId,
-      trackingNumber: order.trackingNumber,
-      orderNumber: order.orderNumber,
-      status: order.status,
-      statusLabel: order.statusLabel,
-      customerName: order.customerName,
-      customerPhone: order.customerPhone,
-      deliveryAddress: order.deliveryAddress,
-      customerLatitude: null,
-      customerLongitude: null,
-      assignedAt: order.assignedAt,
+  successful
+    .flatMap((result) => result.value.data?.content || [])
+    .forEach((order) => {
+      byId.set(order.deliveryId, {
+        id: order.deliveryId,
+        trackingNumber: order.trackingNumber,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        statusLabel: order.statusLabel,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        deliveryAddress: order.deliveryAddress,
+        customerLatitude: null,
+        customerLongitude: null,
+        assignedAt: order.assignedAt,
+      });
     });
-  });
   return Array.from(byId.values()).sort((a, b) => {
-    const statusDifference = activeStatuses.indexOf(a.status as DeliveryStatus) - activeStatuses.indexOf(b.status as DeliveryStatus);
+    const statusDifference =
+      activeStatuses.indexOf(a.status as DeliveryStatus) -
+      activeStatuses.indexOf(b.status as DeliveryStatus);
     if (statusDifference !== 0) return statusDifference;
-    return new Date(b.assignedAt || 0).getTime() - new Date(a.assignedAt || 0).getTime();
+    return (
+      new Date(b.assignedAt || 0).getTime() -
+      new Date(a.assignedAt || 0).getTime()
+    );
   });
 };
 export const acceptDelivery = (deliveryId: number) =>
-  postDeliveryAction('/delivery/accept', { deliveryId });
+  postDeliveryAction("/delivery/accept", { deliveryId });
 export const pickupDelivery = (deliveryId: number) =>
-  postDeliveryAction('/delivery/pickup', { deliveryId });
+  postDeliveryAction("/delivery/pickup", { deliveryId });
 export const updateDeliveryLocation = (
   deliveryId: number,
   latitude: number,
   longitude: number,
-) => postDeliveryAction('/delivery/location', { deliveryId, latitude, longitude });
+) =>
+  postDeliveryAction("/delivery/location", { deliveryId, latitude, longitude });
 export const markOutForDelivery = (deliveryId: number) =>
-  postDeliveryAction('/delivery/out-for-delivery', { deliveryId });
+  postDeliveryAction("/delivery/out-for-delivery", { deliveryId });
 export const deliverOrder = (deliveryId: number) =>
-  postDeliveryAction('/delivery/deliver', { deliveryId });
+  postDeliveryAction("/delivery/deliver", { deliveryId });
 export const rejectDelivery = (deliveryId: number, reason: string) =>
-  postDeliveryAction('/delivery/reject', { deliveryId, reason });
+  postDeliveryAction("/delivery/reject", { deliveryId, reason });
 export const markDeliveryFailed = (deliveryId: number, failureReason: string) =>
-  postDeliveryAction('/delivery/failed', { deliveryId, failureReason });
+  postDeliveryAction("/delivery/failed", { deliveryId, failureReason });

@@ -26,10 +26,10 @@ const DEFAULT_LINKS: LinkItem[] = [
 
 export default function OxyGoldFooter({
   aboutText = `OXYGOLD.AI is India's Digital Gold Bank — a secure, tech-driven platform designed to bring transparency, trust, and traceability to the gold ecosystem. Built for investors, bullion traders, and institutions seeking vault-grade digital authority.`,
-  address1 = "OXYKART TECHNOLOGIES PVT LTD, CC-02, Indu Fortune Fields, KPHB, Hyderabad, Telangana - 500085",
+  address1 = "OXYIDEAS PARTNERS LLP, CC-02, Indu Fortune Fields, KPHB, Hyderabad, Telangana - 500085",
   address2 = "AI Research Center, Entrance D, SE02 Concourse, Miyapur Metro Station, Hyderabad, Telangana 500049",
   phones = ["+91 81432 71103"],
-  email = "VThatavarti16@oxygold.ai",
+  email = "support@oxygold.ai",
   links = DEFAULT_LINKS,
   year = new Date().getFullYear(),
 }: OxyGoldFooterProps) {

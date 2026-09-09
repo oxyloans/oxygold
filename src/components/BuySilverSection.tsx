@@ -1,22 +1,27 @@
-import React from "react";
 import silverBanner from "../assets/silverbanner.png";
 import { useNavigate } from "react-router-dom";
 
-
 export default function BuySilverSection() {
   const navigate = useNavigate();
-    const handleBuyNow = () => {
-      navigate("/login");
-    };
+  const handleBuyNow = () => {
+    navigate("/login");
+  };
   return (
-    <section >
+    <section className="buy-silver-section" aria-labelledby="silver-title">
+      <div className="buy-silver-container">
         <div className="buy-silver-card">
           <div className="buy-silver-grid">
             {/* LEFT: Silver product image */}
             <div className="buy-silver-visual">
               <span className="silver-visual-glow" aria-hidden="true" />
-              <span className="silver-spark silver-spark-one" aria-hidden="true" />
-              <span className="silver-spark silver-spark-two" aria-hidden="true" />
+              <span
+                className="silver-spark silver-spark-one"
+                aria-hidden="true"
+              />
+              <span
+                className="silver-spark silver-spark-two"
+                aria-hidden="true"
+              />
 
               <img
                 className="buy-silver-image"
@@ -42,7 +47,10 @@ export default function BuySilverSection() {
                 bars—perfect for gifting, celebrations, and lasting value.
               </p>
 
-              <div className="buy-silver-details" aria-label="Silver product details">
+              <div
+                className="buy-silver-details"
+                aria-label="Silver product details"
+              >
                 <div className="silver-detail">
                   <strong>10 g</strong>
                   <span>Silver Coin</span>
@@ -72,15 +80,18 @@ export default function BuySilverSection() {
               >
                 Buy Silver Now <span aria-hidden="true">→</span>
               </a> */}
-              <div className="buy-silver-button cursor-pointer" aria-label="Buy 999 pure silver on OXYGOLD.AI">
-              <button
-                    onClick={handleBuyNow}
-                    className="buy-silver-cta cursor-pointer"
-                    type="button"
-                  >
-                    Buy Silver Coins Now →
-                  </button>
-                </div>
+              <div
+                className="buy-silver-button cursor-pointer"
+                aria-label="Buy 999 pure silver on OXYGOLD.AI"
+              >
+                <button
+                  onClick={handleBuyNow}
+                  className="buy-silver-cta cursor-pointer"
+                  type="button"
+                >
+                  Buy Silver Coins Now →
+                </button>
+              </div>
               <p className="buy-silver-note">
                 <span aria-hidden="true">✓</span>
                 Secure purchase on OXYGOLD.AI
@@ -88,7 +99,7 @@ export default function BuySilverSection() {
             </div>
           </div>
         </div>
-      
+      </div>
 
       <style>{responsiveStyles}</style>
     </section>
@@ -107,11 +118,9 @@ const responsiveStyles = `
     width: 100%;
     position: relative;
     overflow: hidden;
-    padding: 44px 20px;
+    padding: 0 clamp(16px, 3vw, 32px);
     font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background:
-      radial-gradient(900px 520px at 18% 34%, rgba(138, 91, 255, 0.20), transparent 62%),
-      linear-gradient(180deg, #210743 0%, #160537 100%);
+    background: transparent;
   }
 
   .buy-silver-container {
@@ -123,12 +132,10 @@ const responsiveStyles = `
     position: relative;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.06);
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    margin: 9rem 20px 0 20px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.045);
+    box-shadow: 0 12px 32px rgba(8, 2, 24, 0.20);
+    margin: 0;
   }
 
   .buy-silver-grid {
@@ -179,7 +186,7 @@ const responsiveStyles = `
     max-height: 440px;
     object-fit: contain;
     object-position: left center;
-    filter: drop-shadow(0 24px 30px rgba(3, 0, 12, 0.36));
+    filter: drop-shadow(0 14px 24px rgba(8, 2, 24, 0.24));
   }
 
   .buy-silver-content {
@@ -276,7 +283,7 @@ const responsiveStyles = `
     border-radius: 14px;
     color: #2b0a59;
     background: linear-gradient(135deg, #d4af37, #f5d36c);
-    box-shadow: 0 9px 25px rgba(212, 175, 55, 0.25);
+    box-shadow: 0 8px 20px rgba(212, 175, 55, 0.20);
     font-size: 15px;
     font-weight: 900;
     line-height: 1;
@@ -308,7 +315,7 @@ const responsiveStyles = `
       color: #2b0a59;
       filter: brightness(1.05);
       transform: translateY(-2px);
-      box-shadow: 0 14px 32px rgba(212, 175, 55, 0.34);
+      box-shadow: 0 11px 25px rgba(212, 175, 55, 0.26);
     }
 
     .buy-silver-button:hover span {
@@ -351,27 +358,27 @@ const responsiveStyles = `
 
   @media (max-width: 640px) {
     .buy-silver-section {
-      padding: 16px 12px;
+      padding: 0 16px;
     }
 
     .buy-silver-card {
-      border-radius: 16px;
-      margin-top: 6rem;
+      border-radius: 18px;
+      margin: 0;
     }
 
     .buy-silver-grid {
       gap: 4px;
-      padding: 14px 16px 24px;
+      padding: 18px 16px 26px;
     }
 
     .buy-silver-visual {
-      min-height: 285px;
+      min-height: 250px;
     }
 
     .buy-silver-image {
-      width: 108%;
+      width: 100%;
       max-width: 520px;
-      max-height: 300px;
+      max-height: 270px;
     }
 
     .silver-spark-one {

@@ -110,7 +110,12 @@ const OxyEcosystem: React.FC = () => {
         }}
       >
         {/* Title */}
-        <div style={{ textAlign: "center", marginBottom: "clamp(20px, 4vw, 40px)" }}>
+        <div
+          style={{
+            textAlign: "center",
+            marginBottom: "clamp(20px, 4vw, 40px)",
+          }}
+        >
           <h2
             style={{
               fontSize: "clamp(1.4rem, 4vw, 2.4rem)",
