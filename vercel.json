@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/physical-gold/profile",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/physical-gold/profile/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
