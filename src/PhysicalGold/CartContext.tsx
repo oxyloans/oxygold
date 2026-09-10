@@ -2,6 +2,11 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { PhysicalGoldProduct, ProductVariant } from "./physicalGoldData";
 import { AddItemToCart, decrementCartItems, fetchCustomerCartInfo, removeCartItem, fetchProductImageURLs } from "./physicalGoldService";
 
+export class ProfileIncompleteError extends Error {
+    readonly isProfileIncomplete = true;
+    constructor(message: string) { super(message); this.name = "ProfileIncompleteError"; }
+}
+
 interface CartItem {
     cartId?: number;
     variant: ProductVariant;
@@ -175,8 +180,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     return prev.filter((i) => i.variant.id !== variant.id);
                 });
                 const message = err instanceof Error ? err.message : "Failed to add item to cart.";
+                const isProfileError = /complete your profile/i.test(message);
                 setCartNotification({ message, type: "error" });
-                throw err; // re-throw so callers (ProductCard) know it failed
+                throw isProfileError ? new ProfileIncompleteError(message) : err;
             }
         }
     }, [refreshCart]);

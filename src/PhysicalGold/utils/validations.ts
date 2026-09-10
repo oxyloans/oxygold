@@ -26,9 +26,20 @@ export const formatMobileNumber = (value: string): string => {
 
 export const validatePincode = (pincode: string): boolean => {
   if (!pincode) return false;
-  // Indian pincode: exactly 6 digits
-  const pincodeRegex = /^\d{6}$/;
-  return pincodeRegex.test(pincode);
+  // Indian pincode: exactly 6 digits, must not be all same digit (e.g. 000000, 111111)
+  if (!/^\d{6}$/.test(pincode)) return false;
+  if (/^(\d)\1{5}$/.test(pincode)) return false; // all same digit
+  if (pincode.startsWith('0')) return false; // Indian pincodes never start with 0
+  return true;
+};
+
+export const getPincodeError = (pincode: string): string => {
+  if (!pincode.trim()) return 'Pin code is required';
+  if (pincode.length < 6) return 'Pin code must be exactly 6 digits';
+  if (!/^\d{6}$/.test(pincode)) return 'Pin code must contain only digits';
+  if (pincode.startsWith('0')) return 'Invalid pin code';
+  if (/^(\d)\1{5}$/.test(pincode)) return 'Invalid pin code';
+  return '';
 };
 
 export const formatPincode = (value: string): string => {

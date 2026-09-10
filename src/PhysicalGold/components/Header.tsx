@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Search, ShoppingCart, User, Heart, Menu, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, ShoppingCart, User, Heart, Menu, X, ChevronDown, ChevronUp, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../CartContext";
 import { useWishlist } from "../WishlistContext";
 import oxygoldLogo from "../../assets/oxygoldlogo.png";
 import Toast from "./Toast";
 import TokenManager from "../../utils/tokenManager";
+import { logout } from "../physicalGoldService";
 import "../styles.css";
 
 interface HeaderProps {
@@ -27,7 +28,22 @@ const Header: React.FC<HeaderProps> = ({
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const isLoggedIn = TokenManager.getInstance().isLoggedIn();
+
+  const handleLogout = async () => {
+    setShowLogoutConfirm(false);
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const ud = JSON.parse(stored);
+        if (ud.data?.accessToken) await logout(ud.data.accessToken);
+      }
+    } catch (e) { console.error("Logout failed:", e); }
+    TokenManager.getInstance().clearTokens();
+    navigate("/login", { replace: true });
+  };
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -41,6 +57,7 @@ const Header: React.FC<HeaderProps> = ({
 
 
   return (
+    <>
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-md ">
       {cartNotification && <Toast message={cartNotification.message} type={cartNotification.type} onClose={dismissCartNotification} />}
       {/* Top Banner */}
@@ -116,11 +133,11 @@ const Header: React.FC<HeaderProps> = ({
                 )}
               </button>
 
-              {/* Profile Dropdown */}
+              {/* Profile Icon */}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => {
-                    if (!TokenManager.getInstance().isLoggedIn()) {
+                    if (!isLoggedIn) {
                       navigate("/login");
                     } else {
                       navigate("/physical-gold/profile");
@@ -137,7 +154,7 @@ const Header: React.FC<HeaderProps> = ({
               {/* Cart */}
               <button
                 onClick={() => {
-                  if (!TokenManager.getInstance().isLoggedIn()) {
+                  if (!isLoggedIn) {
                     navigate("/login");
                   } else {
                     navigate("/physical-gold/cart");
@@ -154,6 +171,18 @@ const Header: React.FC<HeaderProps> = ({
                   </span>
                 )}
               </button>
+
+              {/* Logout */}
+              {isLoggedIn && (
+                <button
+                  onClick={() => setShowLogoutConfirm(true)}
+                  className="hidden md:flex p-2 transition-colors cursor-pointer text-foreground hover:text-rose-500"
+                  aria-label="Logout"
+                  title="Logout"
+                >
+                  <LogOut size={20} />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -240,10 +269,51 @@ const Header: React.FC<HeaderProps> = ({
             >
               Wishlist
             </button>
+
+            {isLoggedIn && (
+              <button
+                onClick={() => { setIsMobileMenuOpen(false); setShowLogoutConfirm(true); }}
+                className="py-3 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-rose-500 hover:bg-rose-50"
+              >
+                Sign Out
+              </button>
+            )}
           </nav>
         </div>
       )}
     </header>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 bg-black/40">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-10 w-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
+                <LogOut className="h-5 w-5 text-rose-500" />
+              </div>
+              <h3 className="text-[15px] font-semibold text-[#1A1A1A]">Sign Out</h3>
+            </div>
+            <p className="text-[13px] text-[#6B6B6B] mb-5 leading-relaxed">
+              Are you sure you want to sign out?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#6B6B6B] hover:bg-[#F5F2EE] transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-rose-500 text-white text-[12px] font-medium hover:bg-rose-600 transition"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

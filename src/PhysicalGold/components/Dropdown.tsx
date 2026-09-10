@@ -28,7 +28,7 @@ const Dropdown: React.FC<DropdownProps> = ({
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full border rounded-lg px-3 py-2 text-[13px] text-[#1A1A1A] bg-white outline-none focus:ring-2 transition ${
+          className={`w-full border rounded-lg px-3 py-2 pr-9 text-[13px] text-[#1A1A1A] bg-white outline-none focus:ring-2 transition appearance-none ${
             error
               ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10"
               : "border-[#E8E0D5] focus:border-[#8B6914] focus:ring-[#8B6914]/10"

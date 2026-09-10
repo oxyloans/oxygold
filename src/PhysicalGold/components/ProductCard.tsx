@@ -1,8 +1,9 @@
 import React, { useCallback, useState } from "react";
 import { Heart, Trash2, ShoppingCart, Check } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { PhysicalGoldProduct } from "../physicalGoldData";
 import { useWishlist } from "../WishlistContext";
-import { useCart } from "../CartContext";
+import { useCart, ProfileIncompleteError } from "../CartContext";
 import { fetchProductVariants } from "../physicalGoldService";
 import { getProductTag } from "../mockData";
 import "../styles.css";
@@ -14,6 +15,8 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, isWishlistPage }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { isInWishlist, toggleWishlist, removeFromWishlist } = useWishlist();
   const { addToCart, cartItems, incrementQuantity, decrementQuantity } = useCart();
   const isLiked = isInWishlist(product.id);
@@ -48,8 +51,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, isWishlistP
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 2000);
       if (isWishlistPage) await removeFromWishlist(product.id);
-    } catch {
-      // addToCart already sets error notification via CartContext — do nothing here
+    } catch (err) {
+      if (err instanceof ProfileIncompleteError) {
+        navigate(`/physical-gold/profile?tab=info&returnTo=${encodeURIComponent(location.pathname + location.search)}`);
+      }
     } finally {
       setAddingToCart(false);
     }

@@ -20,7 +20,7 @@ import VirtualTryOnModal from "./components/VirtualTryOnModal";
 
 import { PhysicalGoldProduct, ProductVariant } from "./physicalGoldData";
 import { fetchProductVariants, fetchProducts, generateModelImage, generateVirtualTryOn, fetchProductRecommendations, fetchProductRatings } from "./physicalGoldService";
-import { useCart } from "./CartContext";
+import { useCart, ProfileIncompleteError } from "./CartContext";
 import { useWishlist } from "./WishlistContext";
 import {
   getProductTag,
@@ -218,17 +218,29 @@ const ProductDetailsPage: React.FC = () => {
 
   const handleAddToCart = useCallback(async () => {
     if (product && selectedVariant) {
-      await addToCart(product, selectedVariant);
-      setInCart(true);
+      try {
+        await addToCart(product, selectedVariant);
+        setInCart(true);
+      } catch (err) {
+        if (err instanceof ProfileIncompleteError) {
+          navigate(`/physical-gold/profile?tab=info&returnTo=${encodeURIComponent(location.pathname + location.search)}`);
+        }
+      }
     }
-  }, [addToCart, product, selectedVariant]);
+  }, [addToCart, product, selectedVariant, navigate, location]);
 
   const handleBuyNow = useCallback(async () => {
     if (product && selectedVariant) {
-      await addToCart(product, selectedVariant);
-      navigate("/physical-gold/cart");
+      try {
+        await addToCart(product, selectedVariant);
+        navigate("/physical-gold/cart");
+      } catch (err) {
+        if (err instanceof ProfileIncompleteError) {
+          navigate(`/physical-gold/profile?tab=info&returnTo=${encodeURIComponent(location.pathname + location.search)}`);
+        }
+      }
     }
-  }, [addToCart, product, selectedVariant, navigate]);
+  }, [addToCart, product, selectedVariant, navigate, location]);
 
   const handleIncrement = useCallback(async () => {
     if (selectedVariant) {

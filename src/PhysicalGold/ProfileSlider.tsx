@@ -63,7 +63,7 @@ import { Order, OrderItem } from "./physicalGoldData";
 import PhysicalGoldHeader from "./components/Header";
 import Toast, { ToastType } from "./components/Toast";
 import Dropdown from "./components/Dropdown";
-import { validateEmail, validateMobileNumber, formatMobileNumber, validatePincode, formatPincode } from "./utils/validations";
+import { validateEmail, validateMobileNumber, formatMobileNumber, validatePincode, getPincodeError, formatPincode } from "./utils/validations";
 
 const DISPLAY_INR = (v: number) =>
     new Intl.NumberFormat("en-IN", {
@@ -236,9 +236,14 @@ const ProfilePage: React.FC = () => {
     const [reviewError, setReviewError] = useState("");
     const [isSavingReview, setIsSavingReview] = useState(false);
 
+    const [locationSearch, setLocationSearch] = useState("");
+    const [locationSuggestions, setLocationSuggestions] = useState<{ description: string; place_id: string }[]>([]);
+    const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+    const locationSearchDebounce = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const [s, setS] = useState<PageState>({
         activeTab: initialTab,
-        isEditingProfile: false,
+        isEditingProfile: initialTab === "info" && !(GET_USER_DATA()?.data?.body?.firstName || GET_USER_DATA()?.firstName || "").trim(),
         isSavingProfile: false,
         isProfileLoading: false,
         isVerifyingPan: false,
@@ -306,7 +311,7 @@ const ProfilePage: React.FC = () => {
     useEffect(() => {
         const tab = searchParams.get("tab") as Tab;
         if (tab && tab !== s.activeTab) {
-            patch({ activeTab: tab, isAddingAddress: false, isEditingProfile: false });
+            patch({ activeTab: tab, isAddingAddress: false, isEditingProfile: tab === "info" && !s.profileForm.firstName.trim() });
         }
     }, [searchParams, patch, s.activeTab]);
 
@@ -476,6 +481,11 @@ const ProfilePage: React.FC = () => {
             errors.alternativeNumber = "Alternative number is required";
         } else if (!validateMobileNumber(profileForm.alternativeNumber)) {
             errors.alternativeNumber = "Invalid mobile number (10 digits, starting with 6-9)";
+        } else if (
+            profileForm.mobileNumber.trim() &&
+            profileForm.alternativeNumber.trim() === profileForm.mobileNumber.trim()
+        ) {
+            errors.alternativeNumber = "Alternative number must be different from mobile number";
         }
         if (!profileForm.gender) errors.gender = "Gender is required";
 
@@ -544,6 +554,7 @@ const ProfilePage: React.FC = () => {
             patch({ isEditingProfile: false, toast: { message: "Profile updated successfully", type: "success" } });
             if (returnTo === "cart") { setTimeout(() => navigate("/physical-gold/cart"), 800); }
             else if (returnTo === "support") { setTimeout(() => { setSearchParams({ tab: "support" }); patch({ activeTab: "support" }); }, 800); }
+            else if (returnTo && returnTo.startsWith("/")) { setTimeout(() => navigate(returnTo), 800); }
         } catch (err) {
             console.error("Failed to save profile:", err);
             const message = getApiErrorMessage(err, "Unable to save profile. Please try again.");
@@ -561,15 +572,30 @@ const ProfilePage: React.FC = () => {
         const errors: Record<string, string> = {};
 
         // Required field validations
-        if (!addrForm.flatNo.trim()) errors.flatNo = "Flat No is required";
-        if (!addrForm.landMark.trim()) errors.landMark = "Landmark is required";
-        if (!addrForm.address.trim()) errors.address = "Complete address is required";
-        if (!addrForm.pinCode.trim()) {
-            errors.pinCode = "Pin code is required";
-        } else if (!validatePincode(addrForm.pinCode)) {
-            errors.pinCode = "Invalid pin code (6 digits)";
+        if (!addrForm.flatNo.trim()) {
+            errors.flatNo = "Flat No / House No is required";
+        } else if (addrForm.flatNo.trim().length < 2) {
+            errors.flatNo = "Flat No must be at least 2 characters";
         }
-        if (!addrForm.state.trim()) errors.state = "State is required";
+        if (!addrForm.landMark.trim()) {
+            errors.landMark = "Landmark is required";
+        } else if (addrForm.landMark.trim().length < 3) {
+            errors.landMark = "Landmark must be at least 3 characters";
+        }
+        if (!addrForm.address.trim()) {
+            errors.address = "Complete address is required";
+        } else if (addrForm.address.trim().length < 10) {
+            errors.address = "Address must be at least 10 characters";
+        }
+        const pinErr = getPincodeError(addrForm.pinCode);
+        if (pinErr) errors.pinCode = pinErr;
+        if (!addrForm.state.trim()) {
+            errors.state = "State is required";
+        } else if (!/^[a-zA-Z\s]+$/.test(addrForm.state.trim())) {
+            errors.state = "State must contain only letters";
+        } else if (addrForm.state.trim().length < 3) {
+            errors.state = "Please enter a valid state name";
+        }
 
         const duplicateAddress = s.addresses.some((savedAddress) =>
             savedAddress.id !== editingAddress?.id &&
@@ -673,6 +699,43 @@ const ProfilePage: React.FC = () => {
         }
     };
 
+    /* ── Parse Google geocode result into address fields ── */
+    const parseGeocodeResult = (result: any) => {
+        const components: any[] = result.address_components || [];
+        const getAll = (type: string) =>
+            components.filter((c) => c.types.includes(type)).map((c) => c.long_name);
+        const get = (type: string) => getAll(type)[0] || "";
+
+        const premises = getAll("premise");
+        const streetNumber = get("street_number");
+        const route = get("route");
+        const neighborhood = get("neighborhood");
+        const sublocality3 = get("sublocality_level_3");
+        const sublocality2 = get("sublocality_level_2");
+        const sublocality1 = get("sublocality_level_1");
+        const locality = get("locality");
+        const district = get("administrative_area_level_3") || get("administrative_area_level_2");
+        const state = get("administrative_area_level_1");
+        const pinCode = get("postal_code");
+
+        // flatNo: all premise values joined (e.g. "Indu Fortune Fields Villa-251, 251") or street number
+        const flatNo = premises.length ? premises.join(", ") : ([streetNumber].filter(Boolean).join(", ") || sublocality2 || "");
+        // landmark: route or neighborhood/sublocality
+        const landMark = route || neighborhood || sublocality3 || sublocality1 || "";
+        // address: strip country + state + pincode from formatted_address for a clean full address
+        const formatted = (result.formatted_address || "");
+        const address = formatted
+            .replace(/,?\s*India$/, "")
+            .replace(/,?\s*[A-Z]{2}\s+\d{6}/, "")
+            .replace(/,?\s*Telangana/, "")
+            .replace(/,?\s*[A-Za-z\s]+\s+\d{6}/, "")
+            .trim()
+            .replace(/,$/, "")
+            .trim();
+
+        return { flatNo, landMark, address, pinCode, state, locality: locality || district };
+    };
+
     const fetchCurrentLocation = () => {
         if (!navigator.geolocation) {
             patch({
@@ -698,19 +761,49 @@ const ProfilePage: React.FC = () => {
         }, 16000);
 
         navigator.geolocation.getCurrentPosition(
-            (position) => {
+            async (position) => {
                 if (completed) return;
-                patchAddrForm({
-                    latitude: position.coords.latitude.toString(),
-                    longitude: position.coords.longitude.toString(),
-                });
-                const nextErrors = { ...s.addrErrors };
-                delete nextErrors.latitude;
-                finish({
-                    locationError: "",
-                    addrErrors: nextErrors,
-                    toast: { message: "Location captured successfully", type: "success" }
-                });
+                const lat = position.coords.latitude.toString();
+                const lng = position.coords.longitude.toString();
+                patchAddrForm({ latitude: lat, longitude: lng });
+
+                // Reverse geocode to fill address fields
+                try {
+                    const res = await fetch(
+                        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_API_KEY}`
+                    );
+                    const data = await res.json();
+                    if (data.status === "OK" && data.results?.[0]) {
+                        const parsed = parseGeocodeResult(data.results[0]);
+                        patchAddrForm({
+                            latitude: lat,
+                            longitude: lng,
+                            ...(parsed.flatNo && { flatNo: parsed.flatNo }),
+                            ...(parsed.landMark && { landMark: parsed.landMark }),
+                            ...(parsed.address && { address: parsed.address }),
+                            ...(parsed.pinCode && { pinCode: parsed.pinCode }),
+                            ...(parsed.state && { state: parsed.state }),
+                        });
+                        const nextErrors = { ...s.addrErrors };
+                        delete nextErrors.latitude;
+                        finish({
+                            locationError: "",
+                            addrErrors: nextErrors,
+                            toast: { message: "Location detected — please review and confirm the filled details", type: "success" }
+                        });
+                    } else {
+                        finish({
+                            locationError: "",
+                            addrErrors: { ...s.addrErrors },
+                            toast: { message: "Location captured. Address details could not be auto-filled — please enter them manually.", type: "success" }
+                        });
+                    }
+                } catch {
+                    finish({
+                        locationError: "",
+                        toast: { message: "Location captured. Could not fetch address details — please fill them manually.", type: "success" }
+                    });
+                }
             },
             (error) => {
                 console.error("Geolocation error:", error);
@@ -733,12 +826,90 @@ const ProfilePage: React.FC = () => {
         );
     };
 
-    const cancelAddrForm = () =>
+    /* ── Pincode lookup: auto-fill state only on valid 6-digit pin ── */
+    const lookupPincode = async (pin: string) => {
+        if (!validatePincode(pin)) return;
+        try {
+            const res = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${pin},India&key=${GOOGLE_API_KEY}`
+            );
+            const data = await res.json();
+            if (data.status === "OK" && data.results?.[0]) {
+                const parsed = parseGeocodeResult(data.results[0]);
+                if (parsed.state) {
+                    patchAddrForm({ state: parsed.state });
+                    patch({ addrErrors: removeErrorKey(s.addrErrors, "state") });
+                }
+            }
+        } catch {
+            // silent — pincode lookup is best-effort
+        }
+    };
+
+    /* ── Location text search via Places Autocomplete ── */
+    const searchLocationByText = (query: string) => {
+        setLocationSearch(query);
+        if (locationSearchDebounce.current) clearTimeout(locationSearchDebounce.current);
+        if (!query.trim() || query.length < 3) { setLocationSuggestions([]); return; }
+        locationSearchDebounce.current = setTimeout(async () => {
+            setIsSearchingLocation(true);
+            try {
+                const res = await fetch(
+                    `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&components=country:in&key=${GOOGLE_API_KEY}`
+                );
+                const data = await res.json();
+                setLocationSuggestions(data.predictions?.slice(0, 5) || []);
+            } catch { setLocationSuggestions([]); }
+            finally { setIsSearchingLocation(false); }
+        }, 350);
+    };
+
+    const selectLocationSuggestion = async (placeId: string, description: string) => {
+        setLocationSearch(description);
+        setLocationSuggestions([]);
+        setIsSearchingLocation(true);
+        try {
+            const res = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?place_id=${placeId}&key=${GOOGLE_API_KEY}`
+            );
+            const data = await res.json();
+            if (data.status === "OK" && data.results?.[0]) {
+                const parsed = parseGeocodeResult(data.results[0]);
+                const { lat, lng } = data.results[0].geometry.location;
+                patchAddrForm({
+                    latitude: String(lat),
+                    longitude: String(lng),
+                    ...(parsed.flatNo && { flatNo: parsed.flatNo }),
+                    ...(parsed.landMark && { landMark: parsed.landMark }),
+                    ...(parsed.address && { address: parsed.address }),
+                    ...(parsed.pinCode && { pinCode: parsed.pinCode }),
+                    ...(parsed.state && { state: parsed.state }),
+                });
+                // clear errors for filled fields
+                setS(prev => ({
+                    ...prev,
+                    addrErrors: Object.fromEntries(
+                        Object.entries(prev.addrErrors).filter(([k]) =>
+                            !['flatNo','landMark','address','pinCode','state','latitude'].includes(k)
+                        )
+                    )
+                }));
+                setLocationSearch("");
+                patch({ toast: { message: "Address filled from search — please review and confirm", type: "success" } });
+            }
+        } catch { patch({ toast: { message: "Could not fetch address details. Please try again.", type: "error" } }); }
+        finally { setIsSearchingLocation(false); }
+    };
+
+    const cancelAddrForm = () => {
+        setLocationSearch("");
+        setLocationSuggestions([]);
         patch({
             isAddingAddress: false, editingAddress: null, addrErrors: {},
             isFetchingLocation: false, locationError: "",
             addrForm: { flatNo: "", landMark: "", address: "", pinCode: "", state: "", type: "Home", latitude: "", longitude: "", typeDropdownOpen: false },
         });
+    };
 
     const handleDeleteAddress = async (addressId: string) => {
         const userData = GET_USER_DATA();
@@ -963,9 +1134,9 @@ const ProfilePage: React.FC = () => {
     const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
         { id: "info", label: "Profile", icon: User },
         { id: "orders", label: "My Orders", icon: Package },
-        { id: "address", label: "Addresses", icon: MapPin },
+        { id: "address", label: "Address", icon: MapPin },
         // { id: "wallet", label: "Wallet", icon: Wallet },
-        { id: "support", label: "Contact Support", icon: HelpCircle },
+        { id: "support", label: "Write to Us", icon: MessageSquare },
     ];
 
     return (
@@ -1012,7 +1183,7 @@ const ProfilePage: React.FC = () => {
                                 setSearchParams({ tab: "info" });
                                 patch({ activeTab: "info", isEditingProfile: true });
                             }}
-                            className="inline-flex items-center justify-center gap-1.5 border border-[#E8E0D5] rounded-lg px-3.5 py-1.5 text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition shrink-0 w-full sm:w-auto"
+                            className="inline-flex items-center justify-center gap-1.5 border border-[#E8E0D5] rounded-lg px-3.5 py-1.5 text-[14px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition shrink-0 w-full sm:w-auto"
                         >
                             <Pencil className="h-3 w-3" />
                             Edit Profile
@@ -1038,7 +1209,7 @@ const ProfilePage: React.FC = () => {
                                             }
                                         }
                                         setSearchParams({ tab: id });
-                                        patch({ activeTab: id, isAddingAddress: false, isEditingProfile: false });
+                                        patch({ activeTab: id, isAddingAddress: false, isEditingProfile: id === "info" && !s.profileForm.firstName.trim() });
                                     }}
                                     className={`flex items-center gap-1.5 px-4 py-3.5 text-[13px] font-medium border-b-2 transition-all shrink-0 ${isActive ? "border-[#8B6914] text-[#8B6914]" : "border-transparent text-[#8A8A8A] hover:text-[#1A1A1A]"}`}
                                 >
@@ -1155,7 +1326,7 @@ const ProfilePage: React.FC = () => {
                                         {s.profileErrors.alternativeNumber && <p className="text-[11px] text-rose-500 mt-1">{s.profileErrors.alternativeNumber}</p>}
                                     </div>
                                     <div>
-                                        <label className={labelCls}>WhatsApp Number</label>
+                                        <label className={labelCls}>WhatsApp Number<span className="text-rose-500">*</span></label>
                                         <input
                                             type="tel"
                                             value={s.profileForm.whatsappNumber}
@@ -1170,7 +1341,7 @@ const ProfilePage: React.FC = () => {
                                                     }
                                                 }
                                             }}
-                                            placeholder="10-digit mobile number (optional)"
+                                            placeholder="10-digit mobile number"
                                             className={`${inputCls} ${s.profileErrors.whatsappNumber ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
                                         />
                                         {s.profileErrors.whatsappNumber && <p className="text-[11px] text-rose-500 mt-1">{s.profileErrors.whatsappNumber}</p>}
@@ -1272,17 +1443,37 @@ const ProfilePage: React.FC = () => {
                     {s.activeTab === "address" && (
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-5">
-                                <h3 className="text-[18px] font-semibold text-[#1A1A1A]">Saved Addresses</h3>
+                                <h3 className="text-[18px] font-semibold text-[#1A1A1A]">Saved Address</h3>
                                 {!s.isAddingAddress && (
-                                    <button onClick={() => patch({ isAddingAddress: true, editingAddress: null, addrErrors: {} })} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8B6914] text-white text-[11px] font-medium hover:bg-[#7A5C10] transition">
-                                        <Plus className="h-3 w-3" strokeWidth={2.5} /> Add Address
+                                    <button onClick={() => patch({ isAddingAddress: true, editingAddress: null, addrErrors: {} })} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8B6914] text-white text-[14px] font-medium hover:bg-[#7A5C10] transition">
+                                        <Plus className="h-3 w-3" strokeWidth={2.5} /> Add New Address
                                     </button>
                                 )}
                             </div>
 
                             {s.isAddingAddress && (
                                 <div className="border border-[#E8E0D5] rounded-xl p-4 sm:p-5 mb-5 space-y-4 bg-[#FAFAF8]">
-                                    <h4 className="text-[12px] font-semibold text-[#1A1A1A]">{s.editingAddress ? "Edit Address" : "New Address"}</h4>
+                                    <div className="space-y-1">
+                                        <h4 className="text-[12px] font-semibold text-[#1A1A1A]">{s.editingAddress ? "Edit Address" : "Add New Address"}</h4>
+                                        <button
+                                            type="button"
+                                            onClick={fetchCurrentLocation}
+                                            disabled={s.isFetchingLocation}
+                                            className="inline-flex items-center gap-1.5  pt-4 text-[14px] font-medium text-[#8B6914] hover:text-[#7A5C10] transition disabled:opacity-60"
+                                        >
+                                            {s.isFetchingLocation ? (
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                                <MapPinned className="h-3 w-3" />
+                                            )}
+                                            {s.isFetchingLocation ? "Detecting your location..." : "Use my current location >"}
+                                        </button>
+                                    </div>
+                                    {/* <div className="flex items-center gap-2">
+                                        <div className="flex-1 h-px bg-[#E8E0D5]" />
+                                        <span className="text-[14px] text-[#BEB5AA] font-medium">OR</span>
+                                        <div className="flex-1 h-px bg-[#E8E0D5]" />
+                                    </div> */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className={labelCls}>Flat No<span className="text-rose-500 ml-1">*</span></label>
@@ -1337,15 +1528,22 @@ const ProfilePage: React.FC = () => {
                                                 onChange={(e) => {
                                                     const formatted = formatPincode(e.target.value);
                                                     patchAddrForm({ pinCode: formatted });
-                                                    const nextErrors = formatted.length === 6 && validatePincode(formatted)
-                                                        ? removeErrorKey(s.addrErrors, "pinCode")
-                                                        : { ...s.addrErrors, pinCode: formatted.length > 0 ? "Pin code must contain 6 digits" : "" };
-                                                    patch({ addrErrors: nextErrors });
+                                                    if (formatted.length === 6) {
+                                                        const pinErr = getPincodeError(formatted);
+                                                        patch({ addrErrors: pinErr ? { ...s.addrErrors, pinCode: pinErr } : removeErrorKey(s.addrErrors, "pinCode") });
+                                                        if (!pinErr) lookupPincode(formatted);
+                                                    } else {
+                                                        patch({ addrErrors: removeErrorKey(s.addrErrors, "pinCode") });
+                                                        patchAddrForm({ state: "" });
+                                                    }
                                                 }}
                                                 onBlur={() => {
-                                                    if (!validatePincode(s.addrForm.pinCode)) {
-                                                        patch({ addrErrors: { ...s.addrErrors, pinCode: "Pin code must contain 6 digits" } });
+                                                    if (!s.addrForm.pinCode) return;
+                                                    const pinErr = getPincodeError(s.addrForm.pinCode);
+                                                    if (pinErr) {
+                                                        patch({ addrErrors: { ...s.addrErrors, pinCode: pinErr } });
                                                     } else {
+                                                        patch({ addrErrors: removeErrorKey(s.addrErrors, "pinCode") });
                                                         geocodeAddressFields();
                                                     }
                                                 }}
@@ -1362,7 +1560,8 @@ const ProfilePage: React.FC = () => {
                                                 value={s.addrForm.state}
                                                 onChange={(e) => {
                                                     patchAddrForm({ state: e.target.value });
-                                                    if (s.addrErrors.state && e.target.value.trim()) {
+                                                    const val = e.target.value.trim();
+                                                    if (s.addrErrors.state && val && /^[a-zA-Z\s]+$/.test(val) && val.length >= 3) {
                                                         patch({ addrErrors: removeErrorKey(s.addrErrors, "state") });
                                                     }
                                                 }}
@@ -1372,38 +1571,12 @@ const ProfilePage: React.FC = () => {
                                             {s.addrErrors.state && <p className="text-[11px] text-rose-500 mt-1">{s.addrErrors.state}</p>}
                                         </div>
                                     </div>
-                                    <div className="border-t border-[#E8E0D5] pt-4 space-y-2">
-                                        {(s.addrForm.latitude && s.addrForm.longitude) ? (
-                                            <p className="text-[11px] text-emerald-600 flex items-center gap-1">
-                                                <CheckCircle2 className="h-3 w-3" />
-                                                Location set: {parseFloat(s.addrForm.latitude).toFixed(6)}, {parseFloat(s.addrForm.longitude).toFixed(6)}
-                                            </p>
-                                        ) : (
-                                            <p className="text-[11px] text-[#8A8A8A] flex items-center gap-1">
-                                                <MapPinned className="h-3 w-3" />
-                                                Location will be set automatically from your address
-                                            </p>
-                                        )}
-                                        <button
-                                            type="button"
-                                            onClick={fetchCurrentLocation}
-                                            disabled={s.isFetchingLocation}
-                                            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition disabled:opacity-60"
-                                        >
-                                            {s.isFetchingLocation ? (
-                                                <Loader2 className="h-3 w-3 animate-spin" />
-                                            ) : (
-                                                <MapPinned className="h-3 w-3" />
-                                            )}
-                                            {s.isFetchingLocation ? "Fetching..." : "Use my current GPS location instead"}
-                                        </button>
-                                        {s.addrErrors.latitude && (
-                                            <p className="text-[11px] text-amber-600 flex items-center gap-1">
-                                                <AlertTriangle className="h-3 w-3" />
-                                                {s.addrErrors.latitude}
-                                            </p>
-                                        )}
-                                    </div>
+                                    {s.addrErrors.latitude && (
+                                        <p className="text-[11px] text-amber-600 flex items-center gap-1">
+                                            <AlertTriangle className="h-3 w-3" />
+                                            {s.addrErrors.latitude}
+                                        </p>
+                                    )}
                                     <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
                                         <button onClick={cancelAddrForm} className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition">Cancel</button>
                                         <button onClick={handleSaveAddr} disabled={s.isAddressLoading} className="inline-flex w-full sm:w-auto justify-center items-center gap-2 px-4 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-60">
@@ -1417,12 +1590,12 @@ const ProfilePage: React.FC = () => {
                             {s.isAddressLoading && !s.isAddingAddress ? (
                                 <div className="flex items-center justify-center py-12 gap-2 text-[#8A8A8A]">
                                     <Loader2 className="h-5 w-5 animate-spin" />
-                                    <span className="text-[12px]">Loading addresses...</span>
+                                    <span className="text-[12px]">Loading address...</span>
                                 </div>
                             ) : s.addresses.length === 0 && !s.isAddingAddress ? (
                                 <div className="text-center py-16">
                                     <MapPin className="h-8 w-8 text-[#D1C7BB] mx-auto mb-3" />
-                                    <p className="text-[12px] text-[#8A8A8A]">No addresses saved yet</p>
+                                    <p className="text-[12px] text-[#8A8A8A]">No address saved yet</p>
                                 </div>
                             ) : (
                                 <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
@@ -1540,7 +1713,7 @@ const ProfilePage: React.FC = () => {
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-start justify-between gap-2">
                                                             <div className="min-w-0">
-                                                                <p className="text-[12px] font-semibold text-[#1A1A1A] truncate">Order #{order.orderNumber}</p>
+                                                                <p className="text-[12px] font-semibold text-[#1A1A1A] truncate">Order #{order.orderNumber.slice(-4)}</p>
                                                                 <p className="text-[11px] text-[#8A8A8A] mt-0.5">{formatDate(order.paymentExpiry)}</p>
                                                             </div>
                                                             <span className="text-[14px] font-bold text-[#1A1A1A] shrink-0">{DISPLAY_INR(order.totalAmount)}</span>
@@ -1779,7 +1952,7 @@ const ProfilePage: React.FC = () => {
                                 {!s.showQueryForm && (
                                     <button
                                         onClick={() => patch({ showQueryForm: true, queryFormErrors: {} })}
-                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8B6914] text-white text-[11px] font-medium hover:bg-[#7A5C10] transition"
+                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8B6914] text-white text-[14px] font-medium hover:bg-[#7A5C10] transition"
                                     >
                                         <Plus className="h-3 w-3" strokeWidth={2.5} /> New Query
                                     </button>
@@ -2116,7 +2289,7 @@ const ProfilePage: React.FC = () => {
                             <h3 className="text-[15px] font-semibold text-[#1A1A1A]">Complete Your Profile</h3>
                         </div>
                         <p className="text-[13px] text-[#6B6B6B] mb-5 leading-relaxed">
-                            We need your profile details (name, email, mobile) before you can raise a support query.
+                            Please complete your profile (name, email, mobile) to continue.
                         </p>
                         <div className="flex gap-3">
                             <button
@@ -2128,7 +2301,8 @@ const ProfilePage: React.FC = () => {
                             <button
                                 onClick={() => {
                                     patch({ profileIncompleteModal: false, activeTab: "info", isEditingProfile: true });
-                                    setSearchParams({ tab: "info", returnTo: "support" });
+                                    const currentReturnTo = returnTo || searchParams.get("returnTo") || "";
+                                    setSearchParams({ tab: "info", ...(currentReturnTo ? { returnTo: currentReturnTo } : { returnTo: "support" }) });
                                 }}
                                 className="flex-1 px-4 py-2.5 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition"
                             >
