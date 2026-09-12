@@ -1,6 +1,22 @@
 {
   "rewrites": [
     {
+      "source": "/physical-gold/privacy-policy",
+      "destination": "/privacy-policy.html"
+    },
+    {
+      "source": "/physical-gold/privacy-policy/",
+      "destination": "/privacy-policy.html"
+    },
+    {
+      "source": "/physical-gold/account-deletion",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/physical-gold/account-deletion/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/physical-gold/profile",
       "destination": "/index.html"
     },

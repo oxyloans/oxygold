@@ -1434,6 +1434,15 @@ const ProfilePage: React.FC = () => {
                                             <LogOut className="h-3.5 w-3.5" /> Sign Out
                                         </button>
                                     </div>
+                                    <div className="mt-5 border-t border-[#F0EBE1] pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate("/physical-gold/account-deletion")}
+                                            className="text-[12px] font-medium text-rose-500 transition hover:text-rose-700"
+                                        >
+                                            Request account deletion
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>

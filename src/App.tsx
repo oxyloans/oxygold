@@ -43,6 +43,7 @@ const PhysicalGoldPage = lazy(() => import('./PhysicalGold/PhysicalGoldPageNew')
 const HiddenLogin = lazy(() => import('./PhysicalGold/HiddenLogin'));
 const CartPage = lazy(() => import('./PhysicalGold/CartSlider'));
 const ProfilePage = lazy(() => import('./PhysicalGold/ProfileSlider'));
+const AccountDeletionRequest = lazy(() => import('./PhysicalGold/AccountDeletionRequest'));
 const PaymentStatusPage = lazy(() => import('./PhysicalGold/PaymentStatus'));
 const WishlistPage = lazy(() => import('./PhysicalGold/WishlistPage'));
 const ProductDetailsPage = lazy(() => import('./PhysicalGold/ProductDetailsPage'));
@@ -221,6 +222,7 @@ function AppContent() {
               />
               <Route path="/physical-gold/cart" element={<CartPage />} />
               <Route path="/physical-gold/profile" element={<ProfilePage />} />
+              <Route path="/physical-gold/account-deletion" element={<AccountDeletionRequest />} />
               <Route path="/physical-gold/wishlist" element={<WishlistPage />} />
               <Route path="/physical-gold/payment-status" element={<PaymentStatusPage />} />
             </Route>

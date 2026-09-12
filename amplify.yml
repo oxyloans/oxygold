@@ -14,3 +14,13 @@ frontend:
   cache:
     paths:
       - node_modules/**/*
+  customRules:
+    - source: /physical-gold/account-deletion
+      target: /index.html
+      status: '200'
+    - source: /physical-gold/account-deletion/
+      target: /index.html
+      status: '200'
+    - source: /physical-gold/<*>
+      target: /index.html
+      status: '200'

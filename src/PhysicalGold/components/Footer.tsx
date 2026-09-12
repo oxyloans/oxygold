@@ -51,7 +51,7 @@ const Footer: React.FC = () => {
               Policies
             </h4>
             <ul className="space-y-2 text-sm">
-              <li><button onClick={() => navigate("/physical-gold/privacy-policy")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>Privacy Policy</button></li>
+              <li><a href="/privacy-policy.html" className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>Privacy Policy</a></li>
               <li><button onClick={() => navigate("/physical-gold/terms-conditions")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>Terms & Conditions</button></li>
               <li><button onClick={() => navigate("/physical-gold/shipping-policy")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>Shipping Policy</button></li>
               <li><button onClick={() => navigate("/physical-gold/return-refund-policy")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>Return & Refund Policy</button></li>
@@ -91,9 +91,9 @@ const Footer: React.FC = () => {
             © 2026 OxyGold by OXYIDEAS PARTNERS LLP. All rights reserved.
           </p>
           <div className="flex flex-wrap gap-4 md:gap-6 justify-center">
-            <button onClick={() => navigate("/physical-gold/privacy-policy")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>
+            <a href="/privacy-policy.html" className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>
               Privacy Policy
-            </button>
+            </a>
             <button onClick={() => navigate("/physical-gold/terms-conditions")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>
               Terms & Conditions
             </button>
