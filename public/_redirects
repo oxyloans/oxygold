@@ -1,7 +1,7 @@
 /physical-gold/privacy-policy  /privacy-policy.html  200
 /physical-gold/privacy-policy/  /privacy-policy.html  200
-/physical-gold/account-deletion  /index.html  200
-/physical-gold/account-deletion/  /index.html  200
-/physical-gold/account-delet  /index.html  200
-/physical-gold/account-delet/  /index.html  200
+/physical-gold/account-deletion  /physical-gold/account-deletion/index.html  200
+/physical-gold/account-deletion/  /physical-gold/account-deletion/index.html  200
+/physical-gold/account-delet  /physical-gold/account-deletion/index.html  200
+/physical-gold/account-delet/  /physical-gold/account-deletion/index.html  200
 /*  /index.html  200

@@ -10,19 +10,19 @@
     },
     {
       "source": "/physical-gold/account-deletion",
-      "destination": "/index.html"
+      "destination": "/physical-gold/account-deletion/index.html"
     },
     {
       "source": "/physical-gold/account-deletion/",
-      "destination": "/index.html"
+      "destination": "/physical-gold/account-deletion/index.html"
     },
     {
       "source": "/physical-gold/account-delet",
-      "destination": "/index.html"
+      "destination": "/physical-gold/account-deletion/index.html"
     },
     {
       "source": "/physical-gold/account-delet/",
-      "destination": "/index.html"
+      "destination": "/physical-gold/account-deletion/index.html"
     },
     {
       "source": "/physical-gold/profile",
