@@ -25,6 +25,7 @@ const AccountDeletionRequest: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [ticketId, setTicketId] = useState<string | null>(null);
+  const isSignedIn = Boolean(userId && email);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -113,7 +114,29 @@ const AccountDeletionRequest: React.FC = () => {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="mt-7 space-y-5">
+              <div className="mt-7 space-y-4 rounded-lg border border-[#E8E0D5] bg-[#FAFAF8] p-4 text-[13px] leading-relaxed text-[#4A4A4A]">
+                <p className="font-semibold text-[#1A1A1A]">How to request deletion</p>
+                <ol className="list-decimal space-y-1 pl-5">
+                  <li>Sign in to your OxyGold account.</li>
+                  <li>Explain why you want to close the account.</li>
+                  <li>Submit the request and keep the support reference number.</li>
+                </ol>
+                <p><strong>Deleted:</strong> account profile details, saved addresses, and marketing preferences, subject to verification.</p>
+                <p><strong>Retained:</strong> transaction, payment, tax, and fraud-prevention records where required by law or legitimate business needs.</p>
+              </div>
+
+              {!isSignedIn ? (
+                <div className="mt-7 rounded-lg border border-[#E8E0D5] bg-white p-4 text-center">
+                  <p className="text-[13px] text-[#6F6A64]">Sign in to verify your account and submit a deletion request.</p>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/login")}
+                    className="mt-4 rounded-lg bg-[#8B6914] px-5 py-2.5 text-[13px] font-medium text-white transition hover:bg-[#76580E]"
+                  >
+                    Sign in to continue
+                  </button>
+                </div>
+              ) : <form onSubmit={handleSubmit} className="mt-7 space-y-5">
                 <div>
                   <label className="mb-1.5 block text-[12px] font-semibold text-[#4A4A4A]">Account</label>
                   <div className="rounded-lg border border-[#E8E0D5] bg-[#FAFAF8] px-3 py-2.5 text-[13px] text-[#6F6A64]">
@@ -161,7 +184,7 @@ const AccountDeletionRequest: React.FC = () => {
                   {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   {isSubmitting ? "Submitting request..." : "Submit deletion request"}
                 </button>
-              </form>
+              </form>}
             </>
           )}
         </section>

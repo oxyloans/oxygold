@@ -21,6 +21,12 @@ frontend:
     - source: /physical-gold/account-deletion/
       target: /index.html
       status: '200'
+    - source: /physical-gold/account-delet
+      target: /index.html
+      status: '200'
+    - source: /physical-gold/account-delet/
+      target: /index.html
+      status: '200'
     - source: /physical-gold/<*>
       target: /index.html
       status: '200'

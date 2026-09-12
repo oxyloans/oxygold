@@ -17,6 +17,14 @@
       "destination": "/index.html"
     },
     {
+      "source": "/physical-gold/account-delet",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/physical-gold/account-delet/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/physical-gold/profile",
       "destination": "/index.html"
     },

@@ -206,6 +206,8 @@ function AppContent() {
               <Route path="/physical-gold/faq" element={<FAQPage />} />
               <Route path="/physical-gold/cookie-policy" element={<CookiePolicy />} />
               <Route path="/physical-gold/cancellation-policy" element={<CancellationPolicy />} />
+              <Route path="/physical-gold/account-deletion" element={<AccountDeletionRequest />} />
+              <Route path="/physical-gold/account-delet" element={<AccountDeletionRequest />} />
             </Route>
 
             {/* Physical Gold protected actions */}
@@ -222,7 +224,6 @@ function AppContent() {
               />
               <Route path="/physical-gold/cart" element={<CartPage />} />
               <Route path="/physical-gold/profile" element={<ProfilePage />} />
-              <Route path="/physical-gold/account-deletion" element={<AccountDeletionRequest />} />
               <Route path="/physical-gold/wishlist" element={<WishlistPage />} />
               <Route path="/physical-gold/payment-status" element={<PaymentStatusPage />} />
             </Route>
