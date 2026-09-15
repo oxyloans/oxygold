@@ -1,12 +1,12 @@
 import React from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faAmazon } from "@fortawesome/free-brands-svg-icons";
 import bookImage from "../assets/book.png";
 
 export default function AIBookSection() {
-  const openAmazon = () => {
-    // ✅ Replace YOUR_BOOK_ID with your real Amazon ASIN
-    window.open("https://amzn.in/d/2Ie3hEg", "_blank", "noopener,noreferrer");
+  const openAskOxyBook = () => {
+    window.open(
+      "https://www.askoxy.ai/main/itemsdisplay/b3e1bf52-9f80-4179-b533-c9410affd8d2",
+      "_self"
+    );
   };
 
   return (
@@ -103,18 +103,13 @@ export default function AIBookSection() {
               {/* CTA */}
               <div style={styles.ctaRow}>
                 <button
-                  onClick={openAmazon}
-                  style={styles.amazonBtn}
-                  className="amazon-btn"
+                  onClick={openAskOxyBook}
+                  style={styles.buyBtn}
+                  className="buy-btn"
                   type="button"
                 >
-                  <span style={styles.amazonIconChip}>
-                    <FontAwesomeIcon
-                      icon={faAmazon}
-                      style={{ fontSize: 18, color: "#2B0A59" }}
-                    />
-                  </span>
-                  <span>Buy on Amazon</span>
+                  <span style={styles.buyIconChip}>→</span>
+                  <span>Buy Now</span>
                 </button>
               </div>
             </div>
@@ -136,8 +131,8 @@ export default function AIBookSection() {
           @media (min-width: 641px) and (max-width: 899px){
             .ai-book-card{ padding: 24px !important; }
           }
-          .amazon-btn:hover{ transform: translateY(-1px); filter: brightness(1.03); }
-          .amazon-btn:active{ transform: translateY(0px) scale(0.99); }
+          .buy-btn:hover{ transform: translateY(-1px); filter: brightness(1.03); }
+          .buy-btn:active{ transform: translateY(0px) scale(0.99); }
         `}
       </style>
     </section>
@@ -307,7 +302,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexWrap: "wrap",
   },
 
-  amazonBtn: {
+  buyBtn: {
     padding: "12px 18px",
     borderRadius: "14px",
     background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
@@ -323,7 +318,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: "all 0.25s",
   },
 
-  amazonIconChip: {
+  buyIconChip: {
     width: 30,
     height: 30,
     borderRadius: 10,

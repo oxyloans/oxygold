@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { ArrowRight } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { ArrowRight, Check, Package } from "lucide-react";
 import { Category } from "../physicalGoldData";
 import "../styles.css";
 
@@ -9,112 +9,163 @@ interface CategoryGridProps {
   selectedCategoryId?: string;
 }
 
-// Fallback gradient backgrounds per card index
-const FALLBACK_GRADIENTS = [
-  "linear-gradient(135deg, #2B0A59 0%, #5B2EFF 100%)",
-  "linear-gradient(135deg, #7B3F00 0%, #D4AF37 100%)",
-  "linear-gradient(135deg, #0d1f3c 0%, #1a3060 100%)",
-  "linear-gradient(135deg, #1a1a2e 0%, #4a0e8f 100%)",
-  "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)",
-  "linear-gradient(135deg, #3d0c02 0%, #8b1a1a 100%)",
-];
-
 interface CategoryCardProps {
-  cat: Category;
-  index: number;
+  category: Category;
   isSelected: boolean;
   onClick: () => void;
 }
 
-const CategoryCard: React.FC<CategoryCardProps> = ({ cat, index, isSelected, onClick }) => {
-  const [imgError, setImgError] = useState(false);
-  const fallbackBg = FALLBACK_GRADIENTS[index % FALLBACK_GRADIENTS.length];
-  const showImage = cat.imageUrl && !imgError;
+const CategoryCard: React.FC<CategoryCardProps> = ({
+  category,
+  isSelected,
+  onClick,
+}) => {
+  const [imageError, setImageError] = useState(false);
+  const imageUrl = category.imageUrl?.trim();
+
+  // Retry when refreshed category data supplies a different image.
+  useEffect(() => {
+    setImageError(false);
+  }, [imageUrl]);
 
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
-        isSelected
-          ? 'ring-2 ring-primary ring-offset-2 shadow-lg'
-          : 'shadow-sm'
-      }`}
-      style={{ animationDelay: `${index * 80}ms`, aspectRatio: '6/4' }}
+      aria-pressed={isSelected}
+      aria-label={`Explore ${category.name}`}
+      className={`group flex h-full w-full min-w-0 flex-col overflow-hidden
+        rounded-xl border bg-white text-left transition-colors duration-200
+        focus-visible:outline-none focus-visible:ring-2
+        focus-visible:ring-amber-700 focus-visible:ring-offset-2
+        ${isSelected
+          ? "border-amber-700 ring-1 ring-amber-700"
+          : "border-stone-200 hover:border-amber-600"
+        }`}
     >
-      {/* Background: image or styled fallback */}
-      {showImage ? (
-        <img
-          src={cat.imageUrl}
-          alt={cat.name}
-          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-          style={{ objectPosition: 'center' }}
-          loading="lazy"
-          onError={() => setImgError(true)}
-        />
-      ) : (
-        <div
-          className="absolute inset-0 flex flex-col items-center justify-center gap-3"
-          style={{ background: fallbackBg }}
-        >
-          <span className="text-5xl md:text-6xl drop-shadow-lg">{cat.emoji}</span>
-          <span className="text-xs font-semibold uppercase tracking-widest text-white/40">
-            {cat.name}
+      <div
+        className="relative aspect-[4/3] w-full shrink-0 overflow-hidden"
+      >
+        {imageUrl && !imageError ? (
+          <img
+            src={imageUrl}
+            alt={category.name}
+            loading="lazy"
+            decoding="async"
+            onError={() => setImageError(true)}
+            className="block h-full w-full object-cover object-center"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-stone-100">
+            {category.emoji ? (
+              <span aria-hidden="true" className="text-4xl sm:text-5xl">
+                {category.emoji}
+              </span>
+            ) : (
+              <Package
+                aria-hidden="true"
+                className="h-10 w-10 text-stone-300"
+                strokeWidth={1.25}
+              />
+            )}
+          </div>
+        )}
+
+        {isSelected && (
+          <span
+            aria-hidden="true"
+            className="absolute right-2 top-2 flex h-6 w-6 items-center
+              justify-center rounded-full bg-amber-800 text-white"
+          >
+            <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
           </span>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent group-hover:from-black/90 transition-all duration-300" />
-
-      {/* Selected checkmark */}
-      {isSelected && (
-        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-md">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M2 6l3 3 5-5" stroke="#0d1f3c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-      )}
-
-      {/* Text */}
-      <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 lg:p-5">
-        <h3 className="font-serif text-sm md:text-base lg:text-lg font-semibold text-white leading-tight">
-          {cat.name}
+      <div className="flex w-full flex-1 flex-col px-3 py-2.5 sm:px-4">
+        <h3
+          className="break-words text-sm font-semibold
+            leading-5 text-stone-900"
+        >
+          {category.name}
         </h3>
-        <div className="flex items-center gap-1 mt-1.5 text-xs font-medium text-primary transition-all duration-300 translate-y-1 opacity-0 group-hover:opacity-100 group-hover:translate-y-0">
-          Explore <ArrowRight size={12} />
-        </div>
+        <span
+          className="mt-auto flex min-h-8 items-center justify-between
+            gap-2 pt-1.5 text-xs font-medium text-amber-800"
+        >
+          Explore collection
+          <ArrowRight
+            aria-hidden="true"
+            className="h-4 w-4 shrink-0 transition-transform
+              motion-safe:group-hover:translate-x-0.5"
+          />
+        </span>
       </div>
     </button>
   );
 };
 
-const CategoryGrid: React.FC<CategoryGridProps> = ({ categories, onCategoryClick, selectedCategoryId }) => {
+const CategoryGrid: React.FC<CategoryGridProps> = ({
+  categories,
+  onCategoryClick,
+  selectedCategoryId,
+}) => {
   return (
-    <section id="collections-section" className="py-12 md:py-16 lg:py-20 bg-background">
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 max-w-7xl">
-
-        <div className="text-center mb-8 md:mb-10 lg:mb-12">
-          <p className="text-xs uppercase tracking-[0.25em] mb-2 font-semibold text-primary">
-            Our Collection
+    <section
+      id="collections-section"
+      aria-labelledby="collections-heading"
+      className="w-full min-w-0 scroll-mt-28 bg-white pb-5 pt-8 sm:pb-7 sm:pt-10"
+    >
+      {/* The parent page already supplies outer padding. */}
+      <div className="mx-auto w-full max-w-7xl">
+        <header className="mb-5 sm:mb-6">
+          <p
+            className="mb-1.5 text-xs font-medium uppercase
+              tracking-widest text-amber-800"
+          >
+            Our collection
           </p>
-          <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">
-            Shop by Category
+          <h2
+            id="collections-heading"
+            className="text-2xl font-semibold tracking-tight
+              text-stone-900 sm:text-3xl"
+          >
+            Shop by category
           </h2>
-          <div className="w-14 h-0.5 mx-auto mt-3 bg-primary" />
-        </div>
+          <p className="mt-2 text-sm leading-6 text-stone-500">
+            Choose a category to explore the collection.
+          </p>
+        </header>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 md:gap-5 lg:gap-6">
-          {categories.map((cat, i) => (
-            <CategoryCard
-              key={cat.id}
-              cat={cat}
-              index={i}
-              isSelected={selectedCategoryId === cat.id}
-              onClick={() => onCategoryClick(cat.id)}
+        {categories.length > 0 ? (
+          <div
+            className="grid grid-cols-2 items-start gap-3
+              sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5"
+          >
+            {categories.map((category) => (
+              <CategoryCard
+                key={category.id}
+                category={category}
+                isSelected={selectedCategoryId === category.id}
+                onClick={() => onCategoryClick(category.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            role="status"
+            className="rounded-xl border border-dashed border-stone-200
+              px-5 py-12 text-center"
+          >
+            <Package
+              aria-hidden="true"
+              className="mx-auto mb-3 h-8 w-8 text-stone-300"
             />
-          ))}
-        </div>
-
+            <p className="text-sm font-medium text-stone-700">
+              No categories available yet.
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );

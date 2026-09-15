@@ -1,37 +1,229 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
-import { Package, X, Search, SlidersHorizontal } from "lucide-react";
-import CategoryGrid from "./components/CategoryGrid";
-import ProductCard from "./components/ProductCard";
-import LoadingSpinner from "./components/LoadingSpinner";
+import { Package, Search, SlidersHorizontal, X } from "lucide-react";
+import { useCart, ProfileIncompleteError } from "./CartContext";
 import FilterSidebar from "./components/FilterSidebar";
+import CategoryGrid from "./components/CategoryGrid";
+
+import LoadingSpinner from "./components/LoadingSpinner";
+
 import Pagination from "./components/Pagination";
-import { Category, SubCategory, PhysicalGoldProduct } from "./physicalGoldData";
+import { Category, SubCategory, PhysicalGoldProduct, ProductVariant } from "./physicalGoldData";
 import {
+  fetchProductVariants,
   fetchSubCategories,
   searchProducts,
   fetchProductImageURLs,
 } from "./physicalGoldService";
-import { debounce } from "./utils/debounce";
+
 import "./styles.css";
+
+
+/** Collect supported image fields without discarding other usable views. */
+function collectImageURLs(value: unknown): string[] {
+  const urls: string[] = [];
+  const visited = new Set<object>();
+  const visit = (item: unknown, depth = 0) => {
+    if (!item || depth > 5) return;
+    if (typeof item === "string") {
+      const url = item.trim();
+      if (url && !["null", "undefined"].includes(url.toLowerCase()) &&
+          /^(https?:\/\/|\/|blob:|data:image\/)/i.test(url)) urls.push(url);
+      return;
+    }
+    if (typeof item !== "object" || visited.has(item)) return;
+    visited.add(item);
+    if (Array.isArray(item)) { item.forEach(entry => visit(entry, depth + 1)); return; }
+    const record = item as Record<string, unknown>;
+    for (const key of [
+      "frontViewurl", "frontViewUrl", "frontImageUrl", "imageUrl",
+      "backViewUrl", "leftViewUrl", "rightViewUrl", "topViewUrl", "bottomViewUrl",
+      "url", "imageURLs", "imageUrls", "imageCandidates", "imageSet", "images", "data"
+    ]) visit(record[key], depth + 1);
+  };
+  visit(value);
+  return Array.from(new Set(urls));
+}
+
+type DisplayProduct = PhysicalGoldProduct & { imageCandidates?: string[] };
+
+const ProductImage: React.FC<{ urls: string[]; alt: string; className?: string }> = ({
+  urls, alt, className = ""
+}) => {
+  const [index, setIndex] = useState(0);
+  const identity = urls.join("|");
+  useEffect(() => setIndex(0), [identity]);
+  const src = urls[index];
+  return src ? (
+    <img key={src} src={src} alt={alt} loading="lazy" decoding="async"
+      onError={() => setIndex(current => current + 1)}
+      className={`block h-full w-full object-contain ${className}`} />
+  ) : (
+    <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-stone-400">
+      <Package className="h-8 w-8" aria-hidden="true" />
+      <span className="text-[10px]">Image unavailable</span>
+    </span>
+  );
+};
+
+
+/** Format duplicate price endpoints once, retaining meaningful ranges. */
+function displayPrice(value: unknown): string {
+  if (value == null || value === "") return "Price on request";
+  const text = String(value).trim();
+  const match = text.replace(/,/g, "").match(/^(?:₹|INR)?\s*(\d+(?:\.\d+)?)\s*(?:[-–]\s*(?:₹|INR)?\s*(\d+(?:\.\d+)?))?$/i);
+  if (!match) return text;
+  const format = (n: number) => new Intl.NumberFormat("en-IN", {
+    style: "currency", currency: "INR", maximumFractionDigits: 2
+  }).format(n);
+  const low = Number(match[1]);
+  const high = match[2] ? Number(match[2]) : low;
+  return low === high ? format(low) : `${format(low)} – ${format(high)}`;
+}
+
+const CompactProductCard: React.FC<{
+  product: DisplayProduct;
+  onClick: () => void;
+  horizontal?: boolean;
+}> = ({ product, onClick, horizontal = false }) => {
+  const navigate = useNavigate();
+  const { addToCart, cartItems } = useCart();
+  const [options, setOptions] = useState<ProductVariant[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [cartProduct, setCartProduct] = useState<PhysicalGoldProduct>(product);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [unavailable, setUnavailable] = useState(false);
+  const busyRef = useRef(false);
+  const selected = options.find(v => String(v.id) === selectedId);
+  const inCart = selected && cartItems.some(item => item.variant.id === selected.id);
+
+  const handleAdd = async () => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    setMessage("");
+    try {
+      let variant = selected;
+      let currentProduct = cartProduct;
+      if (!options.length) {
+        const response = await fetchProductVariants(product.id);
+        currentProduct = response.product || product;
+        setCartProduct(currentProduct);
+        const available = response.variants.filter(v => v.stockQuantity > 0);
+        setOptions(available);
+        if (!available.length) {
+          setUnavailable(true);
+          setMessage("Currently out of stock.");
+          return;
+        }
+        variant = available[0];
+        setSelectedId(String(variant.id));
+        if (available.length > 1) {
+          setMessage("Choose an option, then add to cart.");
+          return;
+        }
+      }
+      if (!variant) return;
+      await addToCart(currentProduct, variant);
+      setMessage("Added to cart.");
+    } catch (error) {
+      if (error instanceof ProfileIncompleteError) {
+        const returnTo = window.location.pathname + window.location.search;
+        navigate(`/physical-gold/profile?tab=info&returnTo=${encodeURIComponent(returnTo)}`);
+      } else {
+        setMessage(error instanceof Error ? error.message : "Could not add to cart. Please try again.");
+      }
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  };
+
+  return (
+    <article className={`flex min-w-0 overflow-hidden rounded-xl border border-stone-200 bg-white ${horizontal ? "flex-row" : "flex-col"}`}>
+      <button type="button" onClick={onClick} aria-label={`View ${product.productName}`}
+        className={`flex shrink-0 items-center justify-center overflow-hidden bg-stone-50 p-2 focus-visible:ring-2 focus-visible:ring-amber-700 ${horizontal ? "w-[44%] border-r border-stone-100" : "aspect-[4/3] w-full border-b border-stone-100"}`}>
+        <div className={horizontal ? "h-[200px] w-full sm:h-[230px]" : "h-full w-full"}>
+          <ProductImage urls={collectImageURLs(product)} alt={product.productName} />
+        </div>
+      </button>
+      <div className="flex min-w-0 flex-1 flex-col gap-2 p-3">
+        <button type="button" onClick={onClick} className="text-left">
+          <h3 className="break-words text-sm font-semibold leading-5 text-stone-900">{product.productName}</h3>
+        </button>
+        <p className="break-words text-sm font-bold text-stone-900 sm:text-base">
+          {selected ? `₹${selected.price.toLocaleString("en-IN")}` : displayPrice(product.priceRange)}
+        </p>
+        {selected && <div className="flex flex-wrap gap-1.5 text-xs text-stone-600">
+          <span className="rounded bg-stone-100 px-2 py-1">{selected.purity}</span>
+          <span className="rounded bg-stone-100 px-2 py-1">{selected.weight} g</span>
+          {selected.size && <span className="rounded bg-stone-100 px-2 py-1">{selected.size}</span>}
+        </div>}
+        {options.length > 1 && (
+          <label className="text-xs text-stone-600">
+            Choose option
+            <select value={selectedId} disabled={busy}
+              onChange={e => { setSelectedId(e.target.value); setMessage(""); }}
+              className="mt-1 h-11 w-full min-w-0 rounded-lg border border-stone-200 bg-white px-2 text-xs">
+              {options.map(v => <option key={v.id} value={String(v.id)}>
+                {v.purity} · {v.weight}g{v.size ? ` · ${v.size}` : ""} · ₹{v.price.toLocaleString("en-IN")}
+              </option>)}
+            </select>
+          </label>
+        )}
+        <div className="mt-auto grid gap-1 pt-1">
+          <button type="button" disabled={busy || unavailable}
+            onClick={inCart ? () => navigate("/physical-gold/cart") : handleAdd}
+            className="min-h-11 rounded-lg bg-[#8B6914] px-3 py-2 text-sm font-semibold text-white hover:bg-[#735710] disabled:cursor-not-allowed disabled:opacity-50">
+            {busy ? "Adding…" : unavailable ? "Out of stock" : inCart ? "Go to cart" : "Add to cart"}
+          </button>
+          <button type="button" onClick={onClick} className="min-h-9 text-xs text-stone-600 hover:text-amber-800">View details →</button>
+        </div>
+        {message && <p role="status" className="break-words text-xs text-stone-600">{message}</p>}
+      </div>
+    </article>
+  );
+};
 
 const PhysicalGoldPageNew: React.FC = () => {
   const navigate = useNavigate();
   const { categoryId: routeCategoryId, subCategoryId: routeSubCategoryId } = useParams();
   const { categories, setSelectedCategoryId: setLayoutSelectedCategoryId } = useOutletContext<{ categories: Category[], selectedCategoryId?: string, setSelectedCategoryId: (id: string | undefined) => void }>();
-  const loadedRouteRef = useRef("");
+  const [loadError, setLoadError] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
 
+  const [categoriesReady, setCategoriesReady] = useState(false);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
-  const [products, setProducts] = useState<PhysicalGoldProduct[]>([]);
+  const [products, setProducts] = useState<DisplayProduct[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState("");
   const [loadingProds, setLoadingProds] = useState(false);
   const [showProducts, setShowProducts] = useState(false);
-  const [facets, setFacets] = useState<any>(null);
+
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [facets, setFacets] = useState<React.ComponentProps<typeof FilterSidebar>["facets"]>(null);
+  const filterDialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = filterDialogRef.current;
+    if (!dialog) return;
+    if (mobileFilterOpen && !dialog.open) dialog.showModal();
+    if (!mobileFilterOpen && dialog.open) dialog.close();
+    if (!mobileFilterOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const media = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => { if (media.matches) setMobileFilterOpen(false); };
+    media.addEventListener("change", closeOnDesktop);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      media.removeEventListener("change", closeOnDesktop);
+    };
+  }, [mobileFilterOpen]);
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -69,94 +261,11 @@ const PhysicalGoldPageNew: React.FC = () => {
     setSearchInput("");
   };
 
-  const removeFilter = (key: keyof typeof filters) => {
-    setFilters(prev => ({ ...prev, [key]: undefined, page: 0 }));
-    if (key === "q") setSearchInput("");
-  };
-
-  // Debounced search handler
-  const debouncedSearch = useMemo(
-    () => debounce((query: string) => {
-      setFilters(prev => ({ ...prev, q: query, page: 0 }));
-    }, 500),
-    []
-  );
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchInput(value);
-    debouncedSearch(value);
-  };
-
-  const clearSearch = () => {
-    setSearchInput("");
-    setFilters(prev => ({ ...prev, q: "", page: 0 }));
-  };
-
-  const handleSubCategoryClick = useCallback(async (subCategoryId: string, shouldScroll = true) => {
-    setSelectedSubCategoryId(subCategoryId);
-
-    try {
-      setLoadingProds(true);
-      const response = await searchProducts({
-        categoryId: Number(subCategoryId),
-        productType: "PHYSICAL",
-        q: filters.q || undefined,
-        sortBy: filters.sortBy,
-        page: filters.page,
-        pageSize: filters.pageSize,
-        purity: filters.purity,
-        size: filters.size,
-        minPrice: filters.minPrice,
-        maxPrice: filters.maxPrice,
-        minWeight: filters.minWeight,
-        maxWeight: filters.maxWeight,
-        inStock: filters.inStock,
-      });
-
-      const resultsData = response.data?.results || response.results || [];
-
-      const productsWithImages = await Promise.all(
-        resultsData.map(async (p: any) => {
-          const imgObj = await fetchProductImageURLs(p.id?.toString() || "");
-          const firstUrl = imgObj
-            ? imgObj.frontViewurl ||
-            imgObj.backViewUrl ||
-            imgObj.leftViewUrl ||
-            imgObj.rightViewUrl ||
-            imgObj.topViewUrl ||
-            imgObj.bottomViewUrl
-            : p.frontImageUrl || "";
-          return {
-            ...p,
-            id: p.id?.toString() || "",
-            productName: p.name || p.productName || "",
-            priceRange: p.priceRange || "Price on request",
-            subCategoryId: p.categoryId?.toString() || "",
-            categoryName: p.categoryName || categories.find((category) => category.id === selectedCategoryId)?.name || "",
-            subCategoryName: p.subCategoryName || subCategories.find((subCategory) => subCategory.id === selectedSubCategoryId)?.name || "",
-            imageUrl: firstUrl || ""
-          };
-        })
-      );
-
-      setProducts(productsWithImages);
-      setTotalPages(response.data?.totalPages || 0);
-      setTotalElements(response.data?.total || 0);
-      setFacets(response.data?.facets || null);
-
-      if (shouldScroll) {
-        setTimeout(() => {
-          const productsSection = document.getElementById('products-section');
-          productsSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
-      }
-    } catch (error) {
-      console.error("Failed to load products:", error);
-    } finally {
-      setLoadingProds(false);
-    }
-  }, [filters]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setFilters(prev => prev.q === searchInput ? prev : ({...prev, q: searchInput, page: 0})), 400);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => setSearchInput(event.target.value);
 
   const handleCategoryClick = useCallback((categoryId: string) => {
     navigate(`/physical-gold/category/${encodeURIComponent(categoryId)}`);
@@ -167,68 +276,129 @@ const PhysicalGoldPageNew: React.FC = () => {
     navigate(`/physical-gold/category/${encodeURIComponent(selectedCategoryId)}/subcategory/${encodeURIComponent(subCategoryId)}`);
   }, [navigate, selectedCategoryId]);
 
-  // Re-fetch products when filters change (but not on initial mount)
   useEffect(() => {
-    if (selectedSubCategoryId && showProducts) {
-      handleSubCategoryClick(selectedSubCategoryId, false);
-    }
-  }, [filters.q, filters.sortBy, filters.purity, filters.size, filters.minPrice, filters.maxPrice, filters.minWeight, filters.maxWeight, filters.inStock, filters.page]);
-
-  // Sidebar shown whenever a subcategory is selected
-  const showSidebar = !!selectedSubCategoryId;
-
-  const filteredProducts = useMemo(() => products, [products]);
-
-  useEffect(() => {
-    if (categories.length === 0) return;
-
-    const routeKey = `${routeCategoryId || ""}/${routeSubCategoryId || ""}`;
-    if (loadedRouteRef.current === routeKey) return;
-    loadedRouteRef.current = routeKey;
-
-    if (!routeCategoryId) {
-      setShowProducts(false);
-      setSelectedCategoryId("");
-      setSelectedSubCategoryId("");
-      setSubCategories([]);
-      setProducts([]);
-      setLayoutSelectedCategoryId(undefined);
-      return;
-    }
-
-    if (!categories.some((category) => category.id === routeCategoryId)) {
-      navigate("/physical-gold", { replace: true });
-      return;
-    }
-
-    setSelectedCategoryId(routeCategoryId);
-    setLayoutSelectedCategoryId(routeCategoryId);
-    setShowProducts(true);
+    let cancelled = false;
+    setLoadError("");
+    setSelectedCategoryId(routeCategoryId || "");
     setSelectedSubCategoryId("");
+    setShowProducts(Boolean(routeCategoryId));
+    setLayoutSelectedCategoryId(routeCategoryId);
     setProducts([]);
+    setCategoriesReady(false);
+    setSubCategories([]);
+    setFacets(null);
+    setMobileFilterOpen(false);
+    setTotalPages(0);
+    setTotalElements(0);
     clearFilters();
+    if (!routeCategoryId || !categories.length) return;
+    if (!categories.some(c => c.id === routeCategoryId)) {
+      navigate("/physical-gold", {replace: true});
+      return;
+    }
+    fetchSubCategories(routeCategoryId).then(data => {
+      if (cancelled) return;
+      setSubCategories(data);
+      if (routeSubCategoryId && !data.some(sub => sub.id === routeSubCategoryId)) {
+        navigate(`/physical-gold/category/${encodeURIComponent(routeCategoryId)}`, {replace: true});
+        return;
+      }
+      setSelectedSubCategoryId(routeSubCategoryId || "");
+      setCategoriesReady(true);
+    }).catch(() => {
+      if (!cancelled) setLoadError("Could not load this collection. Please try again.");
+    });
+    return () => { cancelled = true; };
+  }, [routeCategoryId, routeSubCategoryId, categories, navigate, setLayoutSelectedCategoryId, retryCount]);
 
-    fetchSubCategories(routeCategoryId)
-      .then((data) => {
-        setSubCategories(data);
-        const selectedSubCategory = routeSubCategoryId && data.some((subCategory) => subCategory.id === routeSubCategoryId)
-          ? routeSubCategoryId
-          : data[0]?.id;
-
-        if (!selectedSubCategory) return;
-
-        if (!routeSubCategoryId) {
-          navigate(
-            `/physical-gold/category/${encodeURIComponent(routeCategoryId)}/subcategory/${encodeURIComponent(selectedSubCategory)}`,
-            { replace: true },
-          );
-          return;
+  useEffect(() => {
+    if (!categoriesReady || !selectedCategoryId || selectedCategoryId !== routeCategoryId || selectedSubCategoryId !== (routeSubCategoryId || "")) return;
+    let cancelled = false;
+    setLoadingProds(true);
+    setLoadError("");
+    const load = async () => {
+      try {
+        // Category routes aggregate their subcategories; direct subcategory routes
+        // retain the existing server pagination and filter contract.
+        const query = async (categoryId: string, page: number) => {
+          const response = await searchProducts({
+            ...filters, categoryId: Number(categoryId), productType: "PHYSICAL",
+            q: filters.q || undefined, page, pageSize: filters.pageSize
+          });
+          return response.data || response;
+        };
+        let data: any;
+        if (selectedSubCategoryId || !subCategories.length) {
+          data = await query(selectedSubCategoryId || selectedCategoryId, filters.page);
+        } else {
+          const mergedFacets = {byPurity: {} as Record<string, number>, bySize: {} as Record<string, number>};
+          const groups = await Promise.all(subCategories.map(async sub => {
+            const first = await query(sub.id, 0);
+            for (const key of ["byPurity", "bySize"] as const) {
+              for (const [value, count] of Object.entries(first.facets?.[key] || {})) {
+                mergedFacets[key][value] = (mergedFacets[key][value] || 0) + Number(count);
+              }
+            }
+            const rows = [...(first.results || [])];
+            const pageCount = first.totalPages ?? Math.ceil((first.total ?? first.totalElements ?? rows.length) / filters.pageSize);
+            for (let page = 1; page < pageCount; page += 1) {
+              if (cancelled) return [];
+              const next = await query(sub.id, page);
+              rows.push(...(next.results || []));
+            }
+            return rows.map((row: any) => ({...row, categoryId: row.categoryId ?? sub.id}));
+          }));
+          if (cancelled) return;
+          const rows: any[] = Array.from(new Map(groups.flat().map(row => [String(row.id), row])).values());
+          const numericPrice = (row: any) => {
+            const value = row.price ?? row.minPrice ?? String(row.priceRange || "").replace(/,/g, "").match(/[0-9]+(?:\.[0-9]+)?/)?.[0];
+            const number = Number(value);
+            return value != null && Number.isFinite(number) ? number : null;
+          };
+          rows.sort((a, b) => {
+            if (filters.sortBy === "NAME_ASC") return String(a.name || a.productName || "").localeCompare(String(b.name || b.productName || ""));
+            if (filters.sortBy === "PRICE_ASC" || filters.sortBy === "PRICE_DESC") {
+              const left = numericPrice(a), right = numericPrice(b);
+              if (left === null) return right === null ? 0 : 1;
+              if (right === null) return -1;
+              return filters.sortBy === "PRICE_ASC" ? left - right : right - left;
+            }
+            const date = (row: any) => Date.parse(row.createdAt || row.createdDate || "") || 0;
+            return date(b) - date(a);
+          });
+          data = {results: rows.slice(filters.page * filters.pageSize, (filters.page + 1) * filters.pageSize),
+            total: rows.length, totalPages: Math.ceil(rows.length / filters.pageSize), facets: mergedFacets};
         }
-
-        handleSubCategoryClick(selectedSubCategory);
-      })
-      .catch((error) => console.error("Failed to load subcategories:", error));
-  }, [categories, routeCategoryId, routeSubCategoryId, navigate, handleSubCategoryClick, setLayoutSelectedCategoryId]);
+        const enriched = await Promise.all((data.results || []).map(async (p: any) => {
+          // Preserve search response images; append views from the image endpoint.
+          let imageCandidates = collectImageURLs(p);
+          try {
+            const images = await fetchProductImageURLs(String(p.id));
+            imageCandidates = Array.from(new Set([...imageCandidates, ...collectImageURLs(images)]));
+          } catch { /* Existing image URLs remain usable if this request fails. */ }
+          return {...p, id: String(p.id), productName: p.name || p.productName || "Product",
+            priceRange: p.priceRange || (typeof p.price === "number" ? `₹${p.price.toLocaleString("en-IN")}` : "Price on request"),
+            subCategoryId: String(p.categoryId || selectedSubCategoryId),
+            categoryName: p.categoryName || categories.find(c => c.id === selectedCategoryId)?.name || "",
+            imageUrl: imageCandidates[0] || "", imageCandidates};
+        }));
+        if (cancelled) return;
+        setProducts(enriched);
+        setFacets(data.facets || null);
+        setTotalPages(data.totalPages || 0);
+        setTotalElements(data.total ?? data.totalElements ?? enriched.length);
+      } catch {
+        if (!cancelled) {
+          setProducts([]);
+          setLoadError("Could not load products. Please try again.");
+        }
+      } finally {
+        if (!cancelled) setLoadingProds(false);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [categoriesReady, subCategories, selectedSubCategoryId, routeSubCategoryId, routeCategoryId, selectedCategoryId, categories, filters, retryCount]);
 
   const handleLogoClick = useCallback(() => {
     navigate("/physical-gold");
@@ -244,416 +414,138 @@ const PhysicalGoldPageNew: React.FC = () => {
     return <LoadingSpinner fullScreen message="Loading Collection..." />;
   }
 
+  const categoryName = categories.find(c => c.id === selectedCategoryId)?.name || "Collection";
+  const subCategoryName = subCategories.find(c => c.id === selectedSubCategoryId)?.name || "Products";
+  const activeCount = [filters.purity, filters.size, filters.minPrice, filters.maxPrice,
+    filters.minWeight, filters.maxWeight, filters.inStock].filter(v => v !== undefined && v !== "").length;
+
   return (
-    <div className="min-h-[calc(100vh-200px)] flex flex-col bg-background">
+    <main className="min-h-screen bg-white text-stone-900">
+      <div className="mx-auto w-full max-w-7xl px-4 pb-8 pt-24 sm:px-6 sm:pt-28 lg:px-6 lg:pt-28">
+        {!showProducts ? (
+          <CategoryGrid categories={categories} onCategoryClick={handleCategoryClick} selectedCategoryId={selectedCategoryId} />
+        ) : (
+          <>
+            <nav aria-label="Breadcrumb" className="mb-2 flex flex-wrap items-center gap-2 text-xs text-stone-500">
+              <button onClick={handleLogoClick} className="min-h-8 hover:text-stone-900">Home</button>
 
-      {!showProducts && (
-        <>
-          <div className="pt-12 md:pt-20">
-            {/* <HeroSection /> */}
-          </div>
-          {/* <TrustBanner /> */}
-          <CategoryGrid
-            categories={categories}
-            onCategoryClick={handleCategoryClick}
-            selectedCategoryId={selectedCategoryId}
-          />
-        </>
-      )}
-
-      {showProducts && (
-        <div className="flex-1 pt-20 sm:pt-24 md:pt-32 lg:pt-32 ">
-
-          <div className="container mx-auto px-8 py-5 sm:py-8">
-            {/* Breadcrumb */}
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm mb-5 sm:mb-6">
-              <button
-                onClick={() => handleLogoClick()}
-                className="text-gray-500 hover:text-primary transition-colors"
-              >
-                Home
-              </button>
-
-              <span className="text-gray-400">›</span>
-
-              <button
+            </nav>
+            <h1 className="mb-3 text-2xl font-semibold tracking-tight">{categoryName}</h1>
+            <div className="mb-2 flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-1" aria-label="Subcategories">
+              <button type="button" aria-pressed={!selectedSubCategoryId}
                 onClick={() => navigate(`/physical-gold/category/${encodeURIComponent(selectedCategoryId)}`)}
-                className={`transition-colors ${!selectedSubCategoryId
-                  ? "text-primary font-semibold cursor-default"
-                  : "text-gray-500 hover:text-primary"
-                  }`}
-                disabled={!selectedSubCategoryId}
-              >
-                {categories.find((c) => c.id === selectedCategoryId)?.name || "Category"}
+                className={`shrink-0 rounded-xl border px-5 py-3 text-sm font-medium ${!selectedSubCategoryId ? "border-amber-700 bg-amber-50 text-amber-900" : "border-stone-200 text-stone-600"}`}>
+                All
               </button>
-
-              {selectedSubCategoryId && (
-                <>
-                  <span className="text-gray-400">›</span>
-                  <span className="text-primary font-semibold">
-                    {subCategories.find((s) => s.id === selectedSubCategoryId)?.name || "Subcategory"}
+              {subCategories.map(sub => (
+                <button type="button" key={sub.id}
+                  onClick={() => handleSubCategoryNavigation(sub.id)}
+                  aria-pressed={selectedSubCategoryId === sub.id}
+                  className={`flex max-w-[240px] shrink-0 items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition focus-visible:ring-2 focus-visible:ring-amber-700 ${selectedSubCategoryId === sub.id
+                    ? "border-amber-700 bg-amber-50 text-amber-900"
+                    : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"}`}>
+                  <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white">
+                    <ProductImage urls={collectImageURLs(sub)} alt={sub.name} className="p-1" />
                   </span>
-                </>
-              )}
+                  <span className="line-clamp-2 text-left font-medium leading-4">{sub.name}</span>
+                </button>
+              ))}
             </div>
 
-            {/* Category Hero Block */}
-            {/* {(() => {
-              const currentCategory = categories.find((c) => c.id === selectedCategoryId);
-              return (
-                <div className="w-full h-40 md:h-64 rounded-xl relative overflow-hidden flex flex-col items-center justify-center mb-10 shadow-md">
-                  {currentCategory?.imageUrl ? (
-                    <img
-                      src={currentCategory.imageUrl}
-                      alt={currentCategory.name}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#3D251E] to-[#5C3A2E]" />
-                  )}
-                  <div className="absolute inset-0 bg-black/40 mix-blend-multiply" />
-                  <div className="relative z-10 flex flex-col items-center text-center px-4">
-                    <h2 className="text-4xl md:text-5xl font-serif text-white font-bold mb-3">
-                      {currentCategory?.name || "Products"}
-                    </h2>
-                    <p className="text-[#E5CCA5] font-medium text-sm md:text-base">
-                      Exquisite gold {currentCategory?.name?.toLowerCase() || "jewellery"} for every occasion
-                    </p>
-                  </div>
-                </div>
-              );
-            })()} */}
-
-            {/* Subcategories */}
-            {subCategories.length > 0 && (
-              <div className="mb-4 ">
-                <h2 className="font-serif text-xl text-[#1A1A1A] font-bold mb-4">Sub Categories</h2>
-
-                {/* Mobile: horizontal scroll */}
-                <div className="flex sm:hidden gap-2 overflow-x-auto pb-3 w-full scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
-                  {subCategories.map((sub) => (
-                    <button
-                      key={sub.id}
-                      onClick={() => handleSubCategoryNavigation(sub.id)}
-                      className={`relative overflow-hidden flex-shrink-0 w-20 h-20 rounded-xl flex flex-col items-center justify-center transition-all border ${selectedSubCategoryId === sub.id
-                          ? "bg-white border-[#C29B27] shadow-md shadow-[#C29B27]/20"
-                          : "bg-[#FDFBF7] border-[#F0EBE1] active:border-[#C29B27]/40"
-                        }`}
-                    >
-                      {sub.imageUrl && (
-                        <>
-                          <img src={sub.imageUrl} alt={sub.name} className="absolute inset-0 w-full h-full object-cover opacity-20" onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                          <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/40 to-transparent" />
-                        </>
-                      )}
-                      <span className="relative z-10 font-semibold text-[11px] text-[#1A1A1A] text-center px-1 leading-tight mb-0.5">{sub.name}</span>
-                      <span className="relative z-10 text-[9px] text-[#8A8A8A]">Explore</span>
-                      {selectedSubCategoryId === sub.id && (
-                        <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-[#C29B27] flex items-center justify-center">
-                          <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Tablet/Desktop: grid */}
-                <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  {subCategories.map((sub) => (
-                    <button
-                      key={sub.id}
-                      onClick={() => handleSubCategoryNavigation(sub.id)}
-                      className={`relative overflow-hidden group/sub min-h-28 px-3 py-5 sm:py-6 rounded-xl flex flex-col items-center justify-center transition-all border shadow-sm ${selectedSubCategoryId === sub.id
-                          ? "bg-white border-[#C29B27] shadow-md shadow-[#C29B27]/10"
-                          : "bg-[#FDFBF7] border-[#F0EBE1] hover:border-[#C29B27]/40 hover:bg-white"
-                        }`}
-                    >
-                      {sub.imageUrl && (
-                        <>
-                          <img src={sub.imageUrl} alt={sub.name} className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover/sub:opacity-30 transition-opacity" onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                          <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/40 to-transparent" />
-                        </>
-                      )}
-                      <span className="relative z-10 font-serif font-bold text-[15px] text-[#1A1A1A] mb-1 text-center">{sub.name}</span>
-                      <span className="relative z-10 text-xs text-[#8A8A8A] font-medium">Explore Details</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Products heading row with search + mobile filter button */}
-            {selectedSubCategoryId && (
-              <div
-                id="products-section"
-                className="scroll-mt-24 sm:scroll-mt-28 flex flex-col sm:flex-row  sm:items-center sm:justify-between gap-3 mb-4"
-              >
-                <h3 className="font-serif text-2xl text-[#1A1A1A] font-bold whitespace-nowrap">
-                  {subCategories.find((s) => s.id === selectedSubCategoryId)?.name || "Collection"}
-                </h3>
-
-                <div className="flex items-center gap-2 w-full sm:max-w-sm">
-                  {/* Mobile Filter Button */}
-                  {showSidebar && (
-                    <button
-                      onClick={() => setMobileFilterOpen(true)}
-                      className="lg:hidden flex items-center gap-2 px-4 py-3 rounded-xl border border-[#E8E0D5] bg-white text-[13px] font-semibold text-[#1A1A1A] flex-shrink-0 shadow-sm"
-                    >
-                      <SlidersHorizontal className="h-4 w-4 text-[#8B6914]" />
-                      Filters
-                    </button>
-                  )}
-                  {/* Search — hidden on mobile, visible sm+ */}
-                  <div className="relative flex-1 hidden sm:block">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#8A8A8A]" />
-                    <input
-                      type="text"
-                      placeholder="Search products..."
-                      value={searchInput}
-                      onChange={handleSearchChange}
-                      className="w-full pl-12 pr-12 py-3 rounded-xl border border-[#E8E0D5] text-[14px] text-[#1A1A1A] bg-white placeholder-[#BEB5AA] outline-none focus:border-[#8B6914] focus:ring-2 focus:ring-[#8B6914]/10 transition"
-                    />
-                    {searchInput && (
-                      <button onClick={clearSearch} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8A8A8A] hover:text-[#8B6914] transition">
-                        <X className="h-5 w-5" />
+                    <div className="flex w-full min-w-0 gap-2 md:w-72 md:shrink-0">
+                      <div className="relative min-w-0 flex-1 sm:w-56">
+                        <Search aria-hidden="true" className="absolute left-3 top-3.5 h-4 w-4 text-stone-400" />
+                        <input aria-label="Search products" type="search" placeholder="Search products"
+                          value={searchInput} onChange={handleSearchChange}
+                          className="h-11 w-full rounded-lg border border-stone-200 bg-white pl-9 pr-3 text-sm outline-none focus:border-amber-700" />
+                      </div>
+                      <button type="button" aria-expanded={mobileFilterOpen} aria-controls="collection-filters"
+                        onClick={() => setMobileFilterOpen(open => !open)}
+                        className={`lg:hidden flex h-11 shrink-0 items-center gap-2 rounded-lg border px-3 text-sm ${mobileFilterOpen ? "border-stone-900 bg-stone-50" : "border-stone-200"}`}>
+                        <SlidersHorizontal className="h-4 w-4" /> Filters
                       </button>
-                    )}
+                    </div>
+            </div>
+
+            {loadError && <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+              {loadError} <button onClick={() => setRetryCount(n => n + 1)} className="ml-2 min-h-10 font-medium underline">Retry</button>
+            </div>}
+            {selectedCategoryId && (
+              <>
+                <section id="products-section" className="scroll-mt-28 border-b border-stone-200 pb-2">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <h2 className="sr-only">Products in {subCategoryName}</h2>
+                      <p className="mt-0.5 text-xs text-stone-500" aria-live="polite">
+                        {loadingProds ? "Updating products…" : "Browse products"}
+                      </p>
+                    </div>
+
+                  </div>
+                </section>
+                <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-4">
+                  <aside className="hidden h-fit min-w-0 lg:sticky lg:top-28 lg:block">
+                    <FilterSidebar filters={{...filters, q: ""}}
+                      onFilterChange={updateFilters} onClearFilters={clearFilters} facets={facets} />
+                  </aside>
+                  <div className="min-w-0">
+                {activeCount > 0 && <div className="mb-2 flex items-center justify-between text-xs text-stone-500">
+                  <span>Filters applied</span>
+                  <button onClick={clearFilters} className="min-h-8 text-amber-800 underline">Clear filters</button>
+                </div>}
+                {loadError ? null : loadingProds ? (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4" aria-label="Loading products" aria-busy="true">
+                    {Array.from({length: 10}, (_, i) => <div key={i} className="animate-pulse rounded-xl border border-stone-100 p-3"><div className="aspect-square rounded-lg bg-stone-100" /><div className="mt-4 h-3 w-3/4 rounded bg-stone-100" /><div className="mt-3 h-3 w-1/2 rounded bg-stone-100" /></div>)}
+                  </div>
+                ) : products.length ? (
+                  <div className="grid grid-cols-2 auto-rows-fr gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                    {products.map(product => <CompactProductCard key={product.id} product={product} horizontal={false}
+                      onClick={() => navigate(`/physical-gold/product/${product.id}`, { state: {
+                        categoryId: selectedCategoryId, categoryName, subCategoryId: selectedSubCategoryId, subCategoryName
+                      }})} />)}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-stone-200 px-5 py-16 text-center">
+                    <Package className="mx-auto mb-3 h-8 w-8 text-stone-300" />
+                    <h3 className="font-semibold">No products found</h3>
+                    <p className="mt-2 text-sm text-stone-500">Try another search or adjust your filters.</p>
+                    <button onClick={clearFilters} className="mt-4 min-h-11 text-sm font-medium underline">Clear filters</button>
+                  </div>
+                )}
+                {!loadingProds && totalPages > 1 && <div className="mt-8 overflow-x-auto">
+                  <Pagination currentPage={filters.page} totalPages={totalPages}
+                    onPageChange={page => setFilters(prev => ({...prev, page}))}
+                    totalElements={totalElements} pageSize={filters.pageSize} />
+                </div>}
                   </div>
                 </div>
-              </div>
+              </>
             )}
-
-            {/* ── Active Filter Chips ────────────────────────────────────────────────
-                • Price min+max  → one chip "Price: ₹500 – ₹2,000"  (clears both)
-                • Weight min+max → one chip "Weight: 2g – 10g"       (clears both)
-                • Everything else → individual chip per filter
-            ──────────────────────────────────────────────────────────────────────── */}
-            {(() => {
-              const chips: React.ReactNode[] = [];
-
-              // Single combined chip for price range
-              if (filters.minPrice !== undefined && filters.maxPrice !== undefined) {
-                chips.push(
-                  <button
-                    key="priceRange"
-                    onClick={() =>
-                      setFilters(prev => ({ ...prev, minPrice: undefined, maxPrice: undefined, page: 0 }))
-                    }
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#8B6914] text-white text-[11px] font-medium hover:bg-[#7A5C10] transition"
-                  >
-                    Price: ₹{filters.minPrice.toLocaleString()} – ₹{filters.maxPrice.toLocaleString()}
-                    <X className="h-3 w-3" />
-                  </button>
-                );
-              }
-
-              // Single combined chip for weight range
-              if (filters.minWeight !== undefined && filters.maxWeight !== undefined) {
-                chips.push(
-                  <button
-                    key="weightRange"
-                    onClick={() =>
-                      setFilters(prev => ({ ...prev, minWeight: undefined, maxWeight: undefined, page: 0 }))
-                    }
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#8B6914] text-white text-[11px] font-medium hover:bg-[#7A5C10] transition"
-                  >
-                    Weight: {filters.minWeight}g – {filters.maxWeight}g
-                    <X className="h-3 w-3" />
-                  </button>
-                );
-              }
-
-              // Individual chips for all remaining filters (purity, size, inStock)
-              const skipKeys = new Set([
-                "page", "pageSize", "sortBy", "q",
-                "minPrice", "maxPrice", "minWeight", "maxWeight",
-              ]);
-              Object.entries(filters).forEach(([key, value]) => {
-                if (skipKeys.has(key) || value === undefined) return;
-                chips.push(
-                  <button
-                    key={key}
-                    onClick={() => removeFilter(key as keyof typeof filters)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#8B6914] text-white text-[11px] font-medium hover:bg-[#7A5C10] transition"
-                  >
-                    {key}: {value?.toString()}
-                    <X className="h-3 w-3" />
-                  </button>
-                );
-              });
-
-              return chips.length > 0 ? (
-                <div className="flex flex-wrap gap-2 mb-6">{chips}</div>
-              ) : null;
-            })()}
-
-            {/* Full-width centered loading spinner */}
-            {loadingProds && (
-              <div className="flex justify-center items-center py-20 w-full">
-                <LoadingSpinner message="Loading Products..." />
-              </div>
-            )}
-
-            {/* Products Grid with Filters */}
-            {!loadingProds && (
-              <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-
-                {/* Filter Sidebar */}
-                {showSidebar && (
-                  <aside className="hidden lg:sticky lg:top-24 h-fit lg:block">
-                    <FilterSidebar
-                      filters={{
-                        q: "",
-                        page: filters.page,
-                        pageSize: filters.pageSize,
-                        sortBy: filters.sortBy,
-                        purity: filters.purity,
-                        size: filters.size,
-                        minPrice: filters.minPrice,
-                        maxPrice: filters.maxPrice,
-                        minWeight: filters.minWeight,
-                        maxWeight: filters.maxWeight,
-                        inStock: filters.inStock,
-                      }}
-                      onFilterChange={updateFilters}
-                      onClearFilters={clearFilters}
-                      facets={facets}
-                    />
-                  </aside>
-                )}
-
-                {/* Products */}
-                <div>
-                  {filteredProducts.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 gap-5 w-full text-center">
-                      <Package size={64} style={{ color: "hsl(30, 15%, 92%)" }} />
-                      <div className="space-y-2">
-                        <p className="font-bold text-xl" style={{ color: "hsl(20, 10%, 12%)" }}>
-                          {searchInput ? "No products found" : "No products available"}
-                        </p>
-                        <p className="text-sm" style={{ color: "hsl(20, 8%, 45%)" }}>
-                          {searchInput
-                            ? `No results found for "${searchInput}". Try different keywords or clear filters.`
-                            : filters.minPrice !== undefined || filters.minWeight !== undefined || filters.purity || filters.size || filters.inStock
-                              ? "No products match your filters. Try adjusting your criteria."
-                              : "No products available in this category at the moment."}
-                        </p>
-                      </div>
-                      {(searchInput || filters.minPrice !== undefined || filters.minWeight !== undefined || filters.purity || filters.size || filters.inStock) && (
-                        <button
-                          onClick={() => {
-                            clearSearch();
-                            clearFilters();
-                          }}
-                          className="text-sm font-bold rounded-full px-6 py-2 transition-colors"
-                          style={{
-                            color: "hsl(38, 80%, 45%)",
-                            border: "1px solid hsl(30, 20%, 88%)",
-                          }}
-                        >
-                          Clear All Filters
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-                        {filteredProducts.map((product) => (
-                          <ProductCard
-                            key={product.id}
-                            product={product}
-                            onClick={() => navigate(`/physical-gold/product/${product.id}`, {
-                              state: {
-                                categoryId: selectedCategoryId,
-                                categoryName: categories.find(c => c.id === selectedCategoryId)?.name,
-                                subCategoryId: selectedSubCategoryId,
-                                subCategoryName: subCategories.find(s => s.id === selectedSubCategoryId)?.name
-                              }
-                            })}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Pagination */}
-                      {totalPages > 1 && (
-                        <div className="mt-8">
-                          <Pagination
-                            currentPage={filters.page}
-                            totalPages={totalPages}
-                            onPageChange={(page) => setFilters(prev => ({ ...prev, page }))}
-                            totalElements={totalElements}
-                            pageSize={filters.pageSize}
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+          </>
+        )}
+      </div>
+      <dialog ref={filterDialogRef} id="collection-filters" aria-labelledby="filter-title"
+        onCancel={() => setMobileFilterOpen(false)} onClose={() => setMobileFilterOpen(false)}
+        onClick={event => { if (event.target === event.currentTarget) setMobileFilterOpen(false); }}
+        className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[85dvh] w-full max-w-none rounded-t-2xl border-0 bg-white p-0 text-stone-900 shadow-xl backdrop:bg-black/40">
+        <div className="flex max-h-[85dvh] flex-col">
+          <header className="flex shrink-0 items-center justify-between border-b border-stone-200 px-5 py-3">
+            <h2 id="filter-title" className="text-base font-semibold">Filters</h2>
+            <button type="button" aria-label="Close filters" onClick={() => setMobileFilterOpen(false)}
+              className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-stone-100"><X className="h-5 w-5" /></button>
+          </header>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+            {mobileFilterOpen && <FilterSidebar filters={{...filters, q: ""}}
+              onFilterChange={updateFilters} onClearFilters={clearFilters} facets={facets} />}
           </div>
+          <footer className="shrink-0 border-t border-stone-200 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <button type="button" onClick={() => setMobileFilterOpen(false)}
+              className="h-12 w-full rounded-xl bg-[#8B6914] text-sm font-semibold text-white">Show products</button>
+          </footer>
         </div>
-      )}
-
-      {/* Mobile Filter Bottom Sheet — only on mobile */}
-      {mobileFilterOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setMobileFilterOpen(false)}
-          />
-          {/* Sheet */}
-          <div className="relative bg-white rounded-t-2xl max-h-[85vh] flex flex-col shadow-2xl">
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-gray-300" />
-            </div>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0EBE1]">
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-[#8B6914]" />
-                <span className="text-[15px] font-bold text-[#1A1A1A]">Filters</span>
-              </div>
-              <button onClick={() => setMobileFilterOpen(false)} className="p-1 rounded-full hover:bg-gray-100">
-                <X className="h-5 w-5 text-[#8A8A8A]" />
-              </button>
-            </div>
-            {/* Scrollable content */}
-            <div className="overflow-y-auto flex-1 px-5 py-4">
-              <FilterSidebar
-                filters={{
-                  q: "",
-                  page: filters.page,
-                  pageSize: filters.pageSize,
-                  sortBy: filters.sortBy,
-                  purity: filters.purity,
-                  size: filters.size,
-                  minPrice: filters.minPrice,
-                  maxPrice: filters.maxPrice,
-                  minWeight: filters.minWeight,
-                  maxWeight: filters.maxWeight,
-                  inStock: filters.inStock,
-                }}
-                onFilterChange={updateFilters}
-                onClearFilters={clearFilters}
-                facets={facets}
-              />
-            </div>
-            {/* Apply button */}
-            <div className="px-5 py-4 border-t border-[#F0EBE1]">
-              <button
-                onClick={() => setMobileFilterOpen(false)}
-                className="w-full py-3 rounded-xl bg-[#8B6914] text-white text-[14px] font-bold"
-              >
-                Apply Filters
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
+      </dialog>
+    </main>
   );
 };
 
