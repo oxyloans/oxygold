@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { Package, Search, SlidersHorizontal, X } from "lucide-react";
-import { useCart, ProfileIncompleteError } from "./CartContext";
+import { useCart, isPhysicalGoldUserLoggedIn, ProfileIncompleteError } from "./CartContext";
 import FilterSidebar from "./components/FilterSidebar";
 import CategoryGrid from "./components/CategoryGrid";
 
@@ -100,6 +100,11 @@ const CompactProductCard: React.FC<{
 
   const handleAdd = async () => {
     if (busyRef.current) return;
+    if (!isPhysicalGoldUserLoggedIn()) {
+      sessionStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
+      window.location.assign("/login");
+      return;
+    }
     busyRef.current = true;
     setBusy(true);
     setMessage("");

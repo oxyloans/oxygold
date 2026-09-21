@@ -47,74 +47,6 @@ const currency = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 0,
 });
 
-const AUTH_STORAGE_KEYS = [
-  "user",
-  "userData",
-  "authData",
-  "auth",
-  "loginResponse",
-  "accessToken",
-  "token",
-] as const;
-
-function findAccessToken(value: unknown): string | null {
-  if (typeof value === "string") {
-    return value.split(".").length === 3 ? value : null;
-  }
-
-  if (!value || typeof value !== "object") return null;
-
-  const record = value as Record<string, unknown>;
-
-  if (typeof record.accessToken === "string") {
-    return record.accessToken;
-  }
-
-  return findAccessToken(record.data);
-}
-
-function isTokenValid(token: string): boolean {
-  try {
-    const payloadPart = token.split(".")[1];
-    if (!payloadPart) return false;
-
-    const base64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
-    const normalized = base64.padEnd(
-      base64.length + ((4 - (base64.length % 4)) % 4),
-      "="
-    );
-    const payload = JSON.parse(window.atob(normalized)) as { exp?: number };
-
-    // Keep a small safety margin so an almost-expired session goes to login.
-    return !payload.exp || payload.exp * 1000 > Date.now() + 30_000;
-  } catch {
-    return false;
-  }
-}
-
-function hasActiveSession(): boolean {
-  for (const key of AUTH_STORAGE_KEYS) {
-    const storedValue = window.localStorage.getItem(key);
-    if (!storedValue) continue;
-
-    let parsedValue: unknown = storedValue;
-
-    try {
-      parsedValue = JSON.parse(storedValue);
-    } catch {
-      // Some applications store the JWT directly instead of JSON.
-    }
-
-    const accessToken = findAccessToken(parsedValue);
-
-    if (accessToken && isTokenValid(accessToken)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 function ProductImage({ product }: { product: Product }) {
   const [failed, setFailed] = useState(false);
 
@@ -302,25 +234,6 @@ export default function GoldProductsLanding() {
       categoryId: product.categoryId,
       categoryName: product.categoryName,
     };
-
-    if (!hasActiveSession()) {
-      // Router state handles the normal flow. Session storage preserves the
-      // destination if the login page refreshes or the user uses an OTP flow.
-      window.sessionStorage.setItem("redirectAfterLogin", productPath);
-      window.sessionStorage.setItem(
-        "redirectAfterLoginState",
-        JSON.stringify(productState)
-      );
-
-      navigate("/login", {
-        state: {
-          from: productPath,
-          redirectTo: productPath,
-          productState,
-        },
-      });
-      return;
-    }
 
     navigate(productPath, {
       state: {

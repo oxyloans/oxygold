@@ -13,16 +13,23 @@ import {
   ChevronRight,
   Camera,
   Package,
+  X,
+  Gem,
+  Tag,
+  Sparkles,
+  CheckCircle2,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import LoadingSpinner from "./components/LoadingSpinner";
 
 import AIModelPreviewModal from "./components/AIModelPreviewModal";
 import VirtualTryOnModal from "./components/VirtualTryOnModal";
 
 import { PhysicalGoldProduct, ProductVariant } from "./physicalGoldData";
-import { fetchProductVariants, fetchProducts, generateModelImage, generateVirtualTryOn, fetchProductRecommendations, fetchProductRatings } from "./physicalGoldService";
+import { fetchProductVariants, fetchProducts, generateModelImage, generateVirtualTryOn, fetchProductRecommendations, fetchProductRatings, fetchGoldSilverRateBreakdown, GoldSilverRateBreakdown } from "./physicalGoldService";
 import { useCart, ProfileIncompleteError } from "./CartContext";
 import { useWishlist } from "./WishlistContext";
+import TokenManager from "../utils/tokenManager";
 import {
   getProductTag,
 } from "./mockData";
@@ -125,6 +132,11 @@ const ProductDetailsPage: React.FC = () => {
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [showAIModal, setShowAIModal] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [priceBreakdown, setPriceBreakdown] = useState<GoldSilverRateBreakdown | null>(null);
+  const [priceBreakdownLoading, setPriceBreakdownLoading] = useState(false);
+  const [priceBreakdownError, setPriceBreakdownError] = useState<string | null>(null);
+  const priceBreakdownRef = React.useRef<HTMLDivElement>(null);
 
   // Virtual Try-On states
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
@@ -199,6 +211,7 @@ const ProductDetailsPage: React.FC = () => {
         setQuantity(1);
         setProduct(p);
         setVariants(v);
+        setShowDiscountModal(false);
         if (v.length > 0) {
           setSelectedPurity(v[0].purity);
           setSelectedWeight(v[0].weight.toString());
@@ -250,6 +263,36 @@ const ProductDetailsPage: React.FC = () => {
     loadReviews(0);
   }, [id, loadReviews]);
 
+  useEffect(() => {
+    if (!selectedVariant?.id) return;
+    let cancelled = false;
+    setPriceBreakdownLoading(true);
+    setPriceBreakdownError(null);
+    fetchGoldSilverRateBreakdown(selectedVariant.id)
+      .then((breakdown) => {
+        if (!cancelled) setPriceBreakdown(breakdown);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setPriceBreakdown(null);
+          setPriceBreakdownError(error instanceof Error ? error.message : "Unable to load price breakdown.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setPriceBreakdownLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [selectedVariant?.id]);
+
+  useEffect(() => {
+    const isSilver = [categoryName, product?.categoryName]
+      .filter(Boolean)
+      .some((name) => /silver/i.test(String(name)));
+    if (!product || !isSilver) return;
+    const timer = window.setTimeout(() => setShowDiscountModal(true), 600);
+    return () => window.clearTimeout(timer);
+  }, [categoryName, product?.id, product?.categoryName]);
+
   const purities = useMemo(
     () => Array.from(new Set(variants.map((v) => v.purity))),
     [variants]
@@ -281,6 +324,13 @@ const ProductDetailsPage: React.FC = () => {
   }, [product]);
 
   const handleAddToCart = useCallback(async () => {
+    if (!TokenManager.getInstance().isLoggedIn()) {
+      navigate("/login", {
+        state: { from: `${location.pathname}${location.search}` },
+      });
+      return;
+    }
+
     if (product && selectedVariant) {
       try {
         await addToCart(product, selectedVariant);
@@ -294,6 +344,13 @@ const ProductDetailsPage: React.FC = () => {
   }, [addToCart, product, selectedVariant, navigate, location]);
 
   const handleBuyNow = useCallback(async () => {
+    if (!TokenManager.getInstance().isLoggedIn()) {
+      navigate("/login", {
+        state: { from: `${location.pathname}${location.search}` },
+      });
+      return;
+    }
+
     if (product && selectedVariant) {
       try {
         await addToCart(product, selectedVariant);
@@ -531,6 +588,11 @@ const ProductDetailsPage: React.FC = () => {
     .filter(Boolean)
     .some((name) => /silver/i.test(String(name)));
   const metalName = isSilverProduct ? "Silver" : "Gold";
+  const itemPrice = Number(selectedVariant.price) || 0;
+  const mrp = Number(selectedVariant.mrp) || 0;
+  const discountAmount = mrp > itemPrice ? mrp - itemPrice : 0;
+  const discountPercentage = discountAmount > 0 ? Math.round(discountAmount / mrp * 100) : 0;
+  const modalDiscountAmount = isSilverProduct ? (priceBreakdown?.gstAmount ?? discountAmount) : discountAmount;
   const formatMetalOption = (purity: string) =>
     new RegExp(metalName, "i").test(purity) ? purity : `${purity} ${isSilverProduct ? "Silver" : "Yellow Gold"}`;
 
@@ -664,6 +726,14 @@ const ProductDetailsPage: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              <button
+                type="button"
+                onClick={() => priceBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[#C29B27]/35 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-[#9B7416] transition-colors hover:bg-amber-100"
+              >
+                View Price Breakdown ↓
+              </button>
 
               {/* Inline badges */}
               <div className="flex items-center gap-2">
@@ -1257,6 +1327,66 @@ const ProductDetailsPage: React.FC = () => {
             </div>
           </div>
 
+          <section ref={priceBreakdownRef} className="mx-auto mt-6 w-full max-w-3xl scroll-mt-24 rounded-2xl border border-[#E8E2D8] bg-white shadow-sm">
+            <div className={`flex items-start border-b px-5 py-4 ${isSilverProduct ? "border-slate-200 bg-slate-50" : "border-amber-200 bg-amber-50"}`}>
+              <div className="flex items-center gap-3">
+                <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${isSilverProduct ? "bg-slate-200 text-slate-700" : "bg-amber-100 text-[#9B7416]"}`}>
+                  <Gem size={20} />
+                </span>
+                <div>
+                  <h2 id="price-breakdown-title" className="text-base font-bold text-[#1A1A1A]">Price Breakup</h2>
+                  <p className="text-xs text-[#6B6B6B]">{metalName} · {selectedVariant.purity} · {selectedVariant.weight}g</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5">
+              {priceBreakdownLoading ? (
+                <p className="py-8 text-center text-sm text-[#6B6B6B]">Loading price breakdown…</p>
+              ) : priceBreakdown ? (
+                <div className="overflow-hidden rounded-xl border border-[#E8E2D8]">
+                  <table className="w-full text-sm">
+                    <thead className="bg-[#F9F7F4] text-left text-[11px] font-bold uppercase tracking-wide text-[#4A4A4A]">
+                      <tr><th className="px-3 py-3">Component</th><th className="px-3 py-3 text-right">Rate</th><th className="px-3 py-3 text-right">Weight</th><th className="px-3 py-3 text-right">Amount</th></tr>
+                    </thead>
+                    <tbody className="text-[#4A4A4A]">
+                      <tr className="border-t border-[#F0EBE1]">
+                        <td className="px-3 py-3 font-semibold">{metalName} ({selectedVariant.purity})</td>
+                        <td className="px-3 py-3 text-right">{selectedVariant.weight > 0 ? `₹${(priceBreakdown.variantPrice / selectedVariant.weight).toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "—"}</td>
+                        <td className="px-3 py-3 text-right">{selectedVariant.weight}g</td>
+                        <td className="px-3 py-3 text-right font-semibold">₹{priceBreakdown.variantPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                      </tr>
+                      {!isSilverProduct && (
+                        <tr className="border-t border-[#F0EBE1]">
+                          <td className="px-3 py-3">Making charges ({priceBreakdown.makingPercentage}%)</td>
+                          <td className="px-3 py-3 text-right">−</td><td className="px-3 py-3 text-right">−</td>
+                          <td className="px-3 py-3 text-right">₹{priceBreakdown.makingAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                        </tr>
+                      )}
+                      <tr className="border-t border-[#F0EBE1]">
+                        <td className="px-3 py-3">GST ({priceBreakdown.gstPercentage}%)</td>
+                        <td className="px-3 py-3 text-right">−</td><td className="px-3 py-3 text-right">−</td>
+                        <td className="px-3 py-3 text-right">₹{priceBreakdown.gstAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                      </tr>
+                      {isSilverProduct && (
+                        <>
+                          <tr className="border-t border-[#F0EBE1]"><td className="px-3 py-3">Total</td><td className="px-3 py-3" /><td className="px-3 py-3" /><td className="px-3 py-3 text-right">₹{priceBreakdown.totalAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td></tr>
+                          <tr className="border-t border-[#F0EBE1] bg-emerald-50/60 text-emerald-800"><td className="px-3 py-3 font-semibold">Discount</td><td className="px-3 py-3 text-right">−</td><td className="px-3 py-3 text-right">−</td><td className="px-3 py-3 text-right font-semibold">−₹{priceBreakdown.gstAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td></tr>
+                        </>
+                      )}
+                    </tbody>
+                    <tfoot className={isSilverProduct ? "bg-slate-50" : "bg-amber-50"}>
+                      <tr><td className="px-3 py-3 text-base font-bold text-[#1A1A1A]" colSpan={3}>Grand total</td><td className="px-3 py-3 text-right text-base font-bold text-[#1A1A1A]">₹{(isSilverProduct ? priceBreakdown.variantPrice : priceBreakdown.totalAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td></tr>
+                    </tfoot>
+                  </table>
+                </div>
+              ) : (
+                <p className="py-8 text-center text-sm text-rose-600">{priceBreakdownError || "Unable to load price breakdown."}</p>
+              )}
+              <p className="mt-3 text-xs leading-relaxed text-[#4A4A4A]">Price breakup is loaded from the Gold and Silver rates API.</p>
+            </div>
+          </section>
+
           {/* ── Similar Products ── */}
           {similarProducts.length > 0 && (
             <div className="mt-6">
@@ -1315,6 +1445,29 @@ const ProductDetailsPage: React.FC = () => {
 
       </div>
 
+      {showDiscountModal && isSilverProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="discount-title" onMouseDown={() => setShowDiscountModal(false)}>
+          <motion.div initial={{ opacity: 0, scale: 0.92, y: 24 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} className="relative w-full max-w-sm overflow-hidden rounded-[32px] bg-gradient-to-b from-purple-50 via-white to-amber-50 p-8 text-center shadow-2xl ring-1 ring-purple-200/60" onMouseDown={(event) => event.stopPropagation()}>
+            <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.6, 0.4] }} transition={{ duration: 4, repeat: Infinity }} className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-purple-200/50 blur-3xl" />
+            <motion.span animate={{ y: [0, -8, 0], rotate: [0, 15, 0] }} transition={{ duration: 3, repeat: Infinity }} className="absolute left-8 top-6 text-purple-300"><Sparkles size={20} /></motion.span>
+            <button type="button" onClick={() => setShowDiscountModal(false)} className="absolute right-4 top-4 rounded-full p-1.5 text-slate-500 hover:bg-white" aria-label="Close discount details"><X size={17} /></button>
+            <div className="relative">
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 6, repeat: Infinity, ease: "linear" }} className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 text-white shadow-xl shadow-purple-200"><Gem size={30} /></motion.div>
+              <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700"><Tag size={12} /> Limited-Time Discount</span>
+              <h2 id="discount-title" className="text-2xl font-extrabold text-purple-700">Exclusive Silver Offer</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#4A4A4A]">A special discount has been applied to this item. Check the price breakup below to see your saving.</p>
+              <div className="my-5 flex justify-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700"><CheckCircle2 size={14} /> Verified Price</span>
+                {modalDiscountAmount > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">₹{modalDiscountAmount.toLocaleString("en-IN")} off</span>
+                )}
+              </div>
+              <button type="button" onClick={() => { setShowDiscountModal(false); priceBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="w-full rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-indigo-600 py-3.5 font-semibold text-white shadow-lg shadow-purple-200">Claim Now</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* AI Model Preview Modal */}
       <AIModelPreviewModal
         isOpen={showAIModal}
@@ -1326,7 +1479,7 @@ const ProductDetailsPage: React.FC = () => {
         productImage={productImages[selectedImageIndex] || productImages[0]}
       />
 
-      {/* Virtual Try-On Modal */}
+    
       <VirtualTryOnModal
         isOpen={showTryOnModal}
         onClose={handleCloseTryOnModal}

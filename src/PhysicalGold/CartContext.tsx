@@ -43,13 +43,15 @@ const GET_USER_ID = () => {
     if (stored) {
         try {
             const user = JSON.parse(stored);
-            return user.data.userId;
+            return user.data?.userId ?? user.data?.id ?? user.userId ?? user.id ?? null;
         } catch (e) {
             return null;
         }
     }
     return null;
 };
+
+export const isPhysicalGoldUserLoggedIn = () => Boolean(GET_USER_ID());
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -149,6 +151,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const addToCart = useCallback(async (product: PhysicalGoldProduct, variant: ProductVariant) => {
         const userId = GET_USER_ID();
 
+        if (!userId) {
+            sessionStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
+            window.location.assign("/login");
+            return;
+        }
+
         // Optimistic UI update
         setCartItems((prev) => {
             const existing = prev.find((i) => i.variant.id === variant.id);
@@ -159,31 +167,29 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return [...prev, { product, variant, quantity: 1 }];
         });
 
-        if (userId) {
-            try {
-                const response = await AddItemToCart({
-                    userId: userId,
-                    productId: parseInt(product.id),
-                    quantity: 1,
-                    productVariantId: parseInt(variant.id)
-                });
-                setCartNotification({ message: response?.message || response?.data?.message || "Item added to cart successfully.", type: "success" });
-                refreshCart();
-            } catch (err) {
-                // Revert optimistic update
-                setCartItems((prev) => {
-                    const existing = prev.find((i) => i.variant.id === variant.id);
-                    if (existing && existing.quantity > 1)
-                        return prev.map((i) =>
-                            i.variant.id === variant.id ? { ...i, quantity: i.quantity - 1 } : i
-                        );
-                    return prev.filter((i) => i.variant.id !== variant.id);
-                });
-                const message = err instanceof Error ? err.message : "Failed to add item to cart.";
-                const isProfileError = /complete your profile/i.test(message);
-                setCartNotification({ message, type: "error" });
-                throw isProfileError ? new ProfileIncompleteError(message) : err;
-            }
+        try {
+            const response = await AddItemToCart({
+                userId: userId,
+                productId: parseInt(product.id),
+                quantity: 1,
+                productVariantId: parseInt(variant.id)
+            });
+            setCartNotification({ message: response?.message || response?.data?.message || "Item added to cart successfully.", type: "success" });
+            refreshCart();
+        } catch (err) {
+            // Revert optimistic update
+            setCartItems((prev) => {
+                const existing = prev.find((i) => i.variant.id === variant.id);
+                if (existing && existing.quantity > 1)
+                    return prev.map((i) =>
+                        i.variant.id === variant.id ? { ...i, quantity: i.quantity - 1 } : i
+                    );
+                return prev.filter((i) => i.variant.id !== variant.id);
+            });
+            const message = err instanceof Error ? err.message : "Failed to add item to cart.";
+            const isProfileError = /complete your profile/i.test(message);
+            setCartNotification({ message, type: "error" });
+            throw isProfileError ? new ProfileIncompleteError(message) : err;
         }
     }, [refreshCart]);
 

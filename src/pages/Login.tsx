@@ -138,12 +138,14 @@ const Login = () => {
 
       // Use TokenManager to store tokens
       const tokenManager = TokenManager.getInstance();
+      const userId = data?.data?.userId ?? data?.data?.id ?? data?.userId ?? data?.id ?? null;
       if (data.data && data.data.accessToken && data.data.refreshToken) {
+        if (!userId) throw new Error('No user ID found in response');
         tokenManager.setTokens({
           accessToken: data.data.accessToken,
           refreshToken: data.data.refreshToken,
           expiresIn: data.data.expiresIn,
-          userId: data.data.userId,
+          userId,
           tokenType: data.data.tokenType || 'Bearer',
         });
 
@@ -153,7 +155,6 @@ const Login = () => {
         // Do not clear sessionStorage here. It contains the product route that
         // must be restored after successful authentication.
         // Fallback for old format
-        const userId = data?.data?.userId || data?.userId || data?.data?.id || data?.id || null;
         if (userId) {
           localStorage.setItem('user', JSON.stringify({ phone, isLoggedIn: true, userId, ...data }));
         } else {

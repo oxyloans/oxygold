@@ -8,6 +8,7 @@ import {
 } from "./physicalGoldData";
 import { API_BASE_URL } from "../Config";
 const BASE_URL = `${API_BASE_URL}/oxygold-api`;
+const PUBLIC_API_KEY = "bwjpL6+95jM2BFkBQfHteyT7eSVNQpLKBPuHQihGzNo=";
 
 export const hiddenLogin = async (mobileNumber: string) => {
   const response = await fetch(`${BASE_URL}/auth/admin/hiddenlogin`, {
@@ -104,8 +105,15 @@ const authenticatedFetch = async (
   // 1. Initialize using the browser's Headers class
   const headers = new Headers(options.headers);
 
-  // 2. Add the Auth token
-  headers.set("Authorization", `Bearer ${getAuthToken()}`);
+  // 2. Use the user's bearer token when logged in, otherwise use the public API key.
+  const authToken = getAuthToken();
+  if (authToken) {
+    headers.set("Authorization", `Bearer ${authToken}`);
+    headers.delete("X-API-KEY");
+  } else {
+    headers.delete("Authorization");
+    headers.set("X-API-KEY", PUBLIC_API_KEY);
+  }
 
   // 3. Only set JSON if we aren't sending a File/FormData
   if (!(options.body instanceof FormData) && !headers.has("Content-Type")) {
@@ -326,7 +334,7 @@ export const fetchProductRatings = async (
           sortBy: params.sortBy ?? "createdAt",
           direction: params.direction ?? "DESC",
         }).toString(),
-      { headers: { accept: "*/*" } },
+      { headers: { accept: "*/*", "X-API-KEY": PUBLIC_API_KEY } },
     ),
   );
 
@@ -547,6 +555,8 @@ export const fetchProductVariants = async (
           priceRange: productData.priceRange || "Price on request",
           description: productData.description,
           subCategoryId: productData.categoryId.toString(),
+          categoryName: productData.categoryName,
+          subCategoryName: productData.subCategoryName,
           status: productData.status,
           gstPercentage: productData.gstPercentage,
           makingPercentage: productData.makingPercentage,
@@ -1103,6 +1113,34 @@ export const fetchProductRecommendations = async (productId: string) => {
   if (!response.ok)
     throw new Error(data?.message || "Failed to fetch recommendations");
   return data;
+};
+
+export interface GoldSilverRateBreakdown {
+  variantPrice: number;
+  gstAmount: number;
+  totalAmount: number;
+  gstPercentage: number;
+  makingAmount: number;
+  makingPercentage: number;
+}
+
+// This is the same price-breakdown endpoint used by the item display page.
+// It intentionally does not use the product-variant response.
+export const fetchGoldSilverRateBreakdown = async (
+  variantId: string,
+): Promise<GoldSilverRateBreakdown> => {
+  const response = await fetch(
+    `${API_BASE_URL}/oxygold-api/admin/categories/variants/${encodeURIComponent(variantId)}/price-breakup`,
+    {
+      headers: {
+        "X-API-KEY": PUBLIC_API_KEY,
+      },
+    },
+  );
+  const payload = await response.json().catch(() => null);
+  if (!response.ok)
+    throw new Error(payload?.message || "Failed to fetch price breakdown");
+  return (payload?.data ?? payload) as GoldSilverRateBreakdown;
 };
 
 // -- Helpdesk API --
