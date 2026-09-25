@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
-import { PhysicalGoldProduct, ProductVariant } from "./physicalGoldData";
+import { PhysicalGoldProduct, ProductVariant, firstProductImageUrl, resolveS3ImageUrl } from "./physicalGoldData";
 import { AddItemToCart, decrementCartItems, fetchCustomerCartInfo, removeCartItem, fetchProductImageURLs } from "./physicalGoldService";
 
 export class ProfileIncompleteError extends Error {
@@ -31,6 +31,8 @@ interface CartContextType {
     deliveryFee: number;
     deliveryDistanceKm: number | null;
     ratePerKm: number | null;
+    totalDiscountAmount: number;
+    totalDiscountPercentage: number;
     cartNotification: { message: string; type: "success" | "error" } | null;
     dismissCartNotification: () => void;
     isLoading: boolean;
@@ -66,6 +68,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [deliveryFee, setDeliveryFee] = useState(0);
     const [deliveryDistanceKm, setDeliveryDistanceKm] = useState<number | null>(null);
     const [ratePerKm, setRatePerKm] = useState<number | null>(null);
+    const [totalDiscountAmount, setTotalDiscountAmount] = useState(0);
+    const [totalDiscountPercentage, setTotalDiscountPercentage] = useState(0);
     const [cartNotification, setCartNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
     const selectedAddressIdRef = useRef<string | number | undefined>();
 
@@ -81,7 +85,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const mappedItems: CartItem[] = await Promise.all(
                     data.itemsInCart.map(async (item: any) => {
                         const productImages = await fetchProductImageURLs(item.productId.toString());
-                        const imageUrl = productImages ? (productImages.frontViewurl || productImages.backViewUrl || productImages.leftViewUrl || productImages.rightViewUrl || productImages.topViewUrl || productImages.bottomViewUrl) : item.imageUrl;
+                        const imageUrl = firstProductImageUrl(productImages) || resolveS3ImageUrl(item.imageUrl);
 
                         return {
                             cartId: item.cartId,
@@ -118,6 +122,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setDeliveryFee(data.deliveryFee || 0);
                 setDeliveryDistanceKm(data.deliveryDistanceKm ?? null);
                 setRatePerKm(data.ratePerKm ?? null);
+                setTotalDiscountAmount(data.totalDiscountAmount || 0);
+                setTotalDiscountPercentage(data.totalDiscountPercentage || 0);
                 setCartNotification(null);
                 return true;
             }
@@ -132,6 +138,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setDeliveryFee(0);
             setDeliveryDistanceKm(null);
             setRatePerKm(null);
+            setTotalDiscountAmount(0);
+            setTotalDiscountPercentage(0);
             setCartNotification(null);
             return true;
         } catch (err) {
@@ -292,6 +300,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setDeliveryFee(0);
             setDeliveryDistanceKm(null);
             setRatePerKm(null);
+            setTotalDiscountAmount(0);
+            setTotalDiscountPercentage(0);
         }
 
         if (userId) {
@@ -320,6 +330,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setDeliveryFee(0);
         setDeliveryDistanceKm(null);
         setRatePerKm(null);
+        setTotalDiscountAmount(0);
+        setTotalDiscountPercentage(0);
     }, []);
 
     return (
@@ -341,6 +353,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 deliveryFee,
                 deliveryDistanceKm,
                 ratePerKm,
+                totalDiscountAmount,
+                totalDiscountPercentage,
                 cartNotification,
                 dismissCartNotification: () => setCartNotification(null),
                 isLoading,

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
-import { PhysicalGoldProduct } from "./physicalGoldData";
+import { PhysicalGoldProduct, firstProductImageUrl } from "./physicalGoldData";
 import { fetchWishlistService, addToWishlistService, removeFromWishlistService, fetchProductImageURLs, fetchProductVariants, fetchMainCategories } from "./physicalGoldService";
 
 interface WishlistContextType {
@@ -46,7 +46,7 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
         const mappedItems: PhysicalGoldProduct[] = await Promise.all(
           data.data.map(async (item: any) => {
             const productImages = await fetchProductImageURLs(item.productId.toString());
-            const imageUrl = productImages ? (productImages.frontViewurl || productImages.backViewUrl || productImages.leftViewUrl || productImages.rightViewUrl || productImages.topViewUrl || productImages.bottomViewUrl) : "";
+            const imageUrl = firstProductImageUrl(productImages);
 
             const { product: fullProduct } = await fetchProductVariants(item.productId.toString());
             console.log(item);

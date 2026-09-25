@@ -14,10 +14,10 @@ import {
   Camera,
   Package,
   X,
-  Gem,
   Tag,
   Sparkles,
   CheckCircle2,
+  Gem,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -25,7 +25,7 @@ import LoadingSpinner from "./components/LoadingSpinner";
 import AIModelPreviewModal from "./components/AIModelPreviewModal";
 import VirtualTryOnModal from "./components/VirtualTryOnModal";
 
-import { PhysicalGoldProduct, ProductVariant } from "./physicalGoldData";
+import { PhysicalGoldProduct, ProductVariant, resolveS3ImageUrl } from "./physicalGoldData";
 import { fetchProductVariants, fetchProducts, generateModelImage, generateVirtualTryOn, fetchProductRecommendations, fetchProductRatings, fetchGoldSilverRateBreakdown, GoldSilverRateBreakdown } from "./physicalGoldService";
 import { useCart, ProfileIncompleteError } from "./CartContext";
 import { useWishlist } from "./WishlistContext";
@@ -225,7 +225,7 @@ const ProductDetailsPage: React.FC = () => {
             setSimilarProducts(recommendations.similarProducts.map((item: any) => ({
               id: item.id.toString(),
               productName: item.name,
-              imageUrl: item.frontViewurl || "",
+              imageUrl: resolveS3ImageUrl(item.frontViewurl) || "",
               priceRange: item.priceRange || `₹${item.price?.toLocaleString('en-IN')}`,
               description: item.description,
               subCategoryId: item.categoryId?.toString(),
@@ -237,7 +237,7 @@ const ProductDetailsPage: React.FC = () => {
             setExploreMoreProducts(recommendations.exploreMoreProducts.map((item: any) => ({
               id: item.id.toString(),
               productName: item.name,
-              imageUrl: item.frontViewurl || "",
+              imageUrl: resolveS3ImageUrl(item.frontViewurl) || "",
               priceRange: item.priceRange || `₹${item.price?.toLocaleString('en-IN')}`,
               description: item.description,
               subCategoryId: item.categoryId?.toString(),
@@ -285,13 +285,11 @@ const ProductDetailsPage: React.FC = () => {
   }, [selectedVariant?.id]);
 
   useEffect(() => {
-    const isSilver = [categoryName, product?.categoryName]
-      .filter(Boolean)
-      .some((name) => /silver/i.test(String(name)));
-    if (!product || !isSilver) return;
+    if (!product || !priceBreakdown) return;
+    if ((priceBreakdown.discountAmount ?? 0) <= 0) return;
     const timer = window.setTimeout(() => setShowDiscountModal(true), 600);
     return () => window.clearTimeout(timer);
-  }, [categoryName, product?.id, product?.categoryName]);
+  }, [product?.id, priceBreakdown]);
 
   const purities = useMemo(
     () => Array.from(new Set(variants.map((v) => v.purity))),
@@ -302,6 +300,21 @@ const ProductDetailsPage: React.FC = () => {
     const filtered = variants.filter((v) => v.purity === selectedPurity);
     return Array.from(new Set(filtered.map((v) => v.weight.toString())));
   }, [variants, selectedPurity]);
+
+  const sizes = useMemo(() => {
+    return Array.from(
+      new Set(
+        variants
+          .filter(
+            (v) =>
+              v.purity === selectedPurity &&
+              v.weight.toString() === selectedWeight &&
+              v.size
+          )
+          .map((v) => v.size || "")
+      )
+    );
+  }, [variants, selectedPurity, selectedWeight]);
 
 
   const productImages = useMemo(() => {
@@ -590,21 +603,21 @@ const ProductDetailsPage: React.FC = () => {
   const metalName = isSilverProduct ? "Silver" : "Gold";
   const itemPrice = Number(selectedVariant.price) || 0;
   const mrp = Number(selectedVariant.mrp) || 0;
-  const discountAmount = mrp > itemPrice ? mrp - itemPrice : 0;
-  const discountPercentage = discountAmount > 0 ? Math.round(discountAmount / mrp * 100) : 0;
-  const modalDiscountAmount = isSilverProduct ? (priceBreakdown?.gstAmount ?? discountAmount) : discountAmount;
+  const mrpDiscount = mrp > itemPrice ? mrp - itemPrice : 0;
+  const apiDiscountAmount = priceBreakdown?.discountAmount ?? 0;
+  const apiDiscountPercentage = priceBreakdown?.discountPercentage ?? 0;
   const formatMetalOption = (purity: string) =>
     new RegExp(metalName, "i").test(purity) ? purity : `${purity} ${isSilverProduct ? "Silver" : "Yellow Gold"}`;
 
   return (
     <div className="flex flex-col bg-white min-h-screen">
-      <div className="flex-1 pb-8 pt-24 sm:pt-28 lg:pt-28">
+      <div className="flex-1 pb-8 pt-26 md:pt-32 lg:pt-36">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
 
           {/* ── Breadcrumb — solid white bg, always visible ── */}
           <nav className="flex items-center flex-wrap gap-1 text-[14px] font-semibold text-[#8A8A8A] mb-3 bg-white">
             <button
-              onClick={() => navigate("/physical-gold")}
+              onClick={() => navigate(  "/physical-gold")}
               className="hover:text-[#C29B27] transition-colors"
             >
               Home
@@ -632,11 +645,11 @@ const ProductDetailsPage: React.FC = () => {
           </nav>
 
           {/* ── Main Grid ── */}
-          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-5 lg:gap-7 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] gap-5 lg:gap-7 items-start">
 
             {/* Left: Image Gallery */}
             <div className="min-w-0 space-y-3 md:sticky md:top-24">
-              <div className="relative mx-auto aspect-square w-full max-w-[460px] rounded-2xl overflow-hidden bg-stone-50 border border-stone-200 p-3 sm:p-4">
+              <div className="relative mr-auto aspect-square w-full max-w-[460px] rounded-2xl overflow-hidden bg-stone-50 border border-stone-200 p-3 sm:p-4">
                 <img
                   src={productImages[selectedImageIndex] || ""}
                   alt={product.productName}
@@ -660,7 +673,7 @@ const ProductDetailsPage: React.FC = () => {
 
               {/* Thumbnails */}
               {productImages.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1 md:justify-center">
+                <div className="flex gap-2 overflow-x-auto pb-1 justify-start">
                   {productImages.map((img, i) => (
                     <button
                       key={i}
@@ -725,18 +738,23 @@ const ProductDetailsPage: React.FC = () => {
                     </span>
                   </div>
                 )}
+                {apiDiscountAmount > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                    <Tag size={11} /> {apiDiscountPercentage > 0 ? `${apiDiscountPercentage}% discount applied` : 'Discount applied'}
+                  </span>
+                )}
               </div>
 
-              <button
+              {/* <button
                 type="button"
                 onClick={() => priceBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
                 className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[#C29B27]/35 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-[#9B7416] transition-colors hover:bg-amber-100"
               >
                 View Price Breakdown ↓
-              </button>
+              </button> */}
 
               {/* Inline badges */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C29B27] bg-amber-50 border border-[#C29B27]/25 px-2.5 py-1 rounded-md">
                   <span className="w-2.5 h-2.5 rounded-full border border-[#C29B27] inline-flex items-center justify-center flex-shrink-0">
                     <span className="w-1 h-1 bg-[#C29B27] rounded-full block" />
@@ -750,89 +768,100 @@ const ProductDetailsPage: React.FC = () => {
                 </span>
               </div>
 
-              {/* Metal Type — semi-rounded pill buttons */}
-              <div>
-                <p className="text-xs font-semibold text-[#1A1A1A] uppercase tracking-[0.12em] mb-2">
-                  Metal Type
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {purities.length > 0
-                    ? purities.map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => {
-                          setSelectedPurity(p);
-                          const fw = variants.find((vn) => vn.purity === p)?.weight.toString() || "";
-                          setSelectedWeight(fw);
-                          setSelectedSize(variants.find(vn => vn.purity === p)?.size || "");
-                        }}
-                        className={`min-h-11 px-3.5 py-2 rounded-lg border text-xs font-semibold transition-all ${selectedPurity === p
-                          ? "border-[#C29B27] text-[#C29B27] bg-amber-50"
-                          : "border-[#E8E2D8] bg-white text-[#6B6B6B] hover:border-[#C29B27]/50 hover:text-[#C29B27]"
-                          }`}
-                      >
-                        {formatMetalOption(p)}
-                      </button>
-                    ))
-                    : (isSilverProduct ? ["925 Silver"] : ["22K Yellow Gold", "22K Rose Gold", "18K White Gold"]).map((label, idx) => (
-                      <button
-                        key={label}
-                        className={`min-h-11 px-3.5 py-2 rounded-lg border text-xs font-semibold transition-all ${idx === 0
-                          ? "border-[#C29B27] text-[#C29B27] bg-amber-50"
-                          : "border-[#E8E2D8] bg-white text-[#6B6B6B] hover:border-[#C29B27]/50 hover:text-[#C29B27]"
-                          }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
+              {/* Variant selectors — compact spacing, matching the badges above */}
+              <div className="flex flex-wrap items-end gap-x-2 gap-y-5 sm:gap-x-2.5">
+                {/* Metal Type */}
+                <div className="min-w-0 max-w-full flex-none">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#1A1A1A]">
+                    Metal Type
+                  </p>
+                  <div className="flex min-w-0 flex-wrap gap-2">
+                    {purities.length > 0
+                      ? purities.map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => {
+                            setSelectedPurity(p);
+                            const fw = variants.find((vn) => vn.purity === p)?.weight.toString() || "";
+                            setSelectedWeight(fw);
+                            setSelectedSize(variants.find(vn => vn.purity === p)?.size || "");
+                          }}
+                          className={`min-h-11 max-w-full rounded-lg border px-3 py-2 text-xs font-semibold leading-tight transition-all ${selectedPurity === p
+                            ? "border-[#C29B27] bg-amber-50 text-[#C29B27]"
+                            : "border-[#E8E2D8] bg-white text-[#6B6B6B] hover:border-[#C29B27]/50 hover:text-[#C29B27]"
+                            }`}
+                        >
+                          <span className="break-words">{formatMetalOption(p)}</span>
+                        </button>
+                      ))
+                      : (isSilverProduct ? ["925 Silver"] : ["22K Yellow Gold", "22K Rose Gold", "18K White Gold"]).map((label, idx) => (
+                        <button
+                          key={label}
+                          className={`min-h-11 max-w-full rounded-lg border px-3 py-2 text-xs font-semibold leading-tight transition-all ${idx === 0
+                            ? "border-[#C29B27] bg-amber-50 text-[#C29B27]"
+                            : "border-[#E8E2D8] bg-white text-[#6B6B6B] hover:border-[#C29B27]/50 hover:text-[#C29B27]"
+                            }`}
+                        >
+                          <span className="break-words">{label}</span>
+                        </button>
+                      ))}
+                  </div>
                 </div>
+
+                {/* Weight */}
+                {/* <div className="min-w-0 max-w-full flex-none">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#1A1A1A]">
+                    Weight
+                  </p>
+                  <div className="flex min-w-0 flex-wrap gap-2">
+                    {weights.length > 0
+                      ? weights.map((w) => (
+                        <button
+                          key={w}
+                          onClick={() => {
+                            setSelectedWeight(w);
+                            setSelectedSize(variants.find(v => v.purity === selectedPurity && v.weight.toString() === w)?.size || "");
+                          }}
+                          className={`min-h-11 rounded-lg border px-4 py-2 text-xs font-semibold transition-all ${selectedWeight === w
+                            ? "border-[#C29B27] bg-amber-50 text-[#C29B27]"
+                            : "border-[#E8E2D8] bg-white text-[#6B6B6B] hover:border-[#C29B27]/50 hover:text-[#C29B27]"
+                            }`}
+                        >
+                          {w} g
+                        </button>
+                      ))
+                      : ["Light", "Medium", "Heavy"].map((label, idx) => (
+                        <button
+                          key={label}
+                          className={`min-h-11 rounded-lg border px-4 py-2 text-xs font-semibold transition-all ${idx === 1
+                            ? "border-[#C29B27] bg-amber-50 text-[#C29B27]"
+                            : "border-[#E8E2D8] bg-white text-[#6B6B6B] hover:border-[#C29B27]/50 hover:text-[#C29B27]"
+                            }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                  </div>
+                </div> */}
+
+                {/* Size */}
+                {sizes.length > 0 && (
+                  <label className="min-w-0 w-[150px] max-w-full flex-none text-xs font-semibold uppercase tracking-[0.12em] text-[#1A1A1A] sm:w-[170px]">
+                    Size
+                    <select
+                      value={selectedSize}
+                      onChange={(e) => setSelectedSize(e.target.value)}
+                      className="mt-2 block h-11 w-full min-w-0 rounded-lg border border-[#E8E2D8] bg-white px-3 text-sm font-medium normal-case tracking-normal text-[#1A1A1A] outline-none transition focus:border-[#C29B27] focus:ring-2 focus:ring-[#C29B27]/10"
+                    >
+                      {sizes.map((size) => (
+                        <option key={size} value={size}>
+                          {size || "Standard"}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
               </div>
-
-              {/* Weight — semi-rounded */}
-              <div>
-                <p className="text-xs font-semibold text-[#1A1A1A] uppercase tracking-[0.12em] mb-2">
-                  Weight
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {weights.length > 0
-                    ? weights.map((w) => (
-                      <button
-                        key={w}
-                        onClick={() => { setSelectedWeight(w); setSelectedSize(variants.find(v => v.purity === selectedPurity && v.weight.toString() === w)?.size || ""); }}
-                        className={`min-h-11 px-4 py-2 rounded-lg border text-xs font-semibold transition-all ${selectedWeight === w
-                          ? "border-[#C29B27] text-[#C29B27] bg-amber-50"
-                          : "border-[#E8E2D8] bg-white text-[#6B6B6B] hover:border-[#C29B27]/50 hover:text-[#C29B27]"
-                          }`}
-                      >
-                        {w} g
-                      </button>
-                    ))
-                    : ["Light", "Medium", "Heavy"].map((label, idx) => (
-                      <button
-                        key={label}
-                        className={`min-h-11 px-4 py-2 rounded-lg border text-xs font-semibold transition-all ${idx === 1
-                          ? "border-[#C29B27] text-[#C29B27] bg-amber-50"
-                          : "border-[#E8E2D8] bg-white text-[#6B6B6B] hover:border-[#C29B27]/50 hover:text-[#C29B27]"
-                          }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                </div>
-              </div>
-
-
-              {variants.some(v => v.purity === selectedPurity && v.weight.toString() === selectedWeight && v.size) && (
-                <label className="text-sm font-medium">
-                  Size
-                  <select value={selectedSize} onChange={e => setSelectedSize(e.target.value)}
-                    className="mt-2 block h-11 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm">
-                    {Array.from(new Set(variants.filter(v => v.purity === selectedPurity && v.weight.toString() === selectedWeight).map(v => v.size || ""))).map(size => (
-                      <option key={size} value={size}>{size || "Standard"}</option>
-                    ))}
-                  </select>
-                </label>
-              )}
 
               {/* Purchase actions */}
               <div className="flex flex-col gap-3 mt-2">
@@ -1243,8 +1272,8 @@ const ProductDetailsPage: React.FC = () => {
                           loadReviews(0, r);
                         }}
                         className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${reviewsRatingFilter === r
-                            ? "bg-[#C29B27] text-white border-[#C29B27]"
-                            : "bg-white text-[#6B6B6B] border-[#E8E2D8] hover:border-[#C29B27]/50"
+                          ? "bg-[#C29B27] text-white border-[#C29B27]"
+                          : "bg-white text-[#6B6B6B] border-[#E8E2D8] hover:border-[#C29B27]/50"
                           }`}
                       >
                         {r === undefined ? "All" : `${r} ★`}
@@ -1356,7 +1385,7 @@ const ProductDetailsPage: React.FC = () => {
                         <td className="px-3 py-3 text-right">{selectedVariant.weight}g</td>
                         <td className="px-3 py-3 text-right font-semibold">₹{priceBreakdown.variantPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
                       </tr>
-                      {!isSilverProduct && (
+                      {priceBreakdown.makingPercentage > 0 && (
                         <tr className="border-t border-[#F0EBE1]">
                           <td className="px-3 py-3">Making charges ({priceBreakdown.makingPercentage}%)</td>
                           <td className="px-3 py-3 text-right">−</td><td className="px-3 py-3 text-right">−</td>
@@ -1368,22 +1397,27 @@ const ProductDetailsPage: React.FC = () => {
                         <td className="px-3 py-3 text-right">−</td><td className="px-3 py-3 text-right">−</td>
                         <td className="px-3 py-3 text-right">₹{priceBreakdown.gstAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
                       </tr>
-                      {isSilverProduct && (
-                        <>
-                          <tr className="border-t border-[#F0EBE1]"><td className="px-3 py-3">Total</td><td className="px-3 py-3" /><td className="px-3 py-3" /><td className="px-3 py-3 text-right">₹{priceBreakdown.totalAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td></tr>
-                          <tr className="border-t border-[#F0EBE1] bg-emerald-50/60 text-emerald-800"><td className="px-3 py-3 font-semibold">Discount</td><td className="px-3 py-3 text-right">−</td><td className="px-3 py-3 text-right">−</td><td className="px-3 py-3 text-right font-semibold">−₹{priceBreakdown.gstAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td></tr>
-                        </>
+                      {priceBreakdown.discountAmount > 0 && (
+                        <tr className="border-t border-[#F0EBE1] bg-emerald-50/60 text-emerald-700">
+                          <td className="px-3 py-3 font-semibold flex items-center gap-1.5">
+                            <Tag size={13} className="inline-block" />
+                            Discount{priceBreakdown.discountPercentage > 0 ? ` (${priceBreakdown.discountPercentage}%)` : ""}
+                          </td>
+                          <td className="px-3 py-3 text-right">−</td>
+                          <td className="px-3 py-3 text-right">−</td>
+                          <td className="px-3 py-3 text-right font-semibold text-emerald-700">−₹{priceBreakdown.discountAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                        </tr>
                       )}
                     </tbody>
                     <tfoot className={isSilverProduct ? "bg-slate-50" : "bg-amber-50"}>
-                      <tr><td className="px-3 py-3 text-base font-bold text-[#1A1A1A]" colSpan={3}>Grand total</td><td className="px-3 py-3 text-right text-base font-bold text-[#1A1A1A]">₹{(isSilverProduct ? priceBreakdown.variantPrice : priceBreakdown.totalAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td></tr>
+                      <tr><td className="px-3 py-3 text-base font-bold text-[#1A1A1A]" colSpan={3}>Grand Total</td><td className="px-3 py-3 text-right text-base font-bold text-[#1A1A1A]">₹{(priceBreakdown.finalAmount ?? priceBreakdown.totalAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td></tr>
                     </tfoot>
                   </table>
                 </div>
               ) : (
                 <p className="py-8 text-center text-sm text-rose-600">{priceBreakdownError || "Unable to load price breakdown."}</p>
               )}
-              <p className="mt-3 text-xs leading-relaxed text-[#4A4A4A]">Price breakup is loaded from the Gold and Silver rates API.</p>
+              <p className="mt-3 text-xs leading-relaxed text-[#4A4A4A]">Price breakup is loaded from the Gold and Silver live rates.</p>
             </div>
           </section>
 
@@ -1445,24 +1479,102 @@ const ProductDetailsPage: React.FC = () => {
 
       </div>
 
-      {showDiscountModal && isSilverProduct && (
+      {showDiscountModal && apiDiscountAmount > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="discount-title" onMouseDown={() => setShowDiscountModal(false)}>
-          <motion.div initial={{ opacity: 0, scale: 0.92, y: 24 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} className="relative w-full max-w-sm overflow-hidden rounded-[32px] bg-gradient-to-b from-purple-50 via-white to-amber-50 p-8 text-center shadow-2xl ring-1 ring-purple-200/60" onMouseDown={(event) => event.stopPropagation()}>
-            <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.6, 0.4] }} transition={{ duration: 4, repeat: Infinity }} className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-purple-200/50 blur-3xl" />
-            <motion.span animate={{ y: [0, -8, 0], rotate: [0, 15, 0] }} transition={{ duration: 3, repeat: Infinity }} className="absolute left-8 top-6 text-purple-300"><Sparkles size={20} /></motion.span>
-            <button type="button" onClick={() => setShowDiscountModal(false)} className="absolute right-4 top-4 rounded-full p-1.5 text-slate-500 hover:bg-white" aria-label="Close discount details"><X size={17} /></button>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className={`relative w-full max-w-sm overflow-hidden rounded-[28px] bg-gradient-to-b p-8 text-center shadow-2xl ring-1 ${
+              isSilverProduct
+                ? "from-slate-50 via-white to-slate-50 ring-slate-200/60"
+                : "from-amber-50 via-white to-amber-50 ring-amber-200/60"
+            }`}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {/* ambient glow */}
+            <motion.div
+              animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.5, 0.3] }}
+              transition={{ duration: 4, repeat: Infinity }}
+              className={`absolute -left-10 -top-10 h-40 w-40 rounded-full blur-3xl ${
+                isSilverProduct ? "bg-slate-200/60" : "bg-amber-200/50"
+              }`}
+            />
+            <motion.span
+              animate={{ y: [0, -6, 0], rotate: [0, 12, 0] }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className={`absolute left-8 top-6 ${ isSilverProduct ? "text-slate-400" : "text-amber-300" }`}
+            >
+              <Sparkles size={18} />
+            </motion.span>
+
+            <button
+              type="button"
+              onClick={() => setShowDiscountModal(false)}
+              className="absolute right-4 top-4 rounded-full p-1.5 text-[#8A8A8A] hover:bg-[#F5F2EE] transition-colors"
+              aria-label="Close"
+            >
+              <X size={16} />
+            </button>
+
             <div className="relative">
-              <motion.div animate={{ rotate: 360 }} transition={{ duration: 6, repeat: Infinity, ease: "linear" }} className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 text-white shadow-xl shadow-purple-200"><Gem size={30} /></motion.div>
-              <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700"><Tag size={12} /> Limited-Time Discount</span>
-              <h2 id="discount-title" className="text-2xl font-extrabold text-purple-700">Exclusive Silver Offer</h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#4A4A4A]">A special discount has been applied to this item. Check the price breakup below to see your saving.</p>
-              <div className="my-5 flex justify-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700"><CheckCircle2 size={14} /> Verified Price</span>
-                {modalDiscountAmount > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">₹{modalDiscountAmount.toLocaleString("en-IN")} off</span>
-                )}
+              {/* Icon — Tag instead of Gem/Diamond */}
+              <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg ${
+                isSilverProduct
+                  ? "bg-gradient-to-br from-slate-400 to-slate-600 text-white shadow-slate-200"
+                  : "bg-gradient-to-br from-[#C29B27] to-[#9B7416] text-white shadow-amber-200"
+              }`}>
+                <Tag size={26} />
               </div>
-              <button type="button" onClick={() => { setShowDiscountModal(false); priceBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="w-full rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-indigo-600 py-3.5 font-semibold text-white shadow-lg shadow-purple-200">Claim Now</button>
+
+              <span className={`mb-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${
+                isSilverProduct
+                  ? "border-slate-200 bg-slate-50 text-slate-600"
+                  : "border-amber-200 bg-amber-50 text-amber-700"
+              }`}>
+                <CheckCircle2 size={11} /> Limited-Time Discount
+              </span>
+
+              <h2
+                id="discount-title"
+                className={`text-xl font-extrabold ${ isSilverProduct ? "text-slate-700" : "text-[#8B6914]" }`}
+              >
+                Exclusive {metalName} Offer
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#4A4A4A]">
+                A special discount has been applied to this item. Check the price breakup below to see your saving.
+              </p>
+
+              {/* Savings badge */}
+              <div className="my-5 flex justify-center gap-2 flex-wrap">
+                {apiDiscountPercentage > 0 && (
+                  <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                    isSilverProduct ? "border-slate-200 bg-slate-50 text-slate-700" : "border-amber-200 bg-amber-50 text-amber-700"
+                  }`}>
+                    <Tag size={11} /> {apiDiscountPercentage}% OFF
+                  </span>
+                )}
+                <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                  isSilverProduct ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                }`}>
+                  <CheckCircle2 size={11} /> ₹{apiDiscountAmount.toLocaleString("en-IN")} saved
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDiscountModal(false);
+                  priceBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className={`w-full rounded-full py-3 font-semibold text-white shadow-lg transition hover:opacity-90 ${
+                  isSilverProduct
+                    ? "bg-gradient-to-r from-slate-500 to-slate-700 shadow-slate-200"
+                    : "bg-gradient-to-r from-[#C29B27] to-[#9B7416] shadow-amber-200"
+                }`}
+              >
+                View Price Breakup
+              </button>
             </div>
           </motion.div>
         </div>
@@ -1479,7 +1591,7 @@ const ProductDetailsPage: React.FC = () => {
         productImage={productImages[selectedImageIndex] || productImages[0]}
       />
 
-    
+
       <VirtualTryOnModal
         isOpen={showTryOnModal}
         onClose={handleCloseTryOnModal}

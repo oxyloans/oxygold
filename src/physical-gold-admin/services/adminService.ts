@@ -1,4 +1,7 @@
 import { API_BASE_URL } from "../../Config";
+import {
+  resolveProductImageSet,
+} from "../../PhysicalGold/physicalGoldData";
 
 let BASE_URL = API_BASE_URL + "/oxygold-api";
 
@@ -163,6 +166,7 @@ export const fetchSubCategories = async (parentId: number | string) => {
   return response.json();
 };
 
+
 export const fetchCategoryImageURL = async (categoryId: number | string) => {
   try {
     const response = await adminAuthenticatedFetch(
@@ -170,7 +174,7 @@ export const fetchCategoryImageURL = async (categoryId: number | string) => {
     );
     if (!response.ok) return null;
     const data = await response.json();
-    return data.data || null;
+    return resolveProductImageSet(data.data || null);
   } catch (error) {
     console.error(`Failed to fetch image for category ${categoryId}:`, error);
     return null;
@@ -184,7 +188,7 @@ export const fetchProductImageURL = async (productId: number | string) => {
     );
     if (!response.ok) return null;
     const data = await response.json();
-    return data.data || null;
+    return resolveProductImageSet(data.data || null);
   } catch (error) {
     console.error(`Failed to fetch image for product ${productId}:`, error);
     return null;

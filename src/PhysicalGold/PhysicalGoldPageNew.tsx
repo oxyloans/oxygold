@@ -8,7 +8,7 @@ import CategoryGrid from "./components/CategoryGrid";
 import LoadingSpinner from "./components/LoadingSpinner";
 
 import Pagination from "./components/Pagination";
-import { Category, SubCategory, PhysicalGoldProduct, ProductVariant } from "./physicalGoldData";
+import { Category, SubCategory, PhysicalGoldProduct, ProductVariant, resolveS3ImageUrl } from "./physicalGoldData";
 import {
   fetchProductVariants,
   fetchSubCategories,
@@ -26,9 +26,8 @@ function collectImageURLs(value: unknown): string[] {
   const visit = (item: unknown, depth = 0) => {
     if (!item || depth > 5) return;
     if (typeof item === "string") {
-      const url = item.trim();
-      if (url && !["null", "undefined"].includes(url.toLowerCase()) &&
-          /^(https?:\/\/|\/|blob:|data:image\/)/i.test(url)) urls.push(url);
+      const url = resolveS3ImageUrl(item);
+      if (url && /^(https?:\/\/|blob:|data:image\/)/i.test(url)) urls.push(url);
       return;
     }
     if (typeof item !== "object" || visited.has(item)) return;
@@ -96,7 +95,7 @@ const CompactProductCard: React.FC<{
   const [unavailable, setUnavailable] = useState(false);
   const busyRef = useRef(false);
   const selected = options.find(v => String(v.id) === selectedId);
-  const inCart = selected && cartItems.some(item => item.variant.id === selected.id);
+  const inCart = !!(selected && cartItems.some(item => item.variant.id === selected.id));
 
   const handleAdd = async () => {
     if (busyRef.current) return;
@@ -145,47 +144,119 @@ const CompactProductCard: React.FC<{
     }
   };
 
+  // Silently pre-fetch variants on mount so the MRP/discount badge is visible
+  // by default — without requiring the user to click "Add to Cart" first.
+  useEffect(() => {
+    let cancelled = false;
+    fetchProductVariants(product.id).then(response => {
+      if (cancelled) return;
+      const available = response.variants.filter(v => v.stockQuantity > 0);
+      if (!available.length) { setUnavailable(true); return; }
+      setCartProduct(response.product || product);
+      setOptions(available);
+      setSelectedId(String(available[0].id));
+    }).catch(() => { /* silently ignore — badge just won't show */ });
+    return () => { cancelled = true; };
+  }, [product.id]);
+
+  // MRP comes from the variant (populated by the background fetch above).
+  const mrpNum   = (selected as any)?.mrp   ?? null;
+  const priceNum = selected?.price           ?? null;
+  const hasDiscount = mrpNum != null && priceNum != null && mrpNum > priceNum;
+  const discountPct = hasDiscount ? Math.round(((mrpNum - priceNum) / mrpNum) * 100) : 0;
+
   return (
-    <article className={`flex min-w-0 overflow-hidden rounded-xl border border-stone-200 bg-white ${horizontal ? "flex-row" : "flex-col"}`}>
-      <button type="button" onClick={onClick} aria-label={`View ${product.productName}`}
-        className={`flex shrink-0 items-center justify-center overflow-hidden bg-stone-50 p-2 focus-visible:ring-2 focus-visible:ring-amber-700 ${horizontal ? "w-[44%] border-r border-stone-100" : "aspect-[4/3] w-full border-b border-stone-100"}`}>
-        <div className={horizontal ? "h-[200px] w-full sm:h-[230px]" : "h-full w-full"}>
-          <ProductImage urls={collectImageURLs(product)} alt={product.productName} />
+    <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-[#E8E2D8] bg-white shadow-sm transition-all duration-300 hover:border-[#C29B27]/60 hover:shadow-md">
+      {/* Image */}
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`View ${product.productName}`}
+        className="relative aspect-square w-full shrink-0 overflow-hidden bg-[#FDFAF4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C29B27]"
+      >
+        <div className="h-full w-full p-2.5 transition-transform duration-500 motion-safe:group-hover:scale-105">
+          <ProductImage urls={collectImageURLs(product)} alt={product.productName} className="object-contain" />
         </div>
-      </button>
-      <div className="flex min-w-0 flex-1 flex-col gap-2 p-3">
-        <button type="button" onClick={onClick} className="text-left">
-          <h3 className="break-words text-sm font-semibold leading-5 text-stone-900">{product.productName}</h3>
-        </button>
-        <p className="break-words text-sm font-bold text-stone-900 sm:text-base">
-          {selected ? `₹${selected.price.toLocaleString("en-IN")}` : displayPrice(product.priceRange)}
-        </p>
-        {selected && <div className="flex flex-wrap gap-1.5 text-xs text-stone-600">
-          <span className="rounded bg-stone-100 px-2 py-1">{selected.purity}</span>
-          <span className="rounded bg-stone-100 px-2 py-1">{selected.weight} g</span>
-          {selected.size && <span className="rounded bg-stone-100 px-2 py-1">{selected.size}</span>}
-        </div>}
-        {options.length > 1 && (
-          <label className="text-xs text-stone-600">
-            Choose option
-            <select value={selectedId} disabled={busy}
-              onChange={e => { setSelectedId(e.target.value); setMessage(""); }}
-              className="mt-1 h-11 w-full min-w-0 rounded-lg border border-stone-200 bg-white px-2 text-xs">
-              {options.map(v => <option key={v.id} value={String(v.id)}>
-                {v.purity} · {v.weight}g{v.size ? ` · ${v.size}` : ""} · ₹{v.price.toLocaleString("en-IN")}
-              </option>)}
-            </select>
-          </label>
+        {hasDiscount && discountPct > 0 && (
+          <span className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+            {discountPct}% OFF
+          </span>
         )}
-        <div className="mt-auto grid gap-1 pt-1">
-          <button type="button" disabled={busy || unavailable}
-            onClick={inCart ? () => navigate("/physical-gold/cart") : handleAdd}
-            className="min-h-11 rounded-lg bg-[#8B6914] px-3 py-2 text-sm font-semibold text-white hover:bg-[#735710] disabled:cursor-not-allowed disabled:opacity-50">
-            {busy ? "Adding…" : unavailable ? "Out of stock" : inCart ? "Go to cart" : "Add to cart"}
-          </button>
-          <button type="button" onClick={onClick} className="min-h-9 text-xs text-stone-600 hover:text-amber-800">View details →</button>
+        {product.categoryName && (
+          <span className="absolute bottom-2 right-2 max-w-[90%] truncate rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
+            {product.categoryName}
+          </span>
+        )}
+      </button>
+
+      {/* Body */}
+      <div className="flex flex-1 flex-col gap-2 p-3">
+        <button type="button" onClick={onClick} className="text-left focus-visible:outline-none">
+          <h3 className="line-clamp-2 text-[13px] font-semibold leading-5 text-[#1A1A1A] transition-colors group-hover:text-[#C29B27]">
+            {product.productName}
+          </h3>
+        </button>
+
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          <span className="text-[15px] font-bold text-[#C29B27]">
+            {selected ? `₹${selected.price.toLocaleString("en-IN")}` : displayPrice(product.priceRange)}
+          </span>
+          {hasDiscount && (
+            <span className="text-[11px] text-[#8A8A8A] line-through">₹{mrpNum.toLocaleString("en-IN")}</span>
+          )}
         </div>
-        {message && <p role="status" className="break-words text-xs text-stone-600">{message}</p>}
+
+        {selected && (
+          <div className="flex flex-wrap gap-1">
+            <span className="rounded-md border border-[#E8E2D8] bg-[#F9F7F4] px-1.5 py-0.5 text-[10px] font-semibold text-[#6B6B6B]">{selected.purity}</span>
+            <span className="rounded-md border border-[#E8E2D8] bg-[#F9F7F4] px-1.5 py-0.5 text-[10px] font-semibold text-[#6B6B6B]">{selected.weight}g</span>
+            {/* {selected.size && <span className="rounded-md border border-[#E8E2D8] bg-[#F9F7F4] px-1.5 py-0.5 text-[10px] font-semibold text-[#6B6B6B]">{selected.size}</span>} */}
+          </div>
+        )}
+
+        {options.length > 1 && (
+          <select
+            value={selectedId}
+            disabled={busy}
+            onChange={e => { setSelectedId(e.target.value); setMessage(""); }}
+            className="h-8 w-full rounded-lg border border-[#E8E2D8] bg-white px-2 text-[11px] text-[#1A1A1A] focus:border-[#C29B27] focus:outline-none"
+          >
+            {options.map(v => (
+              <option key={v.id} value={String(v.id)}>
+                {v.purity} · {v.weight}g{v.size ? ` · ${v.size}` : ""} · ₹{v.price.toLocaleString("en-IN")}
+              </option>
+            ))}
+          </select>
+        )}
+
+        <div className="mt-auto flex flex-col gap-1.5 pt-1">
+          <button
+            type="button"
+            disabled={busy || unavailable}
+            onClick={inCart ? () => navigate("/physical-gold/cart") : handleAdd}
+            className={`flex h-9 w-full items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold transition-all active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 ${
+              inCart
+                ? "border border-[#C29B27] bg-white text-[#C29B27] hover:bg-amber-50"
+                : "bg-[#C29B27] text-white hover:bg-[#A88820] shadow-sm"
+            }`}
+          >
+            {busy ? (
+              <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+            ) : unavailable ? "Out of Stock" : inCart ? "Go to Cart →" : "Add to Cart"}
+          </button>
+          <button type="button" onClick={onClick} className="h-7 text-[11px] font-medium text-[#8A8A8A] hover:text-[#C29B27] transition-colors">
+            View Details →
+          </button>
+        </div>
+
+        {/* {message && (
+          <p role="status" className={`text-[11px] leading-snug ${message.includes("Added") ? "text-emerald-600" : "text-[#8A8A8A]"}`}>
+            {message}
+          </p>
+        )} */}
       </div>
     </article>
   );
@@ -426,49 +497,78 @@ const PhysicalGoldPageNew: React.FC = () => {
 
   return (
     <main className="min-h-screen bg-white text-stone-900">
-      <div className="mx-auto w-full max-w-7xl px-4 pb-8 pt-24 sm:px-6 sm:pt-28 lg:px-6 lg:pt-28">
+      <div className="mx-auto w-full max-w-7xl px-4 pb-8 pt-24 sm:px-6 md:pt-32 lg:px-6 lg:pt-36">
         {!showProducts ? (
           <CategoryGrid categories={categories} onCategoryClick={handleCategoryClick} selectedCategoryId={selectedCategoryId} />
         ) : (
           <>
-            <nav aria-label="Breadcrumb" className="mb-2 flex flex-wrap items-center gap-2 text-xs text-stone-500">
-              <button onClick={handleLogoClick} className="min-h-8 hover:text-stone-900">Home</button>
-
+            <nav aria-label="Breadcrumb" className="mb-2 flex flex-wrap items-center gap-1.5 text-xs text-[#8A8A8A]">
+              <button onClick={handleLogoClick} className="min-h-8 font-medium hover:text-[#C29B27] transition-colors">Home</button>
+              <span className="text-[#D1C7BB]">›</span>
+              <span className="font-semibold text-[#1A1A1A]">{categoryName}</span>
             </nav>
-            <h1 className="mb-3 text-2xl font-semibold tracking-tight">{categoryName}</h1>
-            <div className="mb-2 flex flex-col gap-3 md:flex-row md:items-center">
-            <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-1" aria-label="Subcategories">
+            <h1 className="mb-2 text-2xl font-bold tracking-tight text-[#1A1A1A]">{categoryName}</h1>
+            <div className="mb-2 flex w-full min-w-0 flex-col gap-3 md:flex-row md:items-center">
+            <div
+              className="flex w-full min-w-0 max-w-full flex-nowrap gap-2 overflow-x-auto overflow-y-hidden py-1 touch-pan-x overscroll-x-contain [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:flex-1"
+              aria-label="Subcategories"
+            >
               <button type="button" aria-pressed={!selectedSubCategoryId}
                 onClick={() => navigate(`/physical-gold/category/${encodeURIComponent(selectedCategoryId)}`)}
-                className={`shrink-0 rounded-xl border px-5 py-3 text-sm font-medium ${!selectedSubCategoryId ? "border-amber-700 bg-amber-50 text-amber-900" : "border-stone-200 text-stone-600"}`}>
+                className={`shrink-0 touch-manipulation rounded-xl border px-4 py-2.5 text-[13px] font-semibold transition-all ${
+                  !selectedSubCategoryId
+                    ? "border-[#C29B27] bg-amber-50 text-[#8B6914]"
+                    : "border-[#E8E2D8] text-[#6B6B6B] hover:border-[#C29B27]/50 hover:text-[#C29B27]"
+                }`}>
                 All
               </button>
               {subCategories.map(sub => (
                 <button type="button" key={sub.id}
                   onClick={() => handleSubCategoryNavigation(sub.id)}
                   aria-pressed={selectedSubCategoryId === sub.id}
-                  className={`flex max-w-[240px] shrink-0 items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition focus-visible:ring-2 focus-visible:ring-amber-700 ${selectedSubCategoryId === sub.id
-                    ? "border-amber-700 bg-amber-50 text-amber-900"
-                    : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"}`}>
-                  <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white">
-                    <ProductImage urls={collectImageURLs(sub)} alt={sub.name} className="p-1" />
+                  className={`flex max-w-[220px] shrink-0 touch-manipulation items-center gap-2.5 rounded-xl border px-3 py-2 text-[13px] transition-all focus-visible:ring-2 focus-visible:ring-[#C29B27] ${
+                    selectedSubCategoryId === sub.id
+                      ? "border-[#C29B27] bg-amber-50 text-[#8B6914]"
+                      : "border-[#E8E2D8] bg-white text-[#6B6B6B] hover:border-[#C29B27]/50 hover:text-[#C29B27]"
+                  }`}>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#F9F7F4] border border-[#E8E2D8]">
+                    <ProductImage urls={collectImageURLs(sub)} alt={sub.name} className="p-1 object-contain" />
                   </span>
-                  <span className="line-clamp-2 text-left font-medium leading-4">{sub.name}</span>
+                  <span className="line-clamp-2 text-left font-semibold leading-4">{sub.name}</span>
                 </button>
               ))}
             </div>
 
-                    <div className="flex w-full min-w-0 gap-2 md:w-72 md:shrink-0">
-                      <div className="relative min-w-0 flex-1 sm:w-56">
-                        <Search aria-hidden="true" className="absolute left-3 top-3.5 h-4 w-4 text-stone-400" />
-                        <input aria-label="Search products" type="search" placeholder="Search products"
-                          value={searchInput} onChange={handleSearchChange}
-                          className="h-11 w-full rounded-lg border border-stone-200 bg-white pl-9 pr-3 text-sm outline-none focus:border-amber-700" />
+                    <div className="flex w-full min-w-0 gap-2 md:w-90 md:shrink-0">
+                      <div className="relative min-w-0 flex-1">
+                        <Search aria-hidden="true" className="absolute left-3 top-3.5 h-4 w-4 text-[#8A8A8A]" />
+                        <input
+                          aria-label="Search products"
+                          type="search"
+                          placeholder="Search products…"
+                          value={searchInput}
+                          onChange={handleSearchChange}
+                          className="h-11 w-full rounded-xl border border-[#E8E2D8] bg-white pl-9 pr-3 text-[13px] text-[#1A1A1A] placeholder:text-[#8A8A8A] outline-none transition focus:border-[#C29B27] focus:ring-1 focus:ring-[#C29B27]/30"
+                        />
                       </div>
-                      <button type="button" aria-expanded={mobileFilterOpen} aria-controls="collection-filters"
+                      <button
+                        type="button"
+                        aria-expanded={mobileFilterOpen}
+                        aria-controls="collection-filters"
                         onClick={() => setMobileFilterOpen(open => !open)}
-                        className={`lg:hidden flex h-11 shrink-0 items-center gap-2 rounded-lg border px-3 text-sm ${mobileFilterOpen ? "border-stone-900 bg-stone-50" : "border-stone-200"}`}>
-                        <SlidersHorizontal className="h-4 w-4" /> Filters
+                        className={`relative flex h-11 shrink-0 items-center gap-1.5 rounded-xl border px-3.5 text-[13px] font-semibold transition ${
+                          mobileFilterOpen
+                            ? "border-[#C29B27] bg-amber-50 text-[#8B6914]"
+                            : "border-[#E8E2D8] bg-white text-[#6B6B6B] hover:border-[#C29B27]/60 hover:text-[#C29B27]"
+                        }`}
+                      >
+                        <SlidersHorizontal className="h-4 w-4" />
+                        Filters
+                        {activeCount > 0 && (
+                          <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#C29B27] text-[9px] font-bold text-white">
+                            {activeCount}
+                          </span>
+                        )}
                       </button>
                     </div>
             </div>
@@ -478,78 +578,117 @@ const PhysicalGoldPageNew: React.FC = () => {
             </div>}
             {selectedCategoryId && (
               <>
-                <section id="products-section" className="scroll-mt-28 border-b border-stone-200 pb-2">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <h2 className="sr-only">Products in {subCategoryName}</h2>
-                      <p className="mt-0.5 text-xs text-stone-500" aria-live="polite">
-                        {loadingProds ? "Updating products…" : "Browse products"}
-                      </p>
+                <h2 className="sr-only">Products in {subCategoryName}</h2>
+                <div className="mt-3">
+                  {activeCount > 0 && (
+                    <div className="mb-2 flex items-center justify-between text-xs text-[#6B6B6B]">
+                      <span>{activeCount} filter{activeCount > 1 ? 's' : ''} applied</span>
+                      <button onClick={clearFilters} className="min-h-8 font-semibold text-[#C29B27] hover:underline">Clear all</button>
                     </div>
-
-                  </div>
-                </section>
-                <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-4">
-                  <aside className="hidden h-fit min-w-0 lg:sticky lg:top-28 lg:block">
-                    <FilterSidebar filters={{...filters, q: ""}}
-                      onFilterChange={updateFilters} onClearFilters={clearFilters} facets={facets} />
-                  </aside>
-                  <div className="min-w-0">
-                {activeCount > 0 && <div className="mb-2 flex items-center justify-between text-xs text-stone-500">
-                  <span>Filters applied</span>
-                  <button onClick={clearFilters} className="min-h-8 text-amber-800 underline">Clear filters</button>
-                </div>}
-                {loadError ? null : loadingProds ? (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4" aria-label="Loading products" aria-busy="true">
-                    {Array.from({length: 10}, (_, i) => <div key={i} className="animate-pulse rounded-xl border border-stone-100 p-3"><div className="aspect-square rounded-lg bg-stone-100" /><div className="mt-4 h-3 w-3/4 rounded bg-stone-100" /><div className="mt-3 h-3 w-1/2 rounded bg-stone-100" /></div>)}
-                  </div>
-                ) : products.length ? (
-                  <div className="grid grid-cols-2 auto-rows-fr gap-3 sm:grid-cols-3 xl:grid-cols-4">
-                    {products.map(product => <CompactProductCard key={product.id} product={product} horizontal={false}
-                      onClick={() => navigate(`/physical-gold/product/${product.id}`, { state: {
-                        categoryId: selectedCategoryId, categoryName, subCategoryId: selectedSubCategoryId, subCategoryName
-                      }})} />)}
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-dashed border-stone-200 px-5 py-16 text-center">
-                    <Package className="mx-auto mb-3 h-8 w-8 text-stone-300" />
-                    <h3 className="font-semibold">No products found</h3>
-                    <p className="mt-2 text-sm text-stone-500">Try another search or adjust your filters.</p>
-                    <button onClick={clearFilters} className="mt-4 min-h-11 text-sm font-medium underline">Clear filters</button>
-                  </div>
-                )}
-                {!loadingProds && totalPages > 1 && <div className="mt-8 overflow-x-auto">
-                  <Pagination currentPage={filters.page} totalPages={totalPages}
-                    onPageChange={page => setFilters(prev => ({...prev, page}))}
-                    totalElements={totalElements} pageSize={filters.pageSize} />
-                </div>}
-                  </div>
+                  )}
+                  {loadError ? null : loadingProds ? (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" aria-label="Loading products" aria-busy="true">
+                      {Array.from({length: 10}, (_, i) => (
+                        <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-[#E8E2D8] bg-white">
+                          <div className="aspect-square bg-[#F5F0E8]" />
+                          <div className="p-3 space-y-2">
+                            <div className="h-3 w-3/4 rounded-full bg-[#EDE9E2]" />
+                            <div className="h-3 w-1/2 rounded-full bg-[#EDE9E2]" />
+                            <div className="mt-3 h-8 rounded-xl bg-[#EDE9E2]" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : products.length ? (
+                    <div className="grid grid-cols-2 auto-rows-fr gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                      {products.map(product => (
+                        <CompactProductCard
+                          key={product.id}
+                          product={product}
+                          horizontal={false}
+                          onClick={() => navigate(`/physical-gold/product/${product.id}`, { state: {
+                            categoryId: selectedCategoryId, categoryName, subCategoryId: selectedSubCategoryId, subCategoryName
+                          }})}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-[#E8E2D8] px-5 py-16 text-center">
+                      <Package className="mx-auto mb-3 h-8 w-8 text-[#D1C7BB]" />
+                      <h3 className="font-semibold text-[#1A1A1A]">No products found</h3>
+                      <p className="mt-2 text-sm text-[#6B6B6B]">Try another search or adjust your filters.</p>
+                      <button onClick={clearFilters} className="mt-4 min-h-11 text-sm font-semibold text-[#C29B27] hover:underline">Clear filters</button>
+                    </div>
+                  )}
+                  {!loadingProds && totalPages > 1 && (
+                    <div className="mt-8 overflow-x-auto">
+                      <Pagination currentPage={filters.page} totalPages={totalPages}
+                        onPageChange={page => setFilters(prev => ({...prev, page}))}
+                        totalElements={totalElements} pageSize={filters.pageSize} />
+                    </div>
+                  )}
                 </div>
               </>
             )}
           </>
         )}
       </div>
-      <dialog ref={filterDialogRef} id="collection-filters" aria-labelledby="filter-title"
-        onCancel={() => setMobileFilterOpen(false)} onClose={() => setMobileFilterOpen(false)}
-        onClick={event => { if (event.target === event.currentTarget) setMobileFilterOpen(false); }}
-        className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[85dvh] w-full max-w-none rounded-t-2xl border-0 bg-white p-0 text-stone-900 shadow-xl backdrop:bg-black/40">
-        <div className="flex max-h-[85dvh] flex-col">
-          <header className="flex shrink-0 items-center justify-between border-b border-stone-200 px-5 py-3">
-            <h2 id="filter-title" className="text-base font-semibold">Filters</h2>
-            <button type="button" aria-label="Close filters" onClick={() => setMobileFilterOpen(false)}
-              className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-stone-100"><X className="h-5 w-5" /></button>
-          </header>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
-            {mobileFilterOpen && <FilterSidebar filters={{...filters, q: ""}}
-              onFilterChange={updateFilters} onClearFilters={clearFilters} facets={facets} />}
+      {/* Filter Modal — bottom sheet on mobile, centered modal on tablet/desktop */}
+      {/* Filter Modal — div-based, controlled by mobileFilterOpen state */}
+      {mobileFilterOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-[2px] p-0 sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="filter-modal-title"
+          onClick={() => setMobileFilterOpen(false)}
+        >
+          <div
+            className="relative flex w-full max-w-md flex-col overflow-hidden bg-white shadow-2xl rounded-t-2xl sm:rounded-2xl max-h-[88dvh] sm:max-h-[80dvh]"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <header className="flex shrink-0 items-center justify-between border-b border-[#E8E2D8] bg-[#FDFAF4] px-5 py-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#C29B27]/10">
+                  <SlidersHorizontal className="h-4 w-4 text-[#C29B27]" />
+                </div>
+                <h2 id="filter-modal-title" className="text-[15px] font-bold text-[#1A1A1A]">Filters</h2>
+                {activeCount > 0 && (
+                  <span className="rounded-full bg-[#C29B27] px-2 py-0.5 text-[10px] font-bold text-white">
+                    {activeCount} active
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {activeCount > 0 && (
+                  <button type="button" onClick={clearFilters}
+                    className="rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-[#C29B27] hover:bg-amber-50 transition-colors">
+                    Clear all
+                  </button>
+                )}
+                <button type="button" aria-label="Close filters" onClick={() => setMobileFilterOpen(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E8E2D8] bg-white text-[#6B6B6B] hover:bg-[#F5F0E8] transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </header>
+
+            {/* Scrollable body */}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+              <FilterSidebar filters={{...filters, q: ""}} onFilterChange={updateFilters} onClearFilters={clearFilters} facets={facets} />
+            </div>
+
+            {/* Footer */}
+            <footer className="shrink-0 border-t border-[#E8E2D8] bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <button type="button" onClick={() => setMobileFilterOpen(false)}
+                className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#C29B27] text-[14px] font-bold text-white shadow-sm hover:bg-[#A88820] transition-colors active:scale-[0.98]">
+                Show Products
+              </button>
+            </footer>
           </div>
-          <footer className="shrink-0 border-t border-stone-200 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <button type="button" onClick={() => setMobileFilterOpen(false)}
-              className="h-12 w-full rounded-xl bg-[#8B6914] text-sm font-semibold text-white">Show products</button>
-          </footer>
         </div>
-      </dialog>
+      )}
     </main>
   );
 };

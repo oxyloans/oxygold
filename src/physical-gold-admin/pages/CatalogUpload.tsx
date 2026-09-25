@@ -12,7 +12,7 @@ import Switch from '../components/ui/Switch';
 import Select from "../components/ui/Select";
 import * as adminService from '../services/adminService';
 import Toast from '../../PhysicalGold/components/Toast';
-
+import { firstProductImageUrl, resolveS3ImageUrl, resolveProductImageSet } from '../../PhysicalGold/physicalGoldData';
 const CatalogUpload: React.FC = () => {
     // Hierarchical Navigation State
     const [level, setLevel] = useState(0); // 0: Main Cat, 1: Sub Cat, 2: Products, 3: Variants
@@ -69,7 +69,7 @@ const CatalogUpload: React.FC = () => {
                         const imgData = level === 2
                             ? await adminService.fetchProductImageURL(item.id)
                             : await adminService.fetchCategoryImageURL(item.id);
-                        return { ...item, imageData: imgData };
+                        return { ...item, imageData: imgData || resolveProductImageSet(item) };
                     })
                 );
                 setData(withImages);
@@ -171,7 +171,7 @@ const CatalogUpload: React.FC = () => {
             setModalType('product');
             setFormData({
                 name: '', description: '', imageId: 0,
-                productType: '', gstPercentage: 0, makingPercentage: 0,
+                productType: '', gstPercentage: 0, makingPercentage: 0, discountPercentage: 0,
                 status: 'ACTIVE'
             });
         } else {
@@ -195,8 +195,9 @@ const CatalogUpload: React.FC = () => {
             setModalType('product');
             setFormData({
                 name: item.name, description: item.description || '',
-                productType: item.productType || '', gstPercentage: item.gstPercentage || 0,
-                makingPercentage: item.makingPercentage || 0,
+                productType: item.productType || '', gstPercentage: item.gstPercentage ?? 0,
+                makingPercentage: item.makingPercentage ?? 0,
+                discountPercentage: item.discountPercentage ?? 0,
                 status: item.status || 'ACTIVE'
             });
         } else {
@@ -296,7 +297,7 @@ const CatalogUpload: React.FC = () => {
                 key: 'imageData',
                 width: '80px',
                 render: (imageData: any) => {
-                    const url = imageData ? (imageData.frontViewurl || imageData.backViewUrl || imageData.leftViewUrl || imageData.rightViewUrl || imageData.topViewUrl || imageData.bottomViewUrl) : null;
+                    const url = firstProductImageUrl(imageData) || null;
                     return (
                         <div className="w-10 h-10 rounded bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
                             {url ? <img src={url} className="w-full h-full object-cover" alt="" /> : <ImageIcon size={14} className="text-slate-300" />}
@@ -308,7 +309,9 @@ const CatalogUpload: React.FC = () => {
             common.push({ header: 'Description', key: 'description' });
             if (level === 2) {
                 common.push({ header: 'Type', key: 'productType', width: '100px' });
-                common.push({ header: 'GST', key: 'gstPercentage', width: '60px', render: (v: any) => `${v}%` });
+                common.push({ header: 'GST', key: 'gstPercentage', width: '60px', render: (v: any) => `${v ?? 0}%` });
+                common.push({ header: 'Making', key: 'makingPercentage', width: '70px', render: (v: any) => `${v ?? 0}%` });
+                common.push({ header: 'Discount', key: 'discountPercentage', width: '70px', render: (v: any) => `${v ?? 0}%` });
                 common.push({
                     header: 'Status',
                     key: 'status',
@@ -545,27 +548,41 @@ const CatalogUpload: React.FC = () => {
                             />
                             {modalType === 'product' && (
                                 <>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <Select
-                                            label="Product Type"
-                                            options={[
-                                                { label: 'Physical', value: 'PHYSICAL' },
-                                                { label: 'Digital', value: 'DIGITAL' },
-                                            ]}
-                                            value={formData.productType || ''}
-                                            onChange={val => setFormData({ ...formData, productType: val })}
-                                            placeholder="Select type..."
+                                    <Select
+                                        label="Product Type"
+                                        options={[
+                                            { label: 'Physical', value: 'PHYSICAL' },
+                                            { label: 'Digital', value: 'DIGITAL' },
+                                        ]}
+                                        value={formData.productType || ''}
+                                        onChange={val => setFormData({ ...formData, productType: val })}
+                                        placeholder="Select type..."
+                                    />
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <Input
+                                            label="GST %"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={formData.gstPercentage ?? 0}
+                                            onChange={e => setFormData({ ...formData, gstPercentage: Number(e.target.value) })}
                                         />
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <Input
-                                                label="GST %" type="number" value={formData.gstPercentage || 0}
-                                                onChange={e => setFormData({ ...formData, gstPercentage: Number(e.target.value) })}
-                                            />
-                                            <Input
-                                                label="Making %" type="number" value={formData.makingPercentage || 0}
-                                                onChange={e => setFormData({ ...formData, makingPercentage: Number(e.target.value) })}
-                                            />
-                                        </div>
+                                        <Input
+                                            label="Making %"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={formData.makingPercentage ?? 0}
+                                            onChange={e => setFormData({ ...formData, makingPercentage: Number(e.target.value) })}
+                                        />
+                                        <Input
+                                            label="Discount %"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={formData.discountPercentage ?? 0}
+                                            onChange={e => setFormData({ ...formData, discountPercentage: Number(e.target.value) })}
+                                        />
                                     </div>
                                     {/* Status Field */}
                                     <div className="space-y-1">
@@ -636,7 +653,7 @@ const CatalogUpload: React.FC = () => {
                                                 { label: 'Top', key: 'topViewUrl' },
                                                 { label: 'Bottom', key: 'bottomViewUrl' }
                                             ].map(view => {
-                                                const url = currentItem.imageData[view.key];
+                                                const url = resolveS3ImageUrl(currentItem.imageData[view.key]);
                                                 if (!url) return null;
                                                 return (
                                                     <div key={view.key} className="group relative aspect-square rounded-lg border border-slate-200 overflow-hidden bg-slate-50">

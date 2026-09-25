@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import PhysicalGoldHeader from "./PhysicalGoldHeader";
-import { Category, SubCategory, PhysicalGoldProduct, ProductVariant } from "./physicalGoldData";
+import { Category, SubCategory, PhysicalGoldProduct, ProductVariant, firstProductImageUrl } from "./physicalGoldData";
 import {
   fetchMainCategories,
   fetchSubCategories,
@@ -648,7 +648,7 @@ const PhysicalGoldPage: React.FC = () => {
         data.map(async (p) => {
           if (p.imageUrl) return p;
           const urls = await fetchProductImageURLs(p.id);
-          return { ...p, imageUrl: urls[0] || "" };
+          return { ...p, imageUrl: firstProductImageUrl(urls) || "" };
         })
       );
       setProducts(productsWithImages);

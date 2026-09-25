@@ -12,6 +12,62 @@ export interface ProductImageSet {
   expriesIn?: number;
 }
 
+export const S3_IMAGE_BASE_URL =
+  import.meta.env.VITE_S3_IMAGE_BASE_URL;
+
+const PRODUCT_IMAGE_VIEW_KEYS = [
+  "frontViewurl",
+  "backViewUrl",
+  "leftViewUrl",
+  "rightViewUrl",
+  "topViewUrl",
+  "bottomViewUrl",
+] as const;
+
+/** APIs return `/image/...` signed paths; prepend the S3 host. Full URLs are left unchanged. */
+export const resolveS3ImageUrl = (url?: string | null): string => {
+  if (typeof url !== "string") return "";
+  const value = url.trim();
+  if (!value || value === "null" || value === "undefined") return "";
+  if (
+    /^https?:\/\//i.test(value) ||
+    /^data:image\//i.test(value) ||
+    /^blob:/i.test(value)
+  ) {
+    return value;
+  }
+  if (value.startsWith("//")) return `https:${value}`;
+  if (value.startsWith("/")) return `${S3_IMAGE_BASE_URL}${value}`;
+  return `${S3_IMAGE_BASE_URL}/${value}`;
+};
+
+export const resolveProductImageSet = (
+  imageSet?: ProductImageSet | null,
+): ProductImageSet | null => {
+  if (!imageSet) return null;
+  return {
+    frontViewurl: resolveS3ImageUrl(imageSet.frontViewurl) || null,
+    backViewUrl: resolveS3ImageUrl(imageSet.backViewUrl) || null,
+    leftViewUrl: resolveS3ImageUrl(imageSet.leftViewUrl) || null,
+    rightViewUrl: resolveS3ImageUrl(imageSet.rightViewUrl) || null,
+    topViewUrl: resolveS3ImageUrl(imageSet.topViewUrl) || null,
+    bottomViewUrl: resolveS3ImageUrl(imageSet.bottomViewUrl) || null,
+    expriesIn: imageSet.expriesIn,
+  };
+};
+
+export const firstProductImageUrl = (
+  imageSet?: ProductImageSet | null,
+): string => {
+  const resolved = resolveProductImageSet(imageSet);
+  if (!resolved) return "";
+  return (
+    PRODUCT_IMAGE_VIEW_KEYS.map((key) => resolved[key]).find(
+      (url) => typeof url === "string" && url.trim(),
+    ) || ""
+  );
+};
+
 export interface Category {
   id: string;
   name: string;

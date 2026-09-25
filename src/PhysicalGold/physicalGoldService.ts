@@ -5,6 +5,9 @@ import {
   ProductVariant,
   Order,
   ProductImageSet,
+  firstProductImageUrl,
+  resolveProductImageSet,
+  resolveS3ImageUrl,
 } from "./physicalGoldData";
 import { API_BASE_URL } from "../Config";
 const BASE_URL = `${API_BASE_URL}/oxygold-api`;
@@ -375,15 +378,7 @@ export const fetchCategoryImageURL = async (
     const data = await response.json();
     const imgObj = data.data;
     if (!imgObj) return "";
-    return (
-      imgObj.frontViewurl ||
-      imgObj.backViewUrl ||
-      imgObj.leftViewUrl ||
-      imgObj.rightViewUrl ||
-      imgObj.topViewUrl ||
-      imgObj.bottomViewUrl ||
-      ""
-    );
+    return firstProductImageUrl(resolveProductImageSet(imgObj));
   } catch (error) {
     console.error(`Failed to fetch image for category ${categoryId}:`, error);
     return "";
@@ -399,7 +394,7 @@ export const fetchProductImageURLs = async (
     );
     if (!response.ok) return null;
     const data = await response.json();
-    return data.data || null;
+    return resolveProductImageSet(data.data || null);
   } catch (error) {
     console.error(`Failed to fetch images for product ${productId}:`, error);
     return null;
@@ -419,23 +414,15 @@ export const fetchMainCategories = async (): Promise<Category[]> => {
     );
   const data = await response.json();
 
-  // Filter out null/undefined items and fetch images for all categories in parallel
-  const categoriesWithImages = await Promise.all(
-    data
-      .filter((item: any) => item && item.id) // Filter out null/undefined items
-      .map(async (item: any) => {
-        const imageUrl = await fetchCategoryImageURL(item.id.toString());
-        return {
-          id: item.id.toString(),
-          name: item.name || "",
-          emoji: getEmojiForCategory(item.name || ""),
-          description: item.description || "",
-          imageUrl: imageUrl,
-        };
-      }),
-  );
-
-  return categoriesWithImages;
+  return (Array.isArray(data) ? data : [])
+    .filter((item: any) => item && item.id)
+    .map((item: any) => ({
+      id: item.id.toString(),
+      name: item.name || "",
+      emoji: getEmojiForCategory(item.name || ""),
+      description: item.description || "",
+      imageUrl: firstProductImageUrl(item) || resolveS3ImageUrl(item.imageUrl),
+    }));
 };
 
 export const fetchSubCategories = async (
@@ -450,23 +437,15 @@ export const fetchSubCategories = async (
     );
   const data = await response.json();
 
-  // Filter out null/undefined items and fetch images for all sub-categories in parallel
-  const subCategoriesWithImages = await Promise.all(
-    data
-      .filter((item: any) => item && item.id) // Filter out null/undefined items
-      .map(async (item: any) => {
-        const imageUrl = await fetchCategoryImageURL(item.id.toString());
-        return {
-          id: item.id.toString(),
-          categoryId: item.parentId ? item.parentId.toString() : parentId,
-          name: item.name || "",
-          description: item.description || "",
-          imageUrl: imageUrl,
-        };
-      }),
-  );
-
-  return subCategoriesWithImages;
+  return (Array.isArray(data) ? data : [])
+    .filter((item: any) => item && item.id)
+    .map((item: any) => ({
+      id: item.id.toString(),
+      categoryId: item.parentId ? item.parentId.toString() : parentId,
+      name: item.name || "",
+      description: item.description || "",
+      imageUrl: firstProductImageUrl(item) || resolveS3ImageUrl(item.imageUrl),
+    }));
 };
 
 export const fetchProducts = async (
@@ -485,7 +464,8 @@ export const fetchProducts = async (
     .map((item: any) => ({
       id: item.id.toString(),
       productName: item.productName || item.name || "",
-      imageUrl: item.imageUrl || "",
+      imageUrl:
+        resolveS3ImageUrl(item.imageUrl) || firstProductImageUrl(item) || "",
       priceRange: item.priceRange || "Price on request",
       description: item.description || "",
       subCategoryId: item.categoryId
@@ -495,7 +475,6 @@ export const fetchProducts = async (
     }));
   return mappedData;
 };
-
 export const fetchProductVariants = async (
   productId: string,
 ): Promise<{ variants: ProductVariant[]; product: PhysicalGoldProduct }> => {
@@ -525,15 +504,8 @@ export const fetchProductVariants = async (
     price: item.price,
     mrp: item.mrp,
     imageUrl:
-      item.imageUrl ||
-      (productImages
-        ? productImages.frontViewurl ||
-          productImages.backViewUrl ||
-          productImages.leftViewUrl ||
-          productImages.rightViewUrl ||
-          productImages.topViewUrl ||
-          productImages.bottomViewUrl
-        : "") ||
+      resolveS3ImageUrl(item.imageUrl) ||
+      firstProductImageUrl(productImages) ||
       "",
     purity: item.purity,
     size: item.size,
@@ -541,7 +513,7 @@ export const fetchProductVariants = async (
     status: item.status,
     stockQuantity: item.stockQuantity,
     weight: item.weight,
-  }));
+  }));  
 
   const productData = result.data.productResponse;
   return {
@@ -550,7 +522,9 @@ export const fetchProductVariants = async (
       ? {
           id: productData.id.toString(),
           productName: productData.name,
-          imageUrl: productData.imageUrl,
+          imageUrl:
+            resolveS3ImageUrl(productData.imageUrl) ||
+            firstProductImageUrl(productImages),
           imageSet: productImages || undefined,
           priceRange: productData.priceRange || "Price on request",
           description: productData.description,
@@ -1122,6 +1096,9 @@ export interface GoldSilverRateBreakdown {
   gstPercentage: number;
   makingAmount: number;
   makingPercentage: number;
+  discountPercentage: number;
+  discountAmount: number;
+  finalAmount: number;
 }
 
 // This is the same price-breakdown endpoint used by the item display page.

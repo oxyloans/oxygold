@@ -191,6 +191,8 @@ const CartPage: React.FC = () => {
         deliveryFee,
         deliveryDistanceKm,
         ratePerKm,
+        totalDiscountAmount,
+        totalDiscountPercentage,
     } = useCart();
 
     const [s, setS] = useState<PageState>({
@@ -674,6 +676,19 @@ const CartPage: React.FC = () => {
                                     <span className="text-[#8A8A8A]">GST (3%)</span>
                                     <span className="font-medium text-[#1A1A1A]">₹{totalGstCharges.toLocaleString("en-IN")}</span>
                                 </div>
+                                {totalDiscountAmount > 0 && (
+                                    <div className="flex justify-between text-[12px]">
+                                        <span className="text-emerald-600 flex items-center gap-1">
+                                            Discount
+                                            {totalDiscountPercentage > 0 && (
+                                                <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                                    -{totalDiscountPercentage}%
+                                                </span>
+                                            )}
+                                        </span>
+                                        <span className="font-medium text-emerald-600">-₹{totalDiscountAmount.toLocaleString("en-IN")}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-[12px]">
                                     <span className="text-[#8A8A8A]">Delivery{deliveryDistanceKm !== null ? ` (${deliveryDistanceKm} km)` : ""}</span>
                                     <span className="font-medium text-[#1A1A1A]">₹{deliveryFee.toLocaleString("en-IN")}</span>

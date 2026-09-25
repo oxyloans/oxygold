@@ -9,6 +9,8 @@ import TokenManager from "../../utils/tokenManager";
 import { logout } from "../physicalGoldService";
 import "../styles.css";
 
+const ALL_CATEGORY_ID = "__all__";
+
 interface HeaderProps {
   categories?: Array<{ id: string; name: string }>;
   onCategoryClick?: (categoryId: string) => void;
@@ -29,6 +31,7 @@ const Header: React.FC<HeaderProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isLoggedIn = TokenManager.getInstance().isLoggedIn();
 
@@ -55,173 +58,201 @@ const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Keep the promotional strip visible only at the top of the page.
+  // Once the user starts scrolling, the header becomes more compact and
+  // receives a subtle shadow so it stays visually separated from content.
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 8);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
 
   return (
     <>
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-md ">
-      {cartNotification && <Toast message={cartNotification.message} type={cartNotification.type} onClose={dismissCartNotification} />}
-      {/* Top Banner */}
-      <div className="bg-accent border-b border-gray-200">
-        <div className="container mx-auto px-8 py-2 text-center">
-          <p className="text-xs font-medium tracking-wide text-white">
-            Free Shipping on Orders Above ₹50,000
-          </p>
+      <header
+        className={`fixed left-0 right-0 top-0 z-50 bg-white/95 backdrop-blur-md transition-shadow duration-300 ${isScrolled ? "shadow-[0_8px_24px_rgba(17,24,39,0.10)]" : "shadow-none"
+          }`}
+      >
+        {cartNotification && <Toast message={cartNotification.message} type={cartNotification.type} onClose={dismissCartNotification} />}
+        {/* Top promotional banner: visible at page top, hidden after scrolling */}
+        <div
+          aria-hidden={isScrolled}
+          className={`overflow-hidden bg-accent transition-[max-height,opacity,transform] duration-300 ease-out ${isScrolled
+              ? "max-h-0 -translate-y-1 opacity-0"
+              : "max-h-10 translate-y-0 border-b border-gray-200 opacity-100"
+            }`}
+        >
+          <div className="mx-auto w-full max-w-7xl px-4 py-2 text-center sm:px-5 md:px-6 lg:px-8">
+            <p className="text-xs font-medium tracking-wide text-white">
+              Free Shipping on Orders Above ₹50,000
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Main Header */}
-      <div style={{ borderBottom: "0.5px solid hsl(40, 20%, 88%)" }}>
-        <div className="container mx-auto px-4 md:px-8 sm:px-4 lg:px-8 h-14">
-          <div className="flex items-center justify-between h-12 md:h-12">
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 transition-colors text-foreground hover:text-primary"
-              aria-label="Toggle menu"
-              title="Menu"
-            >
-              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+        {/* Main Header */}
+        <div className="bg-white" style={{ borderBottom: "0.5px solid hsl(40, 20%, 88%)" }}>
+          <div className="mx-auto h-14 w-full max-w-7xl ">
+            <div className="flex items-center justify-between h-12 md:h-12">
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden p-2 transition-colors text-foreground hover:text-primary"
+                aria-label="Toggle menu"
+                title="Menu"
+              >
+                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
 
-            {/* Logo */}
-            <button
-              onClick={() => {
-                if (onLogoClick) {
-                  onLogoClick();
-                } else {
-                  navigate("/physical-gold");
-                }
-                window.scrollTo(0, 0);
-              }}
-              className="flex items-center gap-2 cursor-pointer"
-            >
-              <img 
-                src={oxygoldLogo} 
-                alt="OxyGold" 
-                className="h-4 md:h-7 w-auto object-contain"
-              />
-            </button>
+              {/* Logo */}
+              <button
+                onClick={() => {
+                  if (onLogoClick) {
+                    onLogoClick();
+                  } else {
+                    navigate("/physical-gold");
+                  }
+                  window.scrollTo(0, 0);
+                }}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <img
+                  src={oxygoldLogo}
+                  alt="OxyGold"
+                  className="h-4 md:h-7 w-auto object-contain"
+                />
+              </button>
 
-            {/* Right Actions */}
-            <div className="flex items-center gap-3 md:gap-5">
-              {/* Digital Gold Button */}
-              {/* <button
+              {/* Right Actions */}
+              <div className="flex items-center gap-3 md:gap-5">
+                {/* Digital Gold Button */}
+                {/* <button
                 onClick={() => navigate("/buy-gold")}
                 className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 cursor-pointer rounded-lg bg-[#C29B27] text-white text-[12px] font-semibold hover:bg-[#A88820] transition-all shadow-sm"
               >
                 Digital Gold
               </button> */}
 
-              {/* Wishlist */}
-              <button
-                onClick={() => {
+                {/* Wishlist */}
+                <button
+                  onClick={() => {
                     if (!TokenManager.getInstance().isLoggedIn()) {
-                    navigate("/login");
-                  } else {
-                    navigate("/physical-gold/wishlist");
-                  }
-                }}
-                className="hidden md:block p-2 cursor-pointer transition-colors relative text-foreground hover:text-primary"
-                aria-label="Wishlist"
-                title="Wishlist"
-              >
-                <Heart size={20} />
-                {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 text-xs rounded-full flex items-center justify-center font-semibold bg-primary text-white">
-                    {wishlistCount}
-                  </span>
-                )}
-              </button>
+                      navigate("/login");
+                    } else {
+                      navigate("/physical-gold/wishlist");
+                    }
+                  }}
+                  className="hidden md:block p-2 cursor-pointer transition-colors relative text-foreground hover:text-primary"
+                  aria-label="Wishlist"
+                  title="Wishlist"
+                >
+                  <Heart size={20} />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 text-xs rounded-full flex items-center justify-center font-semibold bg-primary text-white">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </button>
 
-              {/* Profile Icon */}
-              <div className="relative" ref={dropdownRef}>
+                {/* Profile Icon */}
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => {
+                      if (!isLoggedIn) {
+                        navigate("/login");
+                      } else {
+                        navigate("/physical-gold/profile");
+                      }
+                    }}
+                    className="p-2 transition-colors cursor-pointer text-foreground hover:text-primary"
+                    aria-label="Account"
+                    title="Account"
+                  >
+                    <User size={20} />
+                  </button>
+                </div>
+
+                {/* Cart */}
                 <button
                   onClick={() => {
                     if (!isLoggedIn) {
                       navigate("/login");
                     } else {
-                      navigate("/physical-gold/profile");
+                      navigate("/physical-gold/cart");
                     }
                   }}
-                  className="p-2 transition-colors cursor-pointer text-foreground hover:text-primary"
-                  aria-label="Account"
-                  title="Account"
+                  className="p-2 transition-colors cursor-pointer relative text-foreground hover:text-primary"
+                  aria-label="Cart"
+                  title="Cart"
                 >
-                  <User size={20} />
+                  <ShoppingCart size={20} />
+                  {totalItems > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 text-xs rounded-full flex items-center justify-center font-semibold bg-primary text-white">
+                      {totalItems}
+                    </span>
+                  )}
                 </button>
-              </div>
 
-              {/* Cart */}
-              <button
-                onClick={() => {
-                  if (!isLoggedIn) {
-                    navigate("/login");
-                  } else {
-                    navigate("/physical-gold/cart");
-                  }
-                }}
-                className="p-2 transition-colors cursor-pointer relative text-foreground hover:text-primary"
-                aria-label="Cart"
-                title="Cart"
-              >
-                <ShoppingCart size={20} />
-                {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 text-xs rounded-full flex items-center justify-center font-semibold bg-primary text-white">
-                    {totalItems}
-                  </span>
+                {/* Logout */}
+                {isLoggedIn && (
+                  <button
+                    onClick={() => setShowLogoutConfirm(true)}
+                    className="hidden md:flex p-2 transition-colors cursor-pointer text-foreground hover:text-rose-500"
+                    aria-label="Logout"
+                    title="Logout"
+                  >
+                    <LogOut size={20} />
+                  </button>
                 )}
-              </button>
-
-              {/* Logout */}
-              {isLoggedIn && (
-                <button
-                  onClick={() => setShowLogoutConfirm(true)}
-                  className="hidden md:flex p-2 transition-colors cursor-pointer text-foreground hover:text-rose-500"
-                  aria-label="Logout"
-                  title="Logout"
-                >
-                  <LogOut size={20} />
-                </button>
-              )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Desktop Category Navigation */}
-      {categories.length > 0 && (
-        <nav className="hidden md:block" style={{ borderBottom: "1px solid hsl(30, 20%, 88%)", backgroundColor: "hsl(30, 15%, 97%)" }}>
-          <div className="container mx-auto px-8">
-            <div className="flex items-center justify-center gap-8 py-2.5">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => onCategoryClick?.(cat.id)}
-                  className={`text-[13px] font-sans cursor-pointer tracking-wide uppercase relative pb-1 transition-all duration-300
-                    ${
-                      selectedCategoryId === cat.id
-                        ? "text-primary font-semibold"
-                        : "text-foreground hover:text-primary"
-                    }`}
-                >
-                  {cat.name}
-                  <span
-                    className={`absolute bottom-0 left-0 h-[3px] bg-primary rounded-t transition-all duration-300 
-                      ${selectedCategoryId === cat.id ? "w-full" : "w-0"}
-                    `}
-                  />
-                </button>
-              ))}
+        {/* Desktop Category Navigation */}
+        {categories.length > 0 && (
+          <nav
+            className="hidden bg-white md:block"
+            style={{
+              borderBottom: "0.5px solid hsl(40, 20%, 90%)",
+            }}
+          >
+            <div className="mx-auto w-full max-w-7xl px-4 sm:px-5 md:px-6 lg:px-8">
+              <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-2 py-2.5">
+                
+
+                {categories.map((cat) => (
+                  <button
+                    type="button"
+                    key={cat.id}
+                    onClick={() => onCategoryClick?.(cat.id)}
+                    className={`relative cursor-pointer pb-1 font-sans text-[13px] uppercase tracking-wide transition-all duration-300 ${selectedCategoryId === cat.id
+                      ? "font-semibold text-primary"
+                      : "text-[#27272A] hover:text-primary"
+                      }`}
+                  >
+                    {cat.name}
+                    <span
+                      className={`absolute bottom-0 left-0 h-[3px] rounded-t bg-primary transition-all duration-300 ${selectedCategoryId === cat.id ? "w-full" : "w-0"
+                        }`}
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        </nav>
-      )}
+          </nav>
+        )}
 
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden absolute inset-x-0 top-full shadow-lg z-50 bg-background border-b border-gray-200 max-h-[70vh] overflow-y-auto">
-          <nav className="flex flex-col p-4 gap-1">
-            {/* <button
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute inset-x-0 top-full shadow-lg z-50 bg-background border-b border-gray-200 max-h-[70vh] overflow-y-auto">
+            <nav className="flex flex-col p-4 gap-1">
+              {/* <button
               onClick={() => {
                 setIsMobileMenuOpen(false);
                 navigate("/buy-gold");
@@ -231,57 +262,76 @@ const Header: React.FC<HeaderProps> = ({
               Digital Gold
             </button> */}
 
-            {categories.length > 0 && (
-              <div className="flex flex-col">
-                <button
-                  onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
-                  className="flex items-center justify-between py-3 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-foreground hover:text-primary hover:bg-secondary"
-                >
-                  Jewellery Categories
-                  {isCategoriesOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </button>
-                {isCategoriesOpen && (
-                  <div className="flex flex-col pl-4 border-l-2 border-gray-100 ml-4 mt-1 space-y-1">
-                    {categories.map((cat) => (
-                      <button
-                        key={cat.id}
+              {categories.length > 0 && (
+                <div className="flex flex-col">
+                  <button
+                    onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
+                    className="flex items-center justify-between py-3 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-foreground hover:text-primary hover:bg-secondary"
+                  >
+                    Jewellery Categories
+                    {isCategoriesOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </button>
+                  {isCategoriesOpen && (
+                    <div className="ml-4 mt-1 flex flex-col space-y-1 border-l-2 border-gray-100 pl-4">
+                      {/* <button
+                        type="button"
                         onClick={() => {
                           setIsMobileMenuOpen(false);
                           setIsCategoriesOpen(false);
-                          onCategoryClick?.(cat.id);
+                          onCategoryClick?.(ALL_CATEGORY_ID);
                         }}
-                        className="py-2 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-foreground hover:text-primary hover:bg-secondary"
+                        className={`rounded-md px-4 py-2 text-left font-sans text-sm font-semibold uppercase tracking-wide transition-colors ${!selectedCategoryId || selectedCategoryId === ALL_CATEGORY_ID
+                          ? "bg-secondary text-primary"
+                          : "text-foreground hover:bg-secondary hover:text-primary"
+                          }`}
                       >
-                        {cat.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                        All
+                      </button> */}
 
-            <button
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                navigate("/physical-gold/wishlist");
-              }}
-              className="py-3 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-foreground hover:text-primary hover:bg-secondary"
-            >
-              Wishlist
-            </button>
+                      {categories.map((cat) => (
+                        <button
+                          type="button"
+                          key={cat.id}
+                          onClick={() => {
+                            setIsMobileMenuOpen(false);
+                            setIsCategoriesOpen(false);
+                            onCategoryClick?.(cat.id);
+                          }}
+                          className={`rounded-md px-4 py-2 text-left font-sans text-sm uppercase tracking-wide transition-colors ${selectedCategoryId === cat.id
+                            ? "bg-secondary font-semibold text-primary"
+                            : "text-foreground hover:bg-secondary hover:text-primary"
+                            }`}
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {isLoggedIn && (
               <button
-                onClick={() => { setIsMobileMenuOpen(false); setShowLogoutConfirm(true); }}
-                className="py-3 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-rose-500 hover:bg-rose-50"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  navigate("/physical-gold/wishlist");
+                }}
+                className="py-3 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-foreground hover:text-primary hover:bg-secondary"
               >
-                Sign Out
+                Wishlist
               </button>
-            )}
-          </nav>
-        </div>
-      )}
-    </header>
+
+              {isLoggedIn && (
+                <button
+                  onClick={() => { setIsMobileMenuOpen(false); setShowLogoutConfirm(true); }}
+                  className="py-3 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-rose-500 hover:bg-rose-50"
+                >
+                  Sign Out
+                </button>
+              )}
+            </nav>
+          </div>
+        )}
+      </header>
 
       {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (

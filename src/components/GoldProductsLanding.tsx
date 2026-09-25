@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   X,
 } from "lucide-react";
+import { resolveS3ImageUrl } from "../PhysicalGold/physicalGoldData";
 
 interface Product {
   id: number;
@@ -134,7 +135,7 @@ export default function GoldProductsLanding() {
                 description: product.description?.trim() ?? "",
                 categoryId: parentCategory.id,
                 categoryName: parentCategory.name,
-                frontViewurl: product.image?.trim() || null,
+                frontViewurl: resolveS3ImageUrl(product.image) || null,
                 status: product.status ?? "ACTIVE",
                 price: Number(product.price) || 0,
               }))
