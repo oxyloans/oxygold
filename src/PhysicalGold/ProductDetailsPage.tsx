@@ -285,11 +285,20 @@ const ProductDetailsPage: React.FC = () => {
   }, [selectedVariant?.id]);
 
   useEffect(() => {
-    if (!product || !priceBreakdown) return;
-    if ((priceBreakdown.discountAmount ?? 0) <= 0) return;
+    if (!product || !priceBreakdown || !selectedVariant) return;
+
+    const currentMrp = Number(selectedVariant.mrp) || 0;
+    const currentPrice = Number(selectedVariant.price) || 0;
+    const hasValidMrpForDiscount = currentMrp > 0 && currentMrp > currentPrice;
+
+    if (!hasValidMrpForDiscount || (priceBreakdown.discountAmount ?? 0) <= 0) {
+      setShowDiscountModal(false);
+      return;
+    }
+
     const timer = window.setTimeout(() => setShowDiscountModal(true), 600);
     return () => window.clearTimeout(timer);
-  }, [product?.id, priceBreakdown]);
+  }, [product?.id, priceBreakdown, selectedVariant?.id, selectedVariant?.mrp, selectedVariant?.price]);
 
   const purities = useMemo(
     () => Array.from(new Set(variants.map((v) => v.purity))),
@@ -594,7 +603,16 @@ const ProductDetailsPage: React.FC = () => {
   }
 
   const finalCategoryName = categoryName || product.categoryName || "Collection";
-  const finalSubCategoryName = subCategoryName || product.subCategoryName;
+  const finalSubCategoryName =
+    subCategoryName && subCategoryName !== "Products"
+      ? subCategoryName
+      : product.subCategoryName;
+  const breadcrumbCategoryId = categoryId ? String(categoryId) : "";
+  const breadcrumbSubCategoryId = subCategoryId
+    ? String(subCategoryId)
+    : product.subCategoryId
+      ? String(product.subCategoryId)
+      : "";
   // Category is passed from the listing page. Use it for all metal-specific copy so
   // Silver products never inherit the Gold defaults used by older products.
   const isSilverProduct = [categoryName, product.categoryName, finalCategoryName]
@@ -603,7 +621,8 @@ const ProductDetailsPage: React.FC = () => {
   const metalName = isSilverProduct ? "Silver" : "Gold";
   const itemPrice = Number(selectedVariant.price) || 0;
   const mrp = Number(selectedVariant.mrp) || 0;
-  const mrpDiscount = mrp > itemPrice ? mrp - itemPrice : 0;
+  const hasValidMrp = mrp > 0 && mrp > itemPrice;
+  const mrpDiscount = hasValidMrp ? mrp - itemPrice : 0;
   const apiDiscountAmount = priceBreakdown?.discountAmount ?? 0;
   const apiDiscountPercentage = priceBreakdown?.discountPercentage ?? 0;
   const formatMetalOption = (purity: string) =>
@@ -614,34 +633,73 @@ const ProductDetailsPage: React.FC = () => {
       <div className="flex-1 pb-8 pt-26 md:pt-32 lg:pt-36">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
 
-          {/* ── Breadcrumb — solid white bg, always visible ── */}
-          <nav className="flex items-center flex-wrap gap-1 text-[14px] font-semibold text-[#8A8A8A] mb-3 bg-white">
+          {/* ── Breadcrumb — route-aware and responsive ── */}
+          <nav
+            aria-label="Breadcrumb"
+            className="mb-3 flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1.5 bg-white text-[12px] font-semibold text-[#8A8A8A] sm:text-[13px] md:text-[14px]"
+          >
             <button
-              onClick={() => navigate(  "/physical-gold")}
-              className="hover:text-[#C29B27] transition-colors"
+              type="button"
+              onClick={() => navigate("/physical-gold")}
+              className="min-h-8 shrink-0 rounded-md px-1 transition-colors hover:text-[#C29B27] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C29B27]/30"
             >
               Home
             </button>
-            <ChevronRight size={11} className="text-[#D1C7BB]" />
+
+            <ChevronRight size={11} className="shrink-0 text-[#D1C7BB]" aria-hidden="true" />
+
             <button
-              onClick={() => navigate("/physical-gold", { state: { selectedCategory: categoryId } })}
-              className="hover:text-[#C29B27] transition-colors"
+              type="button"
+              onClick={() =>
+                navigate(
+                  breadcrumbCategoryId
+                    ? `/physical-gold/category/${encodeURIComponent(breadcrumbCategoryId)}`
+                    : "/physical-gold"
+                )
+              }
+              className="min-h-8 max-w-[150px] truncate rounded-md px-1 transition-colors hover:text-[#C29B27] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C29B27]/30 sm:max-w-[220px]"
+              title={finalCategoryName}
             >
               {finalCategoryName}
             </button>
+
             {finalSubCategoryName && (
               <>
-                <ChevronRight size={11} className="text-[#D1C7BB]" />
-                <button
-                  onClick={() => navigate("/physical-gold", { state: { selectedCategory: categoryId } })}
-                  className="hover:text-[#C29B27] transition-colors cursor-pointer"
-                >
-                  {finalSubCategoryName}
-                </button>
+                <ChevronRight size={11} className="shrink-0 text-[#D1C7BB]" aria-hidden="true" />
+                {breadcrumbCategoryId && breadcrumbSubCategoryId ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        `/physical-gold/category/${encodeURIComponent(
+                          breadcrumbCategoryId
+                        )}/subcategory/${encodeURIComponent(breadcrumbSubCategoryId)}`
+                      )
+                    }
+                    className="min-h-8 max-w-[150px] truncate rounded-md px-1 transition-colors hover:text-[#C29B27] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C29B27]/30 sm:max-w-[220px]"
+                    title={finalSubCategoryName}
+                  >
+                    {finalSubCategoryName}
+                  </button>
+                ) : (
+                  <span
+                    className="max-w-[150px] truncate px-1 text-[#6B6B6B] sm:max-w-[220px]"
+                    title={finalSubCategoryName}
+                  >
+                    {finalSubCategoryName}
+                  </span>
+                )}
               </>
             )}
-            <ChevronRight size={11} className="text-[#D1C7BB]" />
-            <span className="text-[#1A1A1A] font-bold">{product.productName}</span>
+
+            <ChevronRight size={11} className="shrink-0 text-[#D1C7BB]" aria-hidden="true" />
+            <span
+              className="min-w-0 max-w-full truncate px-1 font-bold text-[#1A1A1A] sm:max-w-[280px] md:max-w-[380px]"
+              aria-current="page"
+              title={product.productName}
+            >
+              {product.productName}
+            </span>
           </nav>
 
           {/* ── Main Grid ── */}
@@ -728,17 +786,17 @@ const ProductDetailsPage: React.FC = () => {
                 <span className="text-[26px] font-bold text-[#C29B27] leading-none">
                   ₹{selectedVariant.price.toLocaleString("en-IN")}
                 </span>
-                {selectedVariant.mrp && selectedVariant.mrp > selectedVariant.price && (
+                {hasValidMrp && (
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-[13px] text-[#8A8A8A] line-through">
-                      ₹{selectedVariant.mrp.toLocaleString("en-IN")}
+                      ₹{mrp.toLocaleString("en-IN")}
                     </span>
                     <span className="text-xs font-semibold tracking-wide uppercase text-green-700 px-1.5 py-0.5 bg-green-50 rounded">
-                      {Math.round(((selectedVariant.mrp - selectedVariant.price) / selectedVariant.mrp) * 100)}% OFF
+                      {Math.round((mrpDiscount / mrp) * 100)}% OFF
                     </span>
                   </div>
                 )}
-                {apiDiscountAmount > 0 && (
+                {hasValidMrp && apiDiscountAmount > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
                     <Tag size={11} /> {apiDiscountPercentage > 0 ? `${apiDiscountPercentage}% discount applied` : 'Discount applied'}
                   </span>
@@ -845,22 +903,17 @@ const ProductDetailsPage: React.FC = () => {
                 </div> */}
 
                 {/* Size */}
-                {sizes.length > 0 && (
-                  <label className="min-w-0 w-[150px] max-w-full flex-none text-xs font-semibold uppercase tracking-[0.12em] text-[#1A1A1A] sm:w-[170px]">
-                    Size
-                    <select
-                      value={selectedSize}
-                      onChange={(e) => setSelectedSize(e.target.value)}
-                      className="mt-2 block h-11 w-full min-w-0 rounded-lg border border-[#E8E2D8] bg-white px-3 text-sm font-medium normal-case tracking-normal text-[#1A1A1A] outline-none transition focus:border-[#C29B27] focus:ring-2 focus:ring-[#C29B27]/10"
-                    >
-                      {sizes.map((size) => (
-                        <option key={size} value={size}>
-                          {size || "Standard"}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
+               {sizes.length > 0 && (
+  <div className="min-w-0 w-[150px] max-w-full flex-none sm:w-[170px]">
+    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1A1A1A]">
+      Size
+    </p>
+
+    <div className="mt-2 flex h-11 w-full items-center rounded-lg border border-[#E8E2D8] bg-white px-3 text-sm font-medium text-[#1A1A1A]">
+      {selectedSize || sizes[0] || "Standard"}
+    </div>
+  </div>
+)}
               </div>
 
               {/* Purchase actions */}
@@ -1376,26 +1429,31 @@ const ProductDetailsPage: React.FC = () => {
                 <div className="overflow-hidden rounded-xl border border-[#E8E2D8]">
                   <table className="w-full text-sm">
                     <thead className="bg-[#F9F7F4] text-left text-[11px] font-bold uppercase tracking-wide text-[#4A4A4A]">
-                      <tr><th className="px-3 py-3">Component</th><th className="px-3 py-3 text-right">Rate</th><th className="px-3 py-3 text-right">Weight</th><th className="px-3 py-3 text-right">Amount</th></tr>
-                    </thead>
+  <tr>
+    <th className="px-3 py-3">Component</th>
+    <th className="px-3 py-3 text-center">Rate / Gram</th>
+    <th className="px-3 py-3 text-center">Weight</th>
+    <th className="px-3 py-3 text-center">Amount</th>
+  </tr>
+</thead>
                     <tbody className="text-[#4A4A4A]">
                       <tr className="border-t border-[#F0EBE1]">
                         <td className="px-3 py-3 font-semibold">{metalName} ({selectedVariant.purity})</td>
-                        <td className="px-3 py-3 text-right">{selectedVariant.weight > 0 ? `₹${(priceBreakdown.variantPrice / selectedVariant.weight).toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "—"}</td>
-                        <td className="px-3 py-3 text-right">{selectedVariant.weight}g</td>
-                        <td className="px-3 py-3 text-right font-semibold">₹{priceBreakdown.variantPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                        <td className="px-3 py-3 text-center">{selectedVariant.weight > 0 ? `₹${(priceBreakdown.variantPrice / selectedVariant.weight).toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "—"}</td>
+                        <td className="px-3 py-3 text-center">{selectedVariant.weight}g</td>
+                        <td className="px-3 py-3 text-center font-semibold">₹{priceBreakdown.variantPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
                       </tr>
                       {priceBreakdown.makingPercentage > 0 && (
                         <tr className="border-t border-[#F0EBE1]">
                           <td className="px-3 py-3">Making charges ({priceBreakdown.makingPercentage}%)</td>
-                          <td className="px-3 py-3 text-right">−</td><td className="px-3 py-3 text-right">−</td>
-                          <td className="px-3 py-3 text-right">₹{priceBreakdown.makingAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                          <td className="px-3 py-3 text-center">−</td><td className="px-3 py-3 text-center">−</td>
+                          <td className="px-3 py-3 text-center">₹{priceBreakdown.makingAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
                         </tr>
                       )}
                       <tr className="border-t border-[#F0EBE1]">
                         <td className="px-3 py-3">GST ({priceBreakdown.gstPercentage}%)</td>
-                        <td className="px-3 py-3 text-right">−</td><td className="px-3 py-3 text-right">−</td>
-                        <td className="px-3 py-3 text-right">₹{priceBreakdown.gstAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                        <td className="px-3 py-3 text-center">−</td><td className="px-3 py-3 text-center">−</td>
+                        <td className="px-3 py-3 text-center">₹{priceBreakdown.gstAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
                       </tr>
                       {priceBreakdown.discountAmount > 0 && (
                         <tr className="border-t border-[#F0EBE1] bg-emerald-50/60 text-emerald-700">
@@ -1403,14 +1461,14 @@ const ProductDetailsPage: React.FC = () => {
                             <Tag size={13} className="inline-block" />
                             Discount{priceBreakdown.discountPercentage > 0 ? ` (${priceBreakdown.discountPercentage}%)` : ""}
                           </td>
-                          <td className="px-3 py-3 text-right">−</td>
-                          <td className="px-3 py-3 text-right">−</td>
-                          <td className="px-3 py-3 text-right font-semibold text-emerald-700">−₹{priceBreakdown.discountAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                          <td className="px-3 py-3 text-center">−</td>
+                          <td className="px-3 py-3 text-center">−</td>
+                          <td className="px-3 py-3 text-center font-semibold text-emerald-700">−₹{priceBreakdown.discountAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
                         </tr>
                       )}
                     </tbody>
                     <tfoot className={isSilverProduct ? "bg-slate-50" : "bg-amber-50"}>
-                      <tr><td className="px-3 py-3 text-base font-bold text-[#1A1A1A]" colSpan={3}>Grand Total</td><td className="px-3 py-3 text-right text-base font-bold text-[#1A1A1A]">₹{(priceBreakdown.finalAmount ?? priceBreakdown.totalAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td></tr>
+                      <tr><td className="px-3 py-3 text-base font-bold  text-[#1A1A1A]" colSpan={3}>Grand Total</td><td className="px-3 py-3 text-center text-base font-bold text-[#1A1A1A]">₹{(priceBreakdown.finalAmount ?? priceBreakdown.totalAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td></tr>
                     </tfoot>
                   </table>
                 </div>
@@ -1479,7 +1537,7 @@ const ProductDetailsPage: React.FC = () => {
 
       </div>
 
-      {showDiscountModal && apiDiscountAmount > 0 && (
+      {showDiscountModal && hasValidMrp && apiDiscountAmount > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="discount-title" onMouseDown={() => setShowDiscountModal(false)}>
           <motion.div
             initial={{ opacity: 0, scale: 0.92, y: 24 }}
@@ -1547,7 +1605,7 @@ const ProductDetailsPage: React.FC = () => {
 
               {/* Savings badge */}
               <div className="my-5 flex justify-center gap-2 flex-wrap">
-                {apiDiscountPercentage > 0 && (
+                {hasValidMrp && apiDiscountPercentage > 0 && (
                   <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold ${
                     isSilverProduct ? "border-slate-200 bg-slate-50 text-slate-700" : "border-amber-200 bg-amber-50 text-amber-700"
                   }`}>

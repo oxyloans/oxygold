@@ -1734,6 +1734,9 @@ const ProfilePage: React.FC = () => {
                                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(order.paymentStatus)}`}>
                                                                 Payment: {order.paymentStatus}
                                                             </span>
+                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(order.paymentMode)}`}>
+                                                            Mode: {order.paymentMode}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </div>

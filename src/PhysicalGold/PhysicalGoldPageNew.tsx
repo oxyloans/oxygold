@@ -86,7 +86,7 @@ const CompactProductCard: React.FC<{
   horizontal?: boolean;
 }> = ({ product, onClick, horizontal = false }) => {
   const navigate = useNavigate();
-  const { addToCart, cartItems } = useCart();
+  const { addToCart, cartItems, incrementQuantity, decrementQuantity } = useCart();
   const [options, setOptions] = useState<ProductVariant[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [cartProduct, setCartProduct] = useState<PhysicalGoldProduct>(product);
@@ -95,7 +95,11 @@ const CompactProductCard: React.FC<{
   const [unavailable, setUnavailable] = useState(false);
   const busyRef = useRef(false);
   const selected = options.find(v => String(v.id) === selectedId);
-  const inCart = !!(selected && cartItems.some(item => item.variant.id === selected.id));
+  const cartItem = selected
+    ? cartItems.find(item => item.variant.id === selected.id)
+    : undefined;
+  const cartQuantity = cartItem?.quantity ?? 0;
+  const inCart = cartQuantity > 0;
 
   const handleAdd = async () => {
     if (busyRef.current) return;
@@ -168,26 +172,34 @@ const CompactProductCard: React.FC<{
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-[#E8E2D8] bg-white shadow-sm transition-all duration-300 hover:border-[#C29B27]/60 hover:shadow-md">
       {/* Image */}
-      <button
-        type="button"
-        onClick={onClick}
-        aria-label={`View ${product.productName}`}
-        className="relative aspect-square w-full shrink-0 overflow-hidden bg-[#FDFAF4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C29B27]"
-      >
-        <div className="h-full w-full p-2.5 transition-transform duration-500 motion-safe:group-hover:scale-105">
-          <ProductImage urls={collectImageURLs(product)} alt={product.productName} className="object-contain" />
-        </div>
-        {hasDiscount && discountPct > 0 && (
-          <span className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-            {discountPct}% OFF
-          </span>
-        )}
-        {product.categoryName && (
-          <span className="absolute bottom-2 right-2 max-w-[90%] truncate rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
-            {product.categoryName}
-          </span>
-        )}
-      </button>
+    <button
+  type="button"
+  onClick={onClick}
+  aria-label={`View ${product.productName}`}
+  className="relative aspect-square w-full shrink-0 overflow-hidden bg-[#FDFAF4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C29B27]"
+>
+  <div className="h-full w-full p-2.5 transition-transform duration-500 motion-safe:group-hover:scale-105">
+    <ProductImage
+      urls={collectImageURLs(product)}
+      alt={product.productName}
+      className="object-contain"
+    />
+  </div>
+
+  {/* Discount - Top Left */}
+  {hasDiscount && discountPct > 0 && (
+    <span className="absolute left-2 top-2 z-10 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+      {discountPct}% OFF
+    </span>
+  )}
+
+  {/* Category - Top Right */}
+  {product.categoryName && (
+    <span className="absolute right-2 top-2 z-10 max-w-[55%] truncate rounded-md bg-black/60 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white shadow-sm backdrop-blur-sm">
+      {product.categoryName}
+    </span>
+  )}
+</button>
 
       {/* Body */}
       <div className="flex flex-1 flex-col gap-2 p-3">
@@ -230,23 +242,52 @@ const CompactProductCard: React.FC<{
         )}
 
         <div className="mt-auto flex flex-col gap-1.5 pt-1">
-          <button
-            type="button"
-            disabled={busy || unavailable}
-            onClick={inCart ? () => navigate("/physical-gold/cart") : handleAdd}
-            className={`flex h-9 w-full items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold transition-all active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 ${
-              inCart
-                ? "border border-[#C29B27] bg-white text-[#C29B27] hover:bg-amber-50"
-                : "bg-[#C29B27] text-white hover:bg-[#A88820] shadow-sm"
-            }`}
-          >
-            {busy ? (
-              <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-              </svg>
-            ) : unavailable ? "Out of Stock" : inCart ? "Go to Cart →" : "Add to Cart"}
-          </button>
+          {inCart && cartItem ? (
+            <div className="flex h-9 w-full items-center justify-between rounded-xl border border-[#D9C89A] bg-[#F8F1E1] px-2">
+              <button
+                type="button"
+                onClick={async (event) => {
+                  event.stopPropagation();
+                  await decrementQuantity(cartItem.variant.id, cartItem.cartId);
+                }}
+                aria-label="Decrease quantity"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#8B6914] text-lg font-bold leading-none text-white transition hover:bg-[#7A5C10] active:scale-95"
+              >
+                −
+              </button>
+
+              <span className="min-w-[2rem] text-center text-[14px] font-bold text-[#1A1A1A]">
+                {cartQuantity}
+              </span>
+
+              <button
+                type="button"
+                onClick={async (event) => {
+                  event.stopPropagation();
+                  await incrementQuantity(cartItem.variant.id);
+                }}
+                aria-label="Increase quantity"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#8B6914] text-lg font-bold leading-none text-white transition hover:bg-[#7A5C10] active:scale-95"
+              >
+                +
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled={busy || unavailable}
+              onClick={handleAdd}
+              className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-[#C29B27] text-[12px] font-semibold text-white shadow-sm transition-all hover:bg-[#A88820] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? (
+                <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                </svg>
+              ) : unavailable ? "Out of Stock" : "Add to Cart"}
+            </button>
+          )}
+
           <button type="button" onClick={onClick} className="h-7 text-[11px] font-medium text-[#8A8A8A] hover:text-[#C29B27] transition-colors">
             View Details →
           </button>
@@ -601,16 +642,35 @@ const PhysicalGoldPageNew: React.FC = () => {
                     </div>
                   ) : products.length ? (
                     <div className="grid grid-cols-2 auto-rows-fr gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                      {products.map(product => (
-                        <CompactProductCard
-                          key={product.id}
-                          product={product}
-                          horizontal={false}
-                          onClick={() => navigate(`/physical-gold/product/${product.id}`, { state: {
-                            categoryId: selectedCategoryId, categoryName, subCategoryId: selectedSubCategoryId, subCategoryName
-                          }})}
-                        />
-                      ))}
+                      {products.map(product => {
+                        const productSubCategoryId = String(
+                          product.subCategoryId || selectedSubCategoryId || ""
+                        );
+                        const productSubCategoryName =
+                          subCategories.find(
+                            sub => String(sub.id) === productSubCategoryId
+                          )?.name ||
+                          product.subCategoryName ||
+                          (selectedSubCategoryId ? subCategoryName : "");
+
+                        return (
+                          <CompactProductCard
+                            key={product.id}
+                            product={product}
+                            horizontal={false}
+                            onClick={() =>
+                              navigate(`/physical-gold/product/${product.id}`, {
+                                state: {
+                                  categoryId: selectedCategoryId,
+                                  categoryName,
+                                  subCategoryId: productSubCategoryId,
+                                  subCategoryName: productSubCategoryName,
+                                },
+                              })
+                            }
+                          />
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="rounded-2xl border border-dashed border-[#E8E2D8] px-5 py-16 text-center">
