@@ -663,6 +663,26 @@ const CartPage: React.FC = () => {
                         <div className="bg-white border border-[#E8E0D5] rounded-xl p-5 shadow-sm">
                             <h2 className="text-[15px] font-semibold text-[#1A1A1A] mb-4">Order Summary</h2>
 
+                            {/* Products — name and quantity from cart response */}
+                            <div className="mb-4 space-y-2 border-b border-[#F0EBE1] pb-4">
+                                {cartItems.map(({ product, variant, quantity }) => (
+                                    <div
+                                        key={`summary-${variant.id}`}
+                                        className="flex min-w-0 items-start justify-between gap-3"
+                                    >
+                                        <p
+                                            className="min-w-0 flex-1 break-words text-[12px] font-medium leading-5 text-[#1A1A1A]"
+                                            title={product.productName}
+                                        >
+                                            {product.productName}
+                                        </p>
+                                        <span className="shrink-0 rounded-md bg-[#F5F2EE] px-2 py-1 text-[11px] font-semibold text-[#6B6B6B]">
+                                            Qty: {quantity}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+
                             <div className="space-y-2.5 mb-4">
                                 <div className="flex justify-between text-[12px]">
                                     <span className="text-[#8A8A8A]">Subtotal ({totalItems} items)</span>
