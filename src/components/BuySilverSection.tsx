@@ -4,8 +4,7 @@ import { useNavigate } from "react-router-dom";
 export default function BuySilverSection() {
   const navigate = useNavigate();
   const handleBuyNow = () => {
-    sessionStorage.setItem("redirectAfterLogin", "/physical-gold");
-    navigate("/login", { state: { from: "/physical-gold" } });
+    navigate("/login");
   };
   return (
     <section className="buy-silver-section" aria-labelledby="silver-title">

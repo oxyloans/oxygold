@@ -347,10 +347,9 @@ const ProductDetailsPage: React.FC = () => {
 
   const handleAddToCart = useCallback(async () => {
     if (!TokenManager.getInstance().isLoggedIn()) {
-      const current = `${location.pathname}${location.search}`;
-      sessionStorage.setItem("redirectAfterLogin", current);
+
       navigate("/login", {
-        state: { from: current },
+       state: { from: `${location.pathname}${location.search}` },
       });
       return;
     }
@@ -369,10 +368,9 @@ const ProductDetailsPage: React.FC = () => {
 
   const handleBuyNow = useCallback(async () => {
     if (!TokenManager.getInstance().isLoggedIn()) {
-      const current = `${location.pathname}${location.search}`;
-      sessionStorage.setItem("redirectAfterLogin", current);
+
       navigate("/login", {
-        state: { from: current },
+        state: { from: `${location.pathname}${location.search}` },
       });
       return;
     }

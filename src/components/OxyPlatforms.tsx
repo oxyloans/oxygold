@@ -10,26 +10,36 @@ import React from "react";
 ───────────────────────────────────────────────────────────────────────────── */
 
 const logos = [
+{
+  
+    name: "OxyBricks",
+    src: "https://i.ibb.co/0jq3tGtY/oxybrickslogo.png",
+    href: "https://www.oxybricks.world/",
+  },
   {
-    src: "https://www.oxygold.ai/assets/global%20logo-D2zgnKNv.png",
-    name: "OXYGLOBAL.TECH",
+   
+    name: "OxyLoans",
+    src: "https://i.ibb.co/gL2V1sZm/oxyloanslogo.png",
+    href: "https://www.oxyloans.com/",
+  },
+  {
+
+    name: "AskOxy.ai",
+    src: "https://i.ibb.co/LdKL31FL/askoxylogo.png ",
+    href: "https://www.askoxy.ai/",
+  },
+  {
+
+    name: "Oxyglobal.tech",
+    src: "https://i.ibb.co/Q3y9TssV/global-logo.png",
     href: "https://www.oxyglobal.tech/",
-  },
-  {
-    src: "https://www.oxygold.ai/assets/oxyloanslogo-B9KlB9Q6.png",
-    name: "OXYLOANS",
-    href: "https://oxyloans.com/",
-  },
-  {
-    src: "https://www.oxygold.ai/assets/oxybrickslogo-dZ2FUI6b.png",
-    name: "OXYBRICKS.WORLD",
-    href: "https://oxybricks.world/",
   },
   // {
   //   src: "https://i.ibb.co/PGYYDvL9/l4.png",
   //   name: "OXYGOLD.AI",
   //   href: "https://www.oxygold.ai/",
   // },
+  
   {
     src: "https://i.ibb.co/B2NcQ7Nj/l5.png",
     name: "OXYCHAIN",

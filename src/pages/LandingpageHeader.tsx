@@ -60,15 +60,15 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
 
   const goTo = (targetId: string) => {
     setSidebarOpen(false);
-    const currentPath = `${location.pathname}${location.search}`;
+    
     if (targetId === "buy-silver" || targetId === "buy-gold") {
-      sessionStorage.setItem("redirectAfterLogin", "/physical-gold");
-      navigate("/login", { state: { from: "/physical-gold" } });
+      window.location.href = "/login";
       return;
     }
+
     if (targetId === "login") {
-      sessionStorage.setItem("redirectAfterLogin", currentPath);
-      navigate("/login", { state: { from: currentPath } });
+      
+      navigate("/login");
       return;
     }
     // "Our Certifications" → dedicated /certificates page

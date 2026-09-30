@@ -143,8 +143,7 @@ const Header: React.FC<HeaderProps> = ({
                   onClick={() => {
                     const target = "/physical-gold/wishlist";
                     if (!TokenManager.getInstance().isLoggedIn()) {
-                      sessionStorage.setItem("redirectAfterLogin", target);
-                      navigate("/login", { state: { from: target } });
+                      navigate("/login");
                     } else {
                       navigate(target);
                     }
@@ -167,8 +166,8 @@ const Header: React.FC<HeaderProps> = ({
                     onClick={() => {
                       const target = "/physical-gold/profile";
                       if (!isLoggedIn) {
-                        sessionStorage.setItem("redirectAfterLogin", target);
-                        navigate("/login", { state: { from: target } });
+                       
+                        navigate("/login");
                       } else {
                         navigate(target);
                       }
@@ -186,8 +185,8 @@ const Header: React.FC<HeaderProps> = ({
                   onClick={() => {
                     const target = "/physical-gold/cart";
                     if (!isLoggedIn) {
-                      sessionStorage.setItem("redirectAfterLogin", target);
-                      navigate("/login", { state: { from: target } });
+                     
+                      navigate("/login");
                     } else {
                       navigate(target);
                     }

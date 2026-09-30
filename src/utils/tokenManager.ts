@@ -209,20 +209,16 @@ class TokenManager {
     return this.accessToken;
   }
 
-  public clearTokens(preserveRedirect: boolean = true): void {
+  public clearTokens(): void {
     console.log('[TokenManager] Clearing tokens for user:', this.userId);
-    const saved = sessionStorage.getItem('redirectAfterLogin');
-    const currentRedirect = saved || (window.location.pathname !== '/login' ? (window.location.pathname + window.location.search) : null);
     this.accessToken = null;
     this.refreshToken = null;
     this.expiresAt = null;
     this.userId = null;
     localStorage.removeItem('user');
     sessionStorage.removeItem('paymentSuccessData');
+    // Clear any cached data that might be user-specific
     sessionStorage.clear();
-    if (preserveRedirect && currentRedirect && currentRedirect !== '/login') {
-      sessionStorage.setItem('redirectAfterLogin', currentRedirect);
-    }
   }
 
   public isLoggedIn(): boolean {
@@ -239,9 +235,6 @@ export const apiCall = async <T = any>(
 
   if (!tokenManager.isLoggedIn()) {
     console.error('[apiCall] User not logged in, redirecting to login');
-    if (window.location.pathname !== '/login') {
-      sessionStorage.setItem('redirectAfterLogin', window.location.pathname + window.location.search);
-    }
     window.location.href = '/login';
     throw new Error('User not logged in');
   }
