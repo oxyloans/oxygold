@@ -691,7 +691,7 @@ export default function OxyGoldLandingPage({ assets }: Props) {
             {/* Platforms */}
             <section
               id="platforms"
-              className="py-0"
+              className="scroll-mt-[106px] py-0"
             >
               <OxyEcosystem />
             </section>
@@ -707,6 +707,7 @@ export default function OxyGoldLandingPage({ assets }: Props) {
           relative
           z-10
           mt-10
+          scroll-mt-[106px]
           sm:mt-14
           lg:mt-20
         "

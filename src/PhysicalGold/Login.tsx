@@ -60,7 +60,12 @@ const Login = () => {
       });
 
       localStorage.setItem('user', JSON.stringify({ phone, isLoggedIn: true, ...data }));
-      navigate('/physical-gold');
+      const savedRedirect = sessionStorage.getItem('redirectAfterLogin');
+      sessionStorage.removeItem('redirectAfterLogin');
+      const targetPath = savedRedirect && savedRedirect.startsWith('/') && !savedRedirect.startsWith('//')
+        ? savedRedirect
+        : '/physical-gold';
+      navigate(targetPath, { replace: true });
     } catch (err: any) {
       setError(err.message || 'OTP verification failed. Please try again.');
     } finally {

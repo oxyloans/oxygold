@@ -81,6 +81,22 @@ const Footer = () => {
       {/* </div>
       </div> */}
 
+      {/* Google Play Store */}
+      <div style={{ display: "flex", justifyContent: "center", padding: "16px 0 8px" }}>
+        <a
+          href="https://play.google.com/store/apps/details?id=com.oxygold.ai&hl=en_IN"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block transition-transform duration-200 hover:scale-105"
+        >
+          <img
+            src="https://s2.rdbuz.com/web/images/homeV2/appinstall/playStore.svg"
+            alt="Get it on Google Play"
+            className="w-28 sm:w-32 h-auto"
+          />
+        </a>
+      </div>
+
       {/* Bottom Bar */}
       <div className="footer-bottom">
         <div className="footer-bottom-content">

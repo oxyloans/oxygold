@@ -20,9 +20,10 @@ export const getCurrentUser = () => {
       return id;
     } catch (error) {
       console.log('[getCurrentUser] Error parsing localStorage or no valid user:', error);
-      // Clear any corrupted data
+      const currentPath = window.location.pathname !== '/login' ? (window.location.pathname + window.location.search) : '/physical-gold';
       localStorage.removeItem('user');
       sessionStorage.clear();
+      sessionStorage.setItem('redirectAfterLogin', currentPath);
       window.location.href = '/login';
       throw new Error('User not authenticated');
     }
@@ -39,11 +40,12 @@ export const isUserLoggedIn = (): boolean => {
 
 export const logout = (): void => {
   console.log('[logout] Logging out current user');
+  const currentPath = window.location.pathname !== '/login' ? (window.location.pathname + window.location.search) : '/physical-gold';
   const tokenManager = TokenManager.getInstance();
   tokenManager.clearTokens();
-  // Clear all cached data
   localStorage.clear();
   sessionStorage.clear();
+  sessionStorage.setItem('redirectAfterLogin', currentPath);
   window.location.href = '/login';
 };
 

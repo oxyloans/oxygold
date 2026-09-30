@@ -11,13 +11,13 @@ import goldBanner from "../assets/goldbanner.png";
 export default function BuyGoldSection() {
   const navigate = useNavigate();
   const handleBuyNow = () => {
-    navigate("/login");
+    sessionStorage.setItem("redirectAfterLogin", "/physical-gold");
+    navigate("/login", { state: { from: "/physical-gold" } });
   };
 
   const handlePlayStore = () => {
-    // ✅ replace with your real Play Store link
     window.open(
-      "https://play.google.com/store/search?q=askoxy&c=apps",
+      "https://play.google.com/store/apps/details?id=com.oxygold.ai&hl=en_IN",
       "_blank",
       "noopener,noreferrer",
     );

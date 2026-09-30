@@ -19,17 +19,19 @@ const Footer: React.FC = () => {
               Your trusted destination for authentic 22K hallmarked gold jewellery.
               Crafted with precision, delivered with care.
             </p>
-            {/* <div className="flex gap-3 mt-4">
-              <button className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-[#C29B27]" style={{ backgroundColor: "hsl(20, 20%, 15%)", color: "hsl(30, 15%, 70%)" }}>
-                <Facebook size={16} />
-              </button>
-              <button className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-[#C29B27]" style={{ backgroundColor: "hsl(20, 20%, 15%)", color: "hsl(30, 15%, 70%)" }}>
-                <Instagram size={16} />
-              </button>
-              <button className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-[#C29B27]" style={{ backgroundColor: "hsl(20, 20%, 15%)", color: "hsl(30, 15%, 70%)" }}>
-                <Twitter size={16} />
-              </button>
-            </div> */}
+            {/* Google Play Store */}
+            <a
+              href="https://play.google.com/store/apps/details?id=com.oxygold.ai&hl=en_IN"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-block transition-transform duration-200 hover:scale-105"
+            >
+              <img
+                src="https://s2.rdbuz.com/web/images/homeV2/appinstall/playStore.svg"
+                alt="Get it on Google Play"
+                className="w-28 sm:w-32 h-auto"
+              />
+            </a>
           </div>
 
           {/* Quick Links */}
