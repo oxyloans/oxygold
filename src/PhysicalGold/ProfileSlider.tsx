@@ -59,7 +59,8 @@ import {
     type ProductReview,
     type HelpdeskQuery,
 } from "./physicalGoldService";
-import { Order, OrderItem } from "./physicalGoldData";
+import { type Order, type OrderItem, resolveS3ImageUrl } from "./physicalGoldData";
+
 import PhysicalGoldHeader from "./components/Header";
 import Toast, { ToastType } from "./components/Toast";
 import Dropdown from "./components/Dropdown";
@@ -159,6 +160,11 @@ interface PageState {
     showQueryForm: boolean;
     isUploadingFile: boolean;
     cancellingQueryId: number | null;
+    cancelQueryConfirmation: {
+        show: boolean;
+        queryId: number | null;
+        ticketNumber?: string;
+    };
     profileIncompleteModal: boolean;
 }
 
@@ -176,11 +182,19 @@ const formatDate = (dateString: string) => {
     });
 };
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status?: string | null) => {
     switch (status?.toUpperCase()) {
-        case "CONFIRMED": return "text-emerald-700 bg-emerald-50";
-        case "PENDING": return "text-amber-700 bg-amber-50";
-        case "CANCELLED": return "text-rose-700 bg-rose-50";
+        case "CONFIRMED":
+        case "DELIVERED":
+        case "COMPLETED":
+        case "SUCCESS": return "text-emerald-700 bg-emerald-50";
+        case "PENDING":
+        case "PAYMENT_PENDING": return "text-amber-700 bg-amber-50";
+        case "CANCELLED":
+        case "FAILED": return "text-rose-700 bg-rose-50";
+        case "ONLINE": return "text-blue-700 bg-blue-50";
+        case "COD":
+        case "CASH": return "text-purple-700 bg-purple-50";
         default: return "text-zinc-600 bg-zinc-100";
     }
 };
@@ -291,6 +305,7 @@ const ProfilePage: React.FC = () => {
         showQueryForm: false,
         isUploadingFile: false,
         cancellingQueryId: null,
+        cancelQueryConfirmation: { show: false, queryId: null, ticketNumber: '' },
         profileIncompleteModal: false,
     });
 
@@ -962,7 +977,10 @@ const ProfilePage: React.FC = () => {
     const toggleOrderExpand = (orderId: number) => {
         const isClosing = s.expandedOrderId === orderId;
         patch({ expandedOrderId: isClosing ? null : orderId });
-        if (!isClosing) loadDeliveryTracking(orderId);
+        const currentOrder = s.orders.find((o) => o.orderId === orderId);
+        if (!isClosing && currentOrder?.paymentStatus !== 'PENDING') {
+            loadDeliveryTracking(orderId);
+        }
     };
 
     const openProductReview = async (item: OrderItem) => {
@@ -1126,7 +1144,10 @@ const ProfilePage: React.FC = () => {
         patch({ cancellingQueryId: queryId });
         try {
             await cancelQuery(queryId, uid);
-            patch({ toast: { message: 'Query cancelled successfully.', type: 'success' } });
+            patch({
+                toast: { message: 'Query cancelled successfully.', type: 'success' },
+                cancelQueryConfirmation: { show: false, queryId: null, ticketNumber: '' },
+            });
             await loadQueries();
         } catch (err) {
             console.error('Failed to cancel query:', err);
@@ -1723,19 +1744,26 @@ const ProfilePage: React.FC = () => {
                                         const tracking = s.deliveryTracking[order.orderId];
                                         const isTrackingLoading = s.trackingLoadingOrderId === order.orderId;
                                         const trackingUnavailable = s.trackingErrorOrderId === order.orderId;
+                                        const displayPaymentMode = order.paymentModeDisplay || (order.paymentMode?.toUpperCase() === 'CASHFREE' ? 'ONLINE' : order.paymentMode);
                                         return (
                                             <div key={order.orderId} className="border border-[#E8E0D5] rounded-xl overflow-hidden bg-white">
                                                 {/* Order Header */}
-                                                {/* Order Header */}
-                                                <div className="flex items-start gap-3 px-4 py-4">
+                                                <div
+                                                    onClick={() => toggleOrderExpand(order.orderId)}
+                                                    className="flex items-start gap-3 px-4 py-4 cursor-pointer hover:bg-[#FAF8F5] transition-colors"
+                                                >
                                                     <div className="h-10 w-10 rounded-xl bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
                                                         <Package className="h-5 w-5" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-start justify-between gap-2">
                                                             <div className="min-w-0">
-                                                                <p className="text-[12px] font-semibold text-[#1A1A1A] truncate">Order #{order.orderNumber.slice(-4)}</p>
-                                                                <p className="text-[11px] text-[#8A8A8A] mt-0.5">{formatDate(order.paymentExpiry)}</p>
+                                                                <p className="text-[12px] font-semibold text-[#1A1A1A] truncate" title={order.orderNumber}>
+                                                                    Order #{order.orderNumber}
+                                                                </p>
+                                                                <p className="text-[11px] text-[#8A8A8A] mt-0.5">
+                                                                    {formatDate(order.createdAt || order.paymentExpiry)}
+                                                                </p>
                                                             </div>
                                                             <span className="text-[14px] font-bold text-[#1A1A1A] shrink-0">{DISPLAY_INR(order.totalAmount)}</span>
                                                         </div>
@@ -1746,17 +1774,20 @@ const ProfilePage: React.FC = () => {
                                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(order.paymentStatus)}`}>
                                                                 Payment: {order.paymentStatus}
                                                             </span>
-                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(order.paymentMode)}`}>
-                                                            Mode: {order.paymentMode}
-                                                            </span>
+                                                            {displayPaymentMode && (
+                                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(displayPaymentMode)}`}>
+                                                                    {displayPaymentMode}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 {/* Actions */}
-                                                {order.paymentStatus !== 'PENDING' && (
-                                                    <div className="flex items-center gap-2 px-5 pb-4 border-t border-[#F0EBE1] pt-3">
+                                                <div className="flex items-center gap-2 px-4 pb-3 border-t border-[#F0EBE1] pt-3">
+                                                    {order.paymentStatus !== 'PENDING' && (
                                                         <button
+                                                            type="button"
                                                             onClick={async (e) => {
                                                                 e.stopPropagation();
                                                                 try {
@@ -1766,19 +1797,23 @@ const ProfilePage: React.FC = () => {
                                                                     window.open(u, "_blank");
                                                                 } catch (err) { console.error(err); }
                                                             }}
-                                                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition"
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition"
                                                         >
                                                             <FileText className="h-3 w-3" /> Invoice
                                                         </button>
-                                                        <button
-                                                            onClick={() => toggleOrderExpand(order.orderId)}
-                                                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition ml-auto"
-                                                        >
-                                                            {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                                            {isExp ? "Hide Details" : "Track Order"}
-                                                        </button>
-                                                    </div>
-                                                )}
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleOrderExpand(order.orderId);
+                                                        }}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition ml-auto"
+                                                    >
+                                                        {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                                        {isExp ? "Hide Details" : (order.paymentStatus === 'PENDING' ? "View Details" : "Track Order")}
+                                                    </button>
+                                                </div>
 
 
                                                 {/* Expanded Details */}
@@ -1844,7 +1879,7 @@ const ProfilePage: React.FC = () => {
                                                                         <div>
                                                                             <p className="text-[10px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-2">Delivery Timeline</p>
                                                                             <ol className="space-y-0">
-                                                                                {tracking.timeline.map((event, index) => {
+                                                                                {tracking.timeline.map((event: any, index: number) => {
                                                                                     const isFirst = index === 0;
                                                                                     const isLast = index === tracking.timeline!.length - 1;
                                                                                     return (
@@ -1941,19 +1976,51 @@ const ProfilePage: React.FC = () => {
                                                             );
                                                         })}
 
+                                                        {/* Delivery Address (if available and not in tracking) */}
+                                                        {(order.address || order.flatNo) && !tracking?.deliveryAddress && (
+                                                            <div className="flex items-start gap-2 bg-[#F5F2EE] rounded-lg px-3 py-2 text-[11px] text-[#1A1A1A]">
+                                                                <MapPin className="h-3.5 w-3.5 text-[#8B6914] shrink-0 mt-0.5" />
+                                                                <div className="leading-4">
+                                                                    <p className="font-semibold text-[#1A1A1A]">Delivery Address</p>
+                                                                    <p className="text-[#6D6D6D]">
+                                                                        {[order.flatNo, order.address, order.landMark, order.state, order.pinCode].filter(Boolean).join(", ")}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
                                                         {/* Order Summary Row */}
-                                                        <div className="flex items-center justify-between bg-white border border-[#E8E0D5] rounded-lg px-4 py-3">
-                                                            <p className="text-[11px] text-[#8A8A8A]">
-                                                                {order.totalItems} item{order.totalItems > 1 ? "s" : ""} total
-                                                            </p>
-                                                            <p className="text-[13px] font-semibold text-[#1A1A1A]">{DISPLAY_INR(order.totalAmount)}</p>
+                                                        <div className="bg-white border border-[#E8E0D5] rounded-lg p-3 space-y-1.5 text-[11px]">
+                                                            <div className="flex justify-between text-[#8A8A8A]">
+                                                                <span>Items ({order.totalItems} piece{order.totalItems > 1 ? "s" : ""})</span>
+                                                                <span>{DISPLAY_INR(order.items?.reduce((sum, item) => sum + (item.subtotal || item.price * item.quantity), 0) || order.totalAmount)}</span>
+                                                            </div>
+                                                            {typeof order.totalDiscountAmount === 'number' && order.totalDiscountAmount > 0 && (
+                                                                <div className="flex justify-between text-emerald-600 font-medium">
+                                                                    <span>Discount</span>
+                                                                    <span>-{DISPLAY_INR(order.totalDiscountAmount)}</span>
+                                                                </div>
+                                                            )}
+                                                            {order.deliveryFee !== null && order.deliveryFee !== undefined && (
+                                                                <div className="flex justify-between text-[#8A8A8A]">
+                                                                    <span>Delivery Fee</span>
+                                                                    <span>{order.deliveryFee > 0 ? DISPLAY_INR(order.deliveryFee) : "FREE"}</span>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex justify-between text-[#1A1A1A] font-semibold pt-1.5 border-t border-[#F0EBE1] text-[12px]">
+                                                                <span>Total Amount</span>
+                                                                <span>{DISPLAY_INR(order.totalAmount)}</span>
+                                                            </div>
                                                         </div>
 
                                                         {/* Payment Info */}
                                                         <div className="bg-[#1A1200] text-white rounded-lg px-3 py-3 mt-2 flex items-center justify-between gap-2">
                                                             <div className="flex items-center gap-2 min-w-0">
                                                                 <CreditCard className="h-3.5 w-3.5 text-[#C9A84C] shrink-0" />
-                                                                <span className="text-[11px] font-medium truncate">{order.paymentMode}</span>
+                                                                <span className="text-[11px] font-medium truncate">
+                                                                    {displayPaymentMode}
+                                                                    {order.txnId ? ` · Txn: ${order.txnId}` : ""}
+                                                                </span>
                                                             </div>
                                                             <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(order.paymentStatus)}`}>
                                                                 {order.paymentStatus}
@@ -2189,20 +2256,24 @@ const ProfilePage: React.FC = () => {
                                                         <p className="text-[10px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-2">Attachments</p>
                                                         <div className="flex flex-wrap gap-2">
                                                             {q.userDocuments.map((doc: any) => {
-                                                                const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(doc.fileName || '');
+                                                                const filePath = doc.filePath || doc.adminUploadedFilePath || "";
+                                                                const resolvedUrl = resolveS3ImageUrl(filePath);
+                                                                const fileName = doc.fileName || doc.adminUploadedFileName || "Attachment";
+                                                                const isImage = /\.(jpg|jpeg|png|gif|webp|svg)/i.test(fileName) || /\.(jpg|jpeg|png|gif|webp|svg)/i.test(filePath);
                                                                 return (
                                                                     <a
-                                                                        key={doc.userDocumentId}
-                                                                        href={doc.filePath}
+                                                                        key={doc.userDocumentId || doc.adminDocumentId || filePath}
+                                                                        href={resolvedUrl}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
-                                                                        className="group relative"
+                                                                        className="group relative inline-block"
+                                                                        title={fileName}
                                                                     >
                                                                         {isImage ? (
-                                                                            <div className="h-16 w-16 rounded-lg border border-[#E8E0D5] overflow-hidden bg-[#F5F2EE]">
+                                                                            <div className="h-16 w-16 rounded-lg border border-[#E8E0D5] overflow-hidden bg-[#F5F2EE] hover:border-[#8B6914] transition">
                                                                                 <img
-                                                                                    src={doc.filePath}
-                                                                                    alt={doc.fileName}
+                                                                                    src={resolvedUrl}
+                                                                                    alt={fileName}
                                                                                     className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
                                                                                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                                                                 />
@@ -2210,7 +2281,7 @@ const ProfilePage: React.FC = () => {
                                                                         ) : (
                                                                             <div className="flex items-center gap-1.5 px-3 py-1.5 border border-[#E8E0D5] rounded-lg bg-white hover:bg-[#F5F2EE] transition">
                                                                                 <Paperclip className="h-3 w-3 text-[#8A8A8A]" />
-                                                                                <span className="text-[11px] text-[#1A1A1A] max-w-[100px] truncate">{doc.fileName}</span>
+                                                                                <span className="text-[11px] text-[#1A1A1A] max-w-[120px] truncate">{fileName}</span>
                                                                             </div>
                                                                         )}
                                                                     </a>
@@ -2224,7 +2295,7 @@ const ProfilePage: React.FC = () => {
                                                         <div className="flex justify-end">
                                                             <button
                                                                 type="button"
-                                                                onClick={() => handleCancelQuery(q.id)}
+                                                                onClick={() => patch({ cancelQueryConfirmation: { show: true, queryId: q.id, ticketNumber: q.randomTicketId || String(q.ticketId || q.id) } })}
                                                                 disabled={s.cancellingQueryId === q.id}
                                                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 transition disabled:opacity-60"
                                                             >
@@ -2372,6 +2443,47 @@ const ProfilePage: React.FC = () => {
                                         <Trash2 className="h-4 w-4" />
                                         Delete
                                     </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cancel Query Confirmation Modal */}
+            {s.cancelQueryConfirmation.show && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="h-10 w-10 rounded-full bg-rose-50 flex items-center justify-center">
+                                <AlertTriangle className="h-5 w-5 text-rose-500" />
+                            </div>
+                            <h3 className="text-[16px] font-semibold text-[#1A1A1A]">Cancel Query</h3>
+                        </div>
+                        <p className="text-[13px] text-[#6B6B6B] mb-6 leading-relaxed">
+                            Are you sure you want to cancel query <strong className="text-[#1A1A1A]">#{s.cancelQueryConfirmation.ticketNumber}</strong>? This action cannot be undone.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => patch({ cancelQueryConfirmation: { show: false, queryId: null, ticketNumber: '' } })}
+                                className="flex-1 px-4 py-2.5 rounded-lg border border-[#E8E0D5] text-[13px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition"
+                            >
+                                No, Keep Query
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => s.cancelQueryConfirmation.queryId && handleCancelQuery(s.cancelQueryConfirmation.queryId)}
+                                disabled={s.cancellingQueryId === s.cancelQueryConfirmation.queryId}
+                                className="flex-1 px-4 py-2.5 rounded-lg bg-rose-600 text-white text-[13px] font-medium hover:bg-rose-700 transition disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                            >
+                                {s.cancellingQueryId === s.cancelQueryConfirmation.queryId ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Cancelling...
+                                    </>
+                                ) : (
+                                    "Yes, Cancel Query"
                                 )}
                             </button>
                         </div>

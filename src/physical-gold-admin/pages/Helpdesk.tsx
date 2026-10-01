@@ -11,6 +11,7 @@ import {
     adminUploadQueryScreenshot,
     HelpdeskQuery,
 } from '../services/adminService';
+import { resolveS3ImageUrl } from '../../PhysicalGold/physicalGoldData';
 
 const getAdminId = (): number => {
     try {
@@ -186,10 +187,12 @@ const Helpdesk: React.FC = () => {
                     <p className="text-[12px] leading-relaxed text-slate-700 whitespace-pre-wrap">{item.query || '—'}</p>
                     {item.userDocuments?.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
-                            {item.userDocuments.map((doc) => (
+                            {item.userDocuments.map((doc) => {
+                                const resolvedUrl = resolveS3ImageUrl(doc.filePath || doc.adminUploadedFilePath || '');
+                                return (
                                 <a
                                     key={doc.userDocumentId}
-                                    href={doc.filePath || doc.adminUploadedFilePath || '#'}
+                                    href={resolvedUrl || '#'}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     onClick={event => event.stopPropagation()}
@@ -198,7 +201,8 @@ const Helpdesk: React.FC = () => {
                                     <Paperclip size={10} className="shrink-0" />
                                     <span className="truncate">{doc.fileName || doc.adminUploadedFileName || 'Document'}</span>
                                 </a>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -378,11 +382,13 @@ const Helpdesk: React.FC = () => {
                                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">User Attachments</p>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                     {selectedQuery.userDocuments.map((doc) => {
-                                        const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(doc.fileName || '');
+                                        const filePath = doc.filePath || doc.adminUploadedFilePath || '';
+                                        const resolvedUrl = resolveS3ImageUrl(filePath);
+                                        const isImage = /\.(jpg|jpeg|png|gif|webp|svg)/i.test(doc.fileName || '') || /\.(jpg|jpeg|png|gif|webp|svg)/i.test(filePath);
                                         return (
                                             <a
                                                 key={doc.userDocumentId}
-                                                href={doc.filePath}
+                                                href={resolvedUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="group flex flex-col border border-slate-200 rounded-lg overflow-hidden hover:border-emerald-300 transition-all"
@@ -390,7 +396,7 @@ const Helpdesk: React.FC = () => {
                                                 {isImage ? (
                                                     <div className="aspect-video bg-slate-50 overflow-hidden">
                                                         <img
-                                                            src={doc.filePath}
+                                                            src={resolvedUrl}
                                                             alt={doc.fileName}
                                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                                                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

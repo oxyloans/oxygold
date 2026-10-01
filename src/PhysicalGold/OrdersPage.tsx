@@ -61,9 +61,14 @@ const OrdersPage: React.FC = () => {
 
     const getStatusColor = (status: string) => {
         switch (status.toUpperCase()) {
-            case 'CONFIRMED': return 'text-emerald-600 bg-emerald-50 border-emerald-100 shadow-sm shadow-emerald-500/5';
-            case 'PENDING': return 'text-amber-600 bg-amber-50 border-amber-100 shadow-sm shadow-amber-500/5';
-            case 'CANCELLED': return 'text-rose-600 bg-rose-50 border-rose-100 shadow-sm shadow-rose-500/5';
+            case 'CONFIRMED':
+            case 'DELIVERED':
+            case 'COMPLETED':
+            case 'SUCCESS': return 'text-emerald-600 bg-emerald-50 border-emerald-100 shadow-sm shadow-emerald-500/5';
+            case 'PENDING':
+            case 'PAYMENT_PENDING': return 'text-amber-600 bg-amber-50 border-amber-100 shadow-sm shadow-amber-500/5';
+            case 'CANCELLED':
+            case 'FAILED': return 'text-rose-600 bg-rose-50 border-rose-100 shadow-sm shadow-rose-500/5';
             default: return 'text-zinc-500 bg-zinc-50 border-zinc-100';
         }
     };
@@ -133,7 +138,7 @@ const OrdersPage: React.FC = () => {
                                             <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">Placed On</p>
                                             <div className="flex items-center gap-2 text-sm text-zinc-700 font-medium">
                                                 <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-                                                <span>{formatDate(order.paymentExpiry)}</span>
+                                                <span>{formatDate(order.createdAt || order.paymentExpiry)}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -166,7 +171,8 @@ const OrdersPage: React.FC = () => {
                                                             P{item.productId}
                                                         </div>
                                                         <div>
-                                                            <p className="text-sm font-bold text-zinc-900">Product ID: {item.productId}</p>
+                                                            <p className="text-sm font-bold text-zinc-900">{item.productName || `Product ID: ${item.productId}`}</p>
+                                                            {item.variant && <p className="text-xs text-[#8B6914] font-medium">{item.variant}</p>}
                                                             <p className="text-xs text-zinc-500 font-medium tracking-tight">Qty: {item.quantity} × {formatCurrency(item.price)}</p>
                                                         </div>
                                                     </div>
@@ -178,7 +184,7 @@ const OrdersPage: React.FC = () => {
                                         <div className="mt-6 flex flex-wrap gap-4 items-center justify-between pt-6 border-t border-zinc-200">
                                             <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-widest">
                                                 <CreditCard className="h-3.5 w-3.5" />
-                                                <span>Paid via {order.paymentMode}</span>
+                                                <span>Paid via {order.paymentModeDisplay || (order.paymentMode?.toUpperCase() === 'CASHFREE' ? 'ONLINE' : order.paymentMode)}</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 uppercase tracking-widest">
                                                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
