@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
     AlertTriangle,
     ChevronRight,
+    ChevronDown,
     CreditCard,
     Loader2,
     MapPin,
@@ -195,6 +196,7 @@ const CartPage: React.FC = () => {
         totalDiscountPercentage,
     } = useCart();
 
+    const [showBreakdown, setShowBreakdown] = useState(false);
     const [s, setS] = useState<PageState>({
         addresses: [],
         selectedAddressId: "",
@@ -596,7 +598,7 @@ const CartPage: React.FC = () => {
                                             Manage Addresses
                                         </button>
                                     </div>
-                                    <div className="space-y-2 max-h-[17rem] overflow-y-auto pr-1 overscroll-contain">
+                                    <div className="space-y-2 max-h-[17rem] overflow-y-auto pr-1.5 overscroll-contain scroll-smooth [scrollbar-width:thin] [scrollbar-color:#D1C7BB_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[#F5F2EE] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D1C7BB] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#8B6914]">
                                         {s.addresses.map((addr) => {
                                             const missingLocation = !addr.latitude || !addr.longitude;
                                             return (
@@ -664,41 +666,72 @@ const CartPage: React.FC = () => {
                             <h2 className="text-[15px] font-semibold text-[#1A1A1A] mb-4">Order Summary</h2>
 
                             {/* Products — name and quantity from cart response */}
-                            <div className="mb-4 space-y-2 border-b border-[#F0EBE1] pb-4">
-                                {cartItems.map(({ product, variant, quantity }) => (
-                                    <div
-                                        key={`summary-${variant.id}`}
-                                        className="flex min-w-0 items-start justify-between gap-3"
-                                    >
-                                        <p
-                                            className="min-w-0 flex-1 break-words text-[12px] font-medium leading-5 text-[#1A1A1A]"
-                                            title={product.productName}
-                                        >
-                                            {product.productName}
-                                        </p>
-                                        <span className="shrink-0 rounded-md bg-[#F5F2EE] px-2 py-1 text-[11px] font-semibold text-[#6B6B6B]">
-                                            Qty: {quantity}
-                                        </span>
+                            <div className="mb-4 border-b border-[#F0EBE1] pb-4">
+                                {cartItems.length > 3 && (
+                                    <div className="flex items-center justify-between pb-1.5 text-[11px] text-[#8A8A8A]">
+                                        <span>Items ({cartItems.length})</span>
+                                        <span className="text-[10px] text-[#8B6914] font-medium">Scroll to view all</span>
                                     </div>
-                                ))}
+                                )}
+                                <div
+                                    className={`space-y-2 ${
+                                        cartItems.length > 3
+                                            ? "max-h-[135px] overflow-y-auto pr-1.5 overscroll-contain scroll-smooth [scrollbar-width:thin] [scrollbar-color:#D1C7BB_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[#F5F2EE] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D1C7BB] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#8B6914]"
+                                            : ""
+                                    }`}
+                                >
+                                    {cartItems.map(({ product, variant, quantity }) => (
+                                        <div
+                                            key={`summary-${variant.id}`}
+                                            className="flex min-w-0 items-start justify-between gap-3"
+                                        >
+                                            <p
+                                                className="min-w-0 flex-1 break-words text-[12px] font-medium leading-5 text-[#1A1A1A]"
+                                                title={product.productName}
+                                            >
+                                                {product.productName}
+                                            </p>
+                                            <span className="shrink-0 rounded-md bg-[#F5F2EE] px-2 py-1 text-[11px] font-semibold text-[#6B6B6B]">
+                                                Qty: {quantity}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div className="space-y-2.5 mb-4">
-                                <div className="flex justify-between text-[12px]">
-                                    <span className="text-[#8A8A8A]">Subtotal ({totalItems} items)</span>
-                                    <span className="font-medium text-[#1A1A1A]">₹{cartSubtotal.toLocaleString("en-IN")}</span>
+                            {/* Price Breakdown Box */}
+                            <div className="rounded-xl border border-[#F0EBE1] bg-[#FAF8F5] p-4 mb-5 space-y-2.5">
+                                <div className="flex justify-between items-center text-[13px]">
+                                    <span className="text-[#6B6B6B] font-medium">Subtotal ({totalItems} {totalItems === 1 ? 'item' : 'items'})</span>
+                                    <span className="font-semibold text-[#1A1A1A]">₹{cartSubtotal.toLocaleString("en-IN")}</span>
                                 </div>
-                                <div className="flex justify-between text-[12px]">
+                                <div className="flex justify-between items-center text-[12px]">
                                     <span className="text-[#8A8A8A]">Making Charges</span>
                                     <span className="font-medium text-[#1A1A1A]">₹{totalMakingCharges.toLocaleString("en-IN")}</span>
                                 </div>
-                                <div className="flex justify-between text-[12px]">
+                                <div className="flex justify-between items-center text-[12px]">
                                     <span className="text-[#8A8A8A]">GST (3%)</span>
                                     <span className="font-medium text-[#1A1A1A]">₹{totalGstCharges.toLocaleString("en-IN")}</span>
                                 </div>
+
+                                {/* Delivery Fee: Display ONLY if distance > 0 OR fee > 0 */}
+                                {((deliveryDistanceKm !== null && deliveryDistanceKm > 0) || deliveryFee > 0) && (
+                                    <div>
+                                        <div className="flex justify-between items-center text-[12px]">
+                                            <span className="text-[#8A8A8A]">
+                                                Delivery{deliveryDistanceKm !== null && deliveryDistanceKm > 0 ? ` (${deliveryDistanceKm} km)` : ""}
+                                            </span>
+                                            <span className="font-medium text-[#1A1A1A]">₹{deliveryFee.toLocaleString("en-IN")}</span>
+                                        </div>
+                                        {ratePerKm !== null && ratePerKm > 0 && deliveryDistanceKm !== null && deliveryDistanceKm > 0 && (
+                                            <p className="text-[10px] text-[#8A8A8A] text-right mt-0.5">₹{ratePerKm}/km delivery rate</p>
+                                        )}
+                                    </div>
+                                )}
+
                                 {totalDiscountAmount > 0 && (
-                                    <div className="flex justify-between text-[12px]">
-                                        <span className="text-emerald-600 flex items-center gap-1">
+                                    <div className="flex justify-between items-center text-[12px]">
+                                        <span className="text-emerald-600 flex items-center gap-1 font-medium">
                                             Discount
                                             {totalDiscountPercentage > 0 && (
                                                 <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
@@ -706,25 +739,17 @@ const CartPage: React.FC = () => {
                                                 </span>
                                             )}
                                         </span>
-                                        <span className="font-medium text-emerald-600">-₹{totalDiscountAmount.toLocaleString("en-IN")}</span>
+                                        <span className="font-semibold text-emerald-600">-₹{totalDiscountAmount.toLocaleString("en-IN")}</span>
                                     </div>
                                 )}
-                                <div className="flex justify-between text-[12px]">
-                                    <span className="text-[#8A8A8A]">Delivery{deliveryDistanceKm !== null ? ` (${deliveryDistanceKm} km)` : ""}</span>
-                                    <span className="font-medium text-[#1A1A1A]">₹{deliveryFee.toLocaleString("en-IN")}</span>
-                                </div>
-                                {ratePerKm !== null && deliveryDistanceKm !== null && (
-                                    <p className="text-[10px] text-[#8A8A8A] text-right">₹{ratePerKm}/km delivery rate</p>
-                                )}
-                                <div className="flex justify-between text-[12px]">
+
+                                {/* <div className="flex justify-between items-center text-[12px]">
                                     <span className="text-[#8A8A8A]">Insurance</span>
                                     <span className="font-medium text-[#1A1A1A]">Included</span>
-                                </div>
-                            </div>
+                                </div> */}
 
-                            <div className="border-t border-[#F0EBE1] pt-3 mb-5">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[14px] font-semibold text-[#1A1A1A]">Total</span>
+                                <div className="border-t border-[#E8E0D5] pt-3 mt-3 flex justify-between items-center">
+                                    <span className="text-[14px] font-semibold text-[#1A1A1A]">Total To Pay</span>
                                     <span className="text-[18px] font-bold text-[#8B6914]">
                                         ₹{totalPayableAmount.toLocaleString("en-IN")}
                                     </span>

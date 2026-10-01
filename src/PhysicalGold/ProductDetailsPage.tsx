@@ -347,8 +347,9 @@ const ProductDetailsPage: React.FC = () => {
 
   const handleAddToCart = useCallback(async () => {
     if (!TokenManager.getInstance().isLoggedIn()) {
+
       navigate("/login", {
-        state: { from: `${location.pathname}${location.search}` },
+       state: { from: `${location.pathname}${location.search}` },
       });
       return;
     }
@@ -367,6 +368,7 @@ const ProductDetailsPage: React.FC = () => {
 
   const handleBuyNow = useCallback(async () => {
     if (!TokenManager.getInstance().isLoggedIn()) {
+
       navigate("/login", {
         state: { from: `${location.pathname}${location.search}` },
       });
@@ -1422,55 +1424,64 @@ const ProductDetailsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               {priceBreakdownLoading ? (
                 <p className="py-8 text-center text-sm text-[#6B6B6B]">Loading price breakdown…</p>
               ) : priceBreakdown ? (
-                <div className="overflow-hidden rounded-xl border border-[#E8E2D8]">
-                  <table className="w-full text-sm">
-                    <thead className="bg-[#F9F7F4] text-left text-[11px] font-bold uppercase tracking-wide text-[#4A4A4A]">
-  <tr>
-    <th className="px-3 py-3">Component</th>
-    <th className="px-3 py-3 text-center">Rate / Gram</th>
-    <th className="px-3 py-3 text-center">Weight</th>
-    <th className="px-3 py-3 text-center">Amount</th>
-  </tr>
-</thead>
-                    <tbody className="text-[#4A4A4A]">
-                      <tr className="border-t border-[#F0EBE1]">
-                        <td className="px-3 py-3 font-semibold">{metalName} ({selectedVariant.purity})</td>
-                        <td className="px-3 py-3 text-center">{selectedVariant.weight > 0 ? `₹${(priceBreakdown.variantPrice / selectedVariant.weight).toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "—"}</td>
-                        <td className="px-3 py-3 text-center">{selectedVariant.weight}g</td>
-                        <td className="px-3 py-3 text-center font-semibold">₹{priceBreakdown.variantPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
-                      </tr>
-                      {priceBreakdown.makingPercentage > 0 && (
+                <div>
+                  <div className="flex items-center justify-end gap-1 pb-1.5 text-[11px] text-[#8A8A8A] sm:hidden">
+                    <span>Swipe horizontally to view full table</span>
+                    <span className="font-semibold text-[#8B6914]">→</span>
+                  </div>
+                  <div className="overflow-x-auto rounded-xl border border-[#E8E2D8] [scrollbar-width:thin] [scrollbar-color:#D1C7BB_transparent] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-[#F5F2EE] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D1C7BB] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#8B6914]">
+                    <table className="w-full min-w-[500px] text-sm">
+                      <thead className="bg-[#F9F7F4] text-left text-[11px] font-bold uppercase tracking-wide text-[#4A4A4A]">
+                        <tr>
+                          <th className="whitespace-nowrap px-3 py-3">Component</th>
+                          <th className="whitespace-nowrap px-3 py-3 text-center">Rate / Gram</th>
+                          <th className="whitespace-nowrap px-3 py-3 text-center">Weight</th>
+                          <th className="whitespace-nowrap px-3 py-3 text-center">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[#4A4A4A]">
                         <tr className="border-t border-[#F0EBE1]">
-                          <td className="px-3 py-3">Making charges ({priceBreakdown.makingPercentage}%)</td>
-                          <td className="px-3 py-3 text-center">−</td><td className="px-3 py-3 text-center">−</td>
-                          <td className="px-3 py-3 text-center">₹{priceBreakdown.makingAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                          <td className="whitespace-nowrap px-3 py-3 font-semibold">{metalName} ({selectedVariant.purity})</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-center">{selectedVariant.weight > 0 ? `₹${(priceBreakdown.variantPrice / selectedVariant.weight).toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "—"}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-center">{selectedVariant.weight}g</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-center font-semibold">₹{priceBreakdown.variantPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
                         </tr>
-                      )}
-                      <tr className="border-t border-[#F0EBE1]">
-                        <td className="px-3 py-3">GST ({priceBreakdown.gstPercentage}%)</td>
-                        <td className="px-3 py-3 text-center">−</td><td className="px-3 py-3 text-center">−</td>
-                        <td className="px-3 py-3 text-center">₹{priceBreakdown.gstAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
-                      </tr>
-                      {priceBreakdown.discountAmount > 0 && (
-                        <tr className="border-t border-[#F0EBE1] bg-emerald-50/60 text-emerald-700">
-                          <td className="px-3 py-3 font-semibold flex items-center gap-1.5">
-                            <Tag size={13} className="inline-block" />
-                            Discount{priceBreakdown.discountPercentage > 0 ? ` (${priceBreakdown.discountPercentage}%)` : ""}
-                          </td>
-                          <td className="px-3 py-3 text-center">−</td>
-                          <td className="px-3 py-3 text-center">−</td>
-                          <td className="px-3 py-3 text-center font-semibold text-emerald-700">−₹{priceBreakdown.discountAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                        {priceBreakdown.makingPercentage > 0 && (
+                          <tr className="border-t border-[#F0EBE1]">
+                            <td className="whitespace-nowrap px-3 py-3">Making charges ({priceBreakdown.makingPercentage}%)</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-center">−</td><td className="whitespace-nowrap px-3 py-3 text-center">−</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-center">₹{priceBreakdown.makingAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                          </tr>
+                        )}
+                        <tr className="border-t border-[#F0EBE1]">
+                          <td className="whitespace-nowrap px-3 py-3">GST ({priceBreakdown.gstPercentage}%)</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-center">−</td><td className="whitespace-nowrap px-3 py-3 text-center">−</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-center">₹{priceBreakdown.gstAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
                         </tr>
-                      )}
-                    </tbody>
-                    <tfoot className={isSilverProduct ? "bg-slate-50" : "bg-amber-50"}>
-                      <tr><td className="px-3 py-3 text-base font-bold  text-[#1A1A1A]" colSpan={3}>Grand Total</td><td className="px-3 py-3 text-center text-base font-bold text-[#1A1A1A]">₹{(priceBreakdown.finalAmount ?? priceBreakdown.totalAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td></tr>
-                    </tfoot>
-                  </table>
+                        {priceBreakdown.discountAmount > 0 && (
+                          <tr className="border-t border-[#F0EBE1] bg-emerald-50/60 text-emerald-700">
+                            <td className="whitespace-nowrap px-3 py-3 font-semibold flex items-center gap-1.5">
+                              <Tag size={13} className="inline-block" />
+                              Discount{priceBreakdown.discountPercentage > 0 ? ` (${priceBreakdown.discountPercentage}%)` : ""}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-center">−</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-center">−</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-center font-semibold text-emerald-700">−₹{priceBreakdown.discountAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                          </tr>
+                        )}
+                      </tbody>
+                      <tfoot className={isSilverProduct ? "bg-slate-50" : "bg-amber-50"}>
+                        <tr>
+                          <td className="whitespace-nowrap px-3 py-3 text-base font-bold text-[#1A1A1A]" colSpan={3}>Grand Total</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-center text-base font-bold text-[#1A1A1A]">₹{(priceBreakdown.finalAmount ?? priceBreakdown.totalAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
               ) : (
                 <p className="py-8 text-center text-sm text-rose-600">{priceBreakdownError || "Unable to load price breakdown."}</p>
