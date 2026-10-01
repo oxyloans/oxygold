@@ -122,8 +122,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setDeliveryFee(data.deliveryFee || 0);
                 setDeliveryDistanceKm(data.deliveryDistanceKm ?? null);
                 setRatePerKm(data.ratePerKm ?? null);
-                setTotalDiscountAmount(data.totalDiscountAmount || 0);
-                setTotalDiscountPercentage(data.totalDiscountPercentage || 0);
+                setTotalDiscountAmount(Number(data.totalDiscountAmount ?? data.discountAmount ?? 0) || 0);
+                setTotalDiscountPercentage(Number(data.totalDiscountPercentage ?? data.discountPercentage ?? 0) || 0);
                 setCartNotification(null);
                 return true;
             }

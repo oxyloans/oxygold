@@ -55,10 +55,12 @@ import {
     fetchRatingMedia,
     uploadRatingMedia,
     fetchOrderDeliveryTracking,
+    retryOrderPayment,
     type DeliveryTracking,
     type ProductReview,
     type HelpdeskQuery,
 } from "./physicalGoldService";
+import { load } from "@cashfreepayments/cashfree-js";
 import { type Order, type OrderItem, resolveS3ImageUrl } from "./physicalGoldData";
 
 import PhysicalGoldHeader from "./components/Header";
@@ -249,6 +251,7 @@ const ProfilePage: React.FC = () => {
     const [reviewFile, setReviewFile] = useState<File | null>(null);
     const [reviewError, setReviewError] = useState("");
     const [isSavingReview, setIsSavingReview] = useState(false);
+    const [retryingOrderId, setRetryingOrderId] = useState<number | null>(null);
 
     const [locationSearch, setLocationSearch] = useState("");
     const [locationSuggestions, setLocationSuggestions] = useState<{ description: string; place_id: string }[]>([]);
@@ -980,6 +983,40 @@ const ProfilePage: React.FC = () => {
         const currentOrder = s.orders.find((o) => o.orderId === orderId);
         if (!isClosing && currentOrder?.paymentStatus !== 'PENDING') {
             loadDeliveryTracking(orderId);
+        }
+    };
+
+    const handleRetryPayment = async (order: Order) => {
+        setRetryingOrderId(order.orderId);
+        try {
+            const res = await retryOrderPayment(order.orderId);
+            if (res?.success && res?.data?.paymentSessionId) {
+                const cashfree = await load({ mode: "production" });
+                const txnId = res.data.transactionId;
+                const paymentSessionId = res.data.paymentSessionId;
+                cashfree.checkout({
+                    paymentSessionId,
+                    redirectTarget: "_self",
+                    returnUrl: `${window.location.origin}/physical-gold/payment-status?order_id=${txnId}&internal_id=${order.orderId}&order_number=${order.orderNumber}`,
+                });
+            } else {
+                patch({
+                    toast: {
+                        message: res?.message || "Failed to generate payment session",
+                        type: "error",
+                    },
+                });
+            }
+        } catch (err: any) {
+            console.error("Payment retry failed:", err);
+            patch({
+                toast: {
+                    message: getApiErrorMessage(err, "Payment retry failed. Please try again."),
+                    type: "error",
+                },
+            });
+        } finally {
+            setRetryingOrderId(null);
         }
     };
 
@@ -1745,6 +1782,16 @@ const ProfilePage: React.FC = () => {
                                         const isTrackingLoading = s.trackingLoadingOrderId === order.orderId;
                                         const trackingUnavailable = s.trackingErrorOrderId === order.orderId;
                                         const displayPaymentMode = order.paymentModeDisplay || (order.paymentMode?.toUpperCase() === 'CASHFREE' ? 'ONLINE' : order.paymentMode);
+                                        const isPaymentPending = (order.paymentStatus?.toUpperCase() === 'PENDING' || order.paymentStatus?.toUpperCase() === 'PAYMENT_PENDING') &&
+                                            order.orderStatus?.toUpperCase() !== 'EXPIRED' &&
+                                            order.orderStatus?.toUpperCase() !== 'CANCELLED' &&
+                                            order.orderStatus?.toUpperCase() !== 'FAILED';
+                                        const isOrderSuccessful = order.orderStatus?.toUpperCase() === 'CONFIRMED' ||
+                                            order.orderStatus?.toUpperCase() === 'DELIVERED' ||
+                                            order.orderStatus?.toUpperCase() === 'COMPLETED' ||
+                                            order.paymentStatus?.toUpperCase() === 'SUCCESS' ||
+                                            order.paymentStatus?.toUpperCase() === 'COMPLETED' ||
+                                            order.paymentStatus?.toUpperCase() === 'PAID';
                                         return (
                                             <div key={order.orderId} className="border border-[#E8E0D5] rounded-xl overflow-hidden bg-white">
                                                 {/* Order Header */}
@@ -1765,7 +1812,32 @@ const ProfilePage: React.FC = () => {
                                                                     {formatDate(order.createdAt || order.paymentExpiry)}
                                                                 </p>
                                                             </div>
-                                                            <span className="text-[14px] font-bold text-[#1A1A1A] shrink-0">{DISPLAY_INR(order.totalAmount)}</span>
+                                                            <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                                                <span className="text-[14px] font-bold text-[#1A1A1A]">{DISPLAY_INR(order.totalAmount)}</span>
+                                                                {isPaymentPending && (
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={retryingOrderId === order.orderId}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleRetryPayment(order);
+                                                                        }}
+                                                                        className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#8B6914] text-white text-[11px] font-medium hover:bg-[#7A5C10] transition shadow-sm disabled:opacity-60"
+                                                                    >
+                                                                        {retryingOrderId === order.orderId ? (
+                                                                            <>
+                                                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                                                <span>Processing...</span>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <CreditCard className="h-3 w-3" />
+                                                                                <span>Make Payment</span>
+                                                                            </>
+                                                                        )}
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                         <div className="flex flex-wrap items-center gap-1.5 mt-2">
                                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(order.orderStatus)}`}>
@@ -1785,7 +1857,7 @@ const ProfilePage: React.FC = () => {
 
                                                 {/* Actions */}
                                                 <div className="flex items-center gap-2 px-4 pb-3 border-t border-[#F0EBE1] pt-3">
-                                                    {order.paymentStatus !== 'PENDING' && (
+                                                    {isOrderSuccessful && (
                                                         <button
                                                             type="button"
                                                             onClick={async (e) => {
@@ -1811,7 +1883,7 @@ const ProfilePage: React.FC = () => {
                                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition ml-auto"
                                                     >
                                                         {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                                        {isExp ? "Hide Details" : (order.paymentStatus === 'PENDING' ? "View Details" : "Track Order")}
+                                                        {isExp ? "Hide Details" : (isOrderSuccessful ? "Track Order" : "Order Details")}
                                                     </button>
                                                 </div>
 

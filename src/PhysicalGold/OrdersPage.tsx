@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Package, ChevronLeft, Calendar, Tag, CreditCard, ChevronDown, ChevronUp, ShoppingBag, FileText } from "lucide-react";
-import { fetchUserOrders, getInvoicePdfUrl, getInvoicePreviewUrl } from "./physicalGoldService";
+import { Package, ChevronLeft, Calendar, Tag, CreditCard, ChevronDown, ChevronUp, ShoppingBag, FileText, Loader2 } from "lucide-react";
+import { fetchUserOrders, getInvoicePdfUrl, getInvoicePreviewUrl, retryOrderPayment } from "./physicalGoldService";
 import { Order } from "./physicalGoldData";
+import { load } from "@cashfreepayments/cashfree-js";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import PhysicalGoldHeader from "./PhysicalGoldHeader";
 import { useCart } from "./CartContext";
@@ -13,6 +14,26 @@ const OrdersPage: React.FC = () => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+    const [retryingOrderId, setRetryingOrderId] = useState<number | null>(null);
+
+    const handleRetryPayment = async (order: Order) => {
+        setRetryingOrderId(order.orderId);
+        try {
+            const res = await retryOrderPayment(order.orderId);
+            if (res?.success && res?.data?.paymentSessionId) {
+                const cashfree = await load({ mode: "production" });
+                cashfree.checkout({
+                    paymentSessionId: res.data.paymentSessionId,
+                    redirectTarget: "_self",
+                    returnUrl: `${window.location.origin}/physical-gold/payment-status?order_id=${res.data.transactionId}&internal_id=${order.orderId}&order_number=${order.orderNumber}`,
+                });
+            }
+        } catch (err) {
+            console.error("Failed to retry payment:", err);
+        } finally {
+            setRetryingOrderId(null);
+        }
+    };
 
     useEffect(() => {
         const loadOrders = async () => {
@@ -192,8 +213,33 @@ const OrdersPage: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        {(order.orderStatus === 'CONFIRMED' || order.orderStatus === 'DELIVERED') && (
-                                            <div className="mt-4 flex justify-end pt-4 border-t border-zinc-100">
+                                        <div className="mt-4 flex flex-wrap justify-end gap-3 pt-4 border-t border-zinc-100">
+                                            {((order.paymentStatus?.toUpperCase() === 'PENDING' || order.paymentStatus?.toUpperCase() === 'PAYMENT_PENDING') &&
+                                                order.orderStatus?.toUpperCase() !== 'EXPIRED' &&
+                                                order.orderStatus?.toUpperCase() !== 'CANCELLED' &&
+                                                order.orderStatus?.toUpperCase() !== 'FAILED') && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRetryPayment(order);
+                                                    }}
+                                                    disabled={retryingOrderId === order.orderId}
+                                                    className="cursor-pointer flex items-center gap-2 rounded-xl bg-[#2b0a59] px-5 py-2.5 text-[10px] font-black text-white transition hover:bg-[#150b33] uppercase tracking-wider shadow-sm shadow-purple-500/10 disabled:opacity-60"
+                                                >
+                                                    {retryingOrderId === order.orderId ? (
+                                                        <>
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                            Processing...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <CreditCard className="h-3.5 w-3.5" />
+                                                            Make Payment
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
+                                            {(order.orderStatus === 'CONFIRMED' || order.orderStatus === 'DELIVERED') && (
                                                 <button
                                                     onClick={async (e) => {
                                                         e.stopPropagation();
@@ -211,8 +257,8 @@ const OrdersPage: React.FC = () => {
                                                     <FileText className="h-3.5 w-3.5" />
                                                     Preview Invoice
                                                 </button>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>

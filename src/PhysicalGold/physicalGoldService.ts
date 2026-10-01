@@ -931,6 +931,21 @@ export const confirmOrder = async (orderId: string | number) => {
   return data;
 };
 
+export const retryOrderPayment = async (orderId: string | number) => {
+  const response = await authenticatedFetch(
+    `${BASE_URL}/order/${orderId}/retry-payment`,
+    {
+      method: "POST",
+      body: "",
+    },
+  );
+  const data = await response.json();
+  if (!response.ok || data?.success === false) {
+    throw new Error(data?.message || "Failed to retry payment");
+  }
+  return data;
+};
+
 export const paymentWebhook = async (order_id: string | number) => {
   const response = await authenticatedFetch(
     `${BASE_URL}/digital-gold/payments/webhook?order_id=${order_id}`,

@@ -1549,100 +1549,133 @@ const ProductDetailsPage: React.FC = () => {
       </div>
 
       {showDiscountModal && hasValidMrp && apiDiscountAmount > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="discount-title" onMouseDown={() => setShowDiscountModal(false)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 cursor-pointer"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="discount-title"
+          onClick={() => setShowDiscountModal(false)}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.92, y: 24 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className={`relative w-full max-w-sm overflow-hidden rounded-[28px] bg-gradient-to-b p-8 text-center shadow-2xl ring-1 ${
+            className={`relative w-full max-w-sm overflow-hidden rounded-[28px] bg-gradient-to-b p-6 sm:p-7 text-center shadow-2xl ring-1 cursor-default ${
               isSilverProduct
                 ? "from-slate-50 via-white to-slate-50 ring-slate-200/60"
                 : "from-amber-50 via-white to-amber-50 ring-amber-200/60"
             }`}
-            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             {/* ambient glow */}
             <motion.div
               animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.5, 0.3] }}
               transition={{ duration: 4, repeat: Infinity }}
-              className={`absolute -left-10 -top-10 h-40 w-40 rounded-full blur-3xl ${
+              className={`pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full blur-3xl ${
                 isSilverProduct ? "bg-slate-200/60" : "bg-amber-200/50"
               }`}
             />
             <motion.span
               animate={{ y: [0, -6, 0], rotate: [0, 12, 0] }}
               transition={{ duration: 3, repeat: Infinity }}
-              className={`absolute left-8 top-6 ${ isSilverProduct ? "text-slate-400" : "text-amber-300" }`}
+              className={`pointer-events-none absolute left-7 top-6 ${isSilverProduct ? "text-slate-400" : "text-amber-300"}`}
             >
               <Sparkles size={18} />
             </motion.span>
 
             <button
               type="button"
-              onClick={() => setShowDiscountModal(false)}
-              className="absolute right-4 top-4 rounded-full p-1.5 text-[#8A8A8A] hover:bg-[#F5F2EE] transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDiscountModal(false);
+              }}
+              className="absolute right-4 top-4 z-20 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/80 text-[#8A8A8A] shadow-xs ring-1 ring-black/5 hover:bg-[#F5F2EE] hover:text-[#1A1A1A] transition-colors"
               aria-label="Close"
             >
               <X size={16} />
             </button>
 
-            <div className="relative">
-              {/* Icon — Tag instead of Gem/Diamond */}
-              <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg ${
+            <div className="relative z-10">
+              {/* Icon */}
+              <div className={`mx-auto mb-3.5 flex h-13 w-13 items-center justify-center rounded-2xl shadow-lg ${
                 isSilverProduct
-                  ? "bg-gradient-to-br from-slate-400 to-slate-600 text-white shadow-slate-200"
+                  ? "bg-gradient-to-br from-slate-500 to-slate-700 text-white shadow-slate-200"
                   : "bg-gradient-to-br from-[#C29B27] to-[#9B7416] text-white shadow-amber-200"
               }`}>
-                <Tag size={26} />
+                <Tag size={24} />
               </div>
 
-              <span className={`mb-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${
+              {/* Top Badge */}
+              <span className={`mb-2.5 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold ${
                 isSilverProduct
-                  ? "border-slate-200 bg-slate-50 text-slate-600"
+                  ? "border-slate-200 bg-slate-50 text-slate-700"
                   : "border-amber-200 bg-amber-50 text-amber-700"
               }`}>
-                <CheckCircle2 size={11} /> Limited-Time Discount
+                <CheckCircle2 size={12} className="text-emerald-600" /> 100% GST Paid by OxyGold.ai
               </span>
 
               <h2
                 id="discount-title"
-                className={`text-xl font-extrabold ${ isSilverProduct ? "text-slate-700" : "text-[#8B6914]" }`}
+                className={`text-xl font-black ${isSilverProduct ? "text-slate-800" : "text-[#8B6914]"}`}
               >
-                Exclusive {metalName} Offer
+                Congratulations! 🎉
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#4A4A4A]">
-                A special discount has been applied to this item. Check the price breakup below to see your saving.
+              <p className="mt-1 text-[15px] font-bold text-[#1A1A1A]">
+                We are paying the GST amount on your behalf!
+              </p>
+              <p className="mt-2 text-[12px] leading-relaxed text-[#5A5A5A]">
+                For your {metalName.toLowerCase()} purchase, <strong className="text-[#1A1A1A]">OxyGold.ai</strong> covers the complete government GST so you don't have to pay extra. The entire tax amount is waived as an instant discount!
               </p>
 
-              {/* Savings badge */}
-              <div className="my-5 flex justify-center gap-2 flex-wrap">
-                {hasValidMrp && apiDiscountPercentage > 0 && (
-                  <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                    isSilverProduct ? "border-slate-200 bg-slate-50 text-slate-700" : "border-amber-200 bg-amber-50 text-amber-700"
-                  }`}>
-                    <Tag size={11} /> {apiDiscountPercentage}% OFF
+              {/* GST Breakdown Box */}
+              <div className="my-4 rounded-xl border border-[#EFE7DC] bg-[#FAF8F5] p-3.5 text-left text-[12px] space-y-2">
+                <div className="flex justify-between items-center text-[#5A5A5A]">
+                  <span>Government GST ({priceBreakdown?.gstPercentage || 3}%)</span>
+                  <span className="font-semibold text-[#1A1A1A]">
+                    ₹{(priceBreakdown?.gstAmount ?? apiDiscountAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                   </span>
-                )}
-                <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                  isSilverProduct ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                </div>
+                <div className="flex justify-between items-center text-emerald-700 font-semibold">
+                  <span className="flex items-center gap-1">
+                    <Tag size={11} /> OxyGold.ai GST Waiver:
+                  </span>
+                  <span>
+                    -₹{apiDiscountAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="border-t border-[#E8E0D5] pt-2 flex justify-between items-center">
+                  <span className="font-bold text-[#1A1A1A]">Your Net Tax Contribution</span>
+                  <span className="font-extrabold text-emerald-700 text-[12px]">
+                    ₹0.00 <span className="font-medium text-[10px] text-emerald-600">(Zero Extra Tax)</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Highlight Badges */}
+              <div className="mb-5 flex justify-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+                  <CheckCircle2 size={11} /> 100% Tax Covered
+                </span>
+                <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold ${
+                  isSilverProduct ? "border-slate-200 bg-slate-100 text-slate-700" : "border-amber-200 bg-amber-100 text-amber-800"
                 }`}>
-                  <CheckCircle2 size={11} /> ₹{apiDiscountAmount.toLocaleString("en-IN")} saved
+                  <Sparkles size={11} /> Pure {metalName} Offer
                 </span>
               </div>
 
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setShowDiscountModal(false);
-                  priceBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
-                className={`w-full rounded-full py-3 font-semibold text-white shadow-lg transition hover:opacity-90 ${
+                className={`w-full cursor-pointer rounded-full py-2.5 text-[13px] font-bold text-white shadow-lg transition hover:opacity-95 active:scale-[0.99] ${
                   isSilverProduct
-                    ? "bg-gradient-to-r from-slate-500 to-slate-700 shadow-slate-200"
+                    ? "bg-gradient-to-r from-slate-600 to-slate-800 shadow-slate-200"
                     : "bg-gradient-to-r from-[#C29B27] to-[#9B7416] shadow-amber-200"
                 }`}
               >
-                View Price Breakup
+                Awesome, Got it
               </button>
             </div>
           </motion.div>

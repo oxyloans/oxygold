@@ -122,6 +122,7 @@ export interface OrderItem {
   productName?: string;
   quantity: number;
   subtotal: number;
+  variant?: string;
 }
 
 export interface Order {
@@ -136,6 +137,16 @@ export interface Order {
   totalItems: number;
   userId: number;
   items: OrderItem[];
+  createdAt?: string;
+  paymentModeDisplay?: string;
+  txnId?: string;
+  totalDiscountAmount?: number;
+  deliveryFee?: number;
+  address?: string;
+  flatNo?: string;
+  landMark?: string;
+  state?: string;
+  pinCode?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
