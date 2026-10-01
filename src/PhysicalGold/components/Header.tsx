@@ -141,10 +141,11 @@ const Header: React.FC<HeaderProps> = ({
                 {/* Wishlist */}
                 <button
                   onClick={() => {
+                    const target = "/physical-gold/wishlist";
                     if (!TokenManager.getInstance().isLoggedIn()) {
                       navigate("/login");
                     } else {
-                      navigate("/physical-gold/wishlist");
+                      navigate(target);
                     }
                   }}
                   className="hidden md:block p-2 cursor-pointer transition-colors relative text-foreground hover:text-primary"
@@ -163,10 +164,12 @@ const Header: React.FC<HeaderProps> = ({
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => {
+                      const target = "/physical-gold/profile";
                       if (!isLoggedIn) {
+                       
                         navigate("/login");
                       } else {
-                        navigate("/physical-gold/profile");
+                        navigate(target);
                       }
                     }}
                     className="p-2 transition-colors cursor-pointer text-foreground hover:text-primary"
@@ -180,10 +183,12 @@ const Header: React.FC<HeaderProps> = ({
                 {/* Cart */}
                 <button
                   onClick={() => {
+                    const target = "/physical-gold/cart";
                     if (!isLoggedIn) {
+                     
                       navigate("/login");
                     } else {
-                      navigate("/physical-gold/cart");
+                      navigate(target);
                     }
                   }}
                   className="p-2 transition-colors cursor-pointer relative text-foreground hover:text-primary"

@@ -1,170 +1,164 @@
 import React from "react";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import OxyBricksLogo from "../assets/oxybrickslogo.png";
-import OxyLoansLogo from "../assets/oxyloanslogo.png";
-import AskOxyLogo from "../assets/askoxylogo.png";
-import globallogo from "../assets/global logo.png";
-const ecosystemCards = [
-  {
-    id: "oxybricks",
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   OXY Group Companies — infinite CSS marquee logo strip
+   • Slow, continuous right-to-left scroll on ALL screen sizes
+   • Track duplicated for a seamless, gap-free loop
+   • Edge-fade mask for a polished look
+   • Pauses on hover / focus for accessibility
+   • Fully responsive logo sizes (h-10 mobile → h-16 desktop)
+───────────────────────────────────────────────────────────────────────────── */
+
+const logos = [
+{
+  
     name: "OxyBricks",
-    logo: OxyBricksLogo,
-    url: "https://www.oxybricks.world/",
+    src: "https://i.ibb.co/0jq3tGtY/oxybrickslogo.png",
+    href: "https://www.oxybricks.world/",
   },
   {
-    id: "oxyloans",
+   
     name: "OxyLoans",
-    logo: OxyLoansLogo,
-    url: "https://www.oxyloans.com/",
+    src: "https://i.ibb.co/gL2V1sZm/oxyloanslogo.png",
+    href: "https://www.oxyloans.com/",
   },
   {
-    id: "askoxy",
+
     name: "AskOxy.ai",
-    logo: AskOxyLogo,
-    url: "https://www.askoxy.ai/",
+    src: "https://i.ibb.co/LdKL31FL/askoxylogo.png ",
+    href: "https://www.askoxy.ai/",
   },
   {
-    id: "oxyglobal",
+
     name: "Oxyglobal.tech",
-    logo: globallogo,
-    url: "https://www.oxyglobal.tech/",
+    src: "https://i.ibb.co/Q3y9TssV/global-logo.png",
+    href: "https://www.oxyglobal.tech/",
+  },
+  // {
+  //   src: "https://i.ibb.co/PGYYDvL9/l4.png",
+  //   name: "OXYGOLD.AI",
+  //   href: "https://www.oxygold.ai/",
+  // },
+  
+  {
+    src: "https://i.ibb.co/B2NcQ7Nj/l5.png",
+    name: "OXYCHAIN",
+    href: "http://bmv.money:2750/",
+  },
+  {
+    src: "https://i.ibb.co/Swx6RWXM/oxyfinservlogo-Cpr9-A3-NT.png",
+    name: "OXYFINSERV",
+    href: "https://www.oxyfinserv.com/",
+  },
+  {
+    src: "https://i.ibb.co/84DGTjKd/tv-white.png",
+    name: "TVRK",
+    href: "https://tvradhakrishna.com/",
   },
 ];
 
-const OxyEcosystem: React.FC = () => {
-  const handleCardClick = (url: string) => window.open(url, "_blank");
+/* Inject keyframe animation once — avoids a separate CSS file */
+const MarqueeStyles: React.FC = () => (
+  <style>{`
+    @keyframes oxy-marquee {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
 
-  const settings = {
-    dots: true,
-    infinite: true,
-    speed: 900,
-    slidesToShow: 3,
-    slidesToScroll: 1,
-    autoplay: true,
-    autoplaySpeed: 9000,
-    cssEase: "linear",
-    pauseOnHover: false,
-    arrows: false,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: { slidesToShow: 3 },
-      },
-      {
-        breakpoint: 768,
-        settings: { slidesToShow: 2 },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 1,
-        },
-      },
-    ],
-  };
+    .oxy-marquee-track {
+      display: flex;
+      width: max-content;
+      animation: oxy-marquee 90s linear infinite;
+      will-change: transform;
+    }
+
+    /* Pause on hover or keyboard focus */
+    .oxy-marquee-outer:hover .oxy-marquee-track,
+    .oxy-marquee-outer:focus-within .oxy-marquee-track {
+      animation-play-state: paused;
+    }
+  `}</style>
+);
+
+const OxyEcosystem: React.FC = () => {
+  /* Duplicate the list so the second copy fills the viewport gap —
+     we only translate by 50 % (one full copy width), making the
+     loop completely seamless with no jump. */
+  const doubled = [...logos, ...logos];
 
   return (
-    <>
-      <style>{`
-        .oxy-img-btn {
-          background: none;
-          border: none;
-          padding: 0;
-          margin: 0;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          -webkit-tap-highlight-color: transparent;
-        }
-        .oxy-img-btn:focus {
-          outline: none;
-        }
-        .oxy-img-btn img {
-          transition: transform 0.2s ease, opacity 0.2s ease;
-        }
-        .oxy-img-btn:hover img {
-          opacity: 0.85;
-          transform: scale(1.05);
-        }
-        .oxy-img-btn:active img {
-          transform: scale(0.95);
-        }
-        .slick-dots li button:before {
-          color: #f5a623 !important;
-        }
-        .slick-dots li.slick-active button:before {
-          color: #f5a623 !important;
-        }
-      `}</style>
+    <section className="w-full overflow-hidden py-5 sm:py-6 md:py-8">
+      <MarqueeStyles />
 
-      <section
+      {/* Outer wrapper — soft fade mask on both edges */}
+      <div
+        className="oxy-marquee-outer relative w-full"
         style={{
-          width: "100%",
-          padding: "clamp(24px, 5vw, 48px) 0",
-          // background: "#0a0a0a",
-          boxSizing: "border-box",
-          overflow: "hidden",
+          maskImage:
+            "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
         }}
       >
-        {/* Title */}
-        <div
-          style={{
-            textAlign: "center",
-            marginBottom: "clamp(20px, 4vw, 40px)",
-          }}
-        >
-          <h2
-            style={{
-              fontSize: "clamp(1.4rem, 4vw, 2.4rem)",
-              fontWeight: 700,
-              color: "#ffffff",
-              margin: 0,
-              lineHeight: 1.2,
-              padding: "0 16px",
-            }}
-          >
-            Explore Our <span style={{ color: "#f5a623" }}>Platforms</span>
-          </h2>
+        {/* Scrolling logo track */}
+        <div className="oxy-marquee-track">
+          {doubled.map((item, index) => (
+            <a
+              key={`${item.name}-${index}`}
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Visit ${item.name}`}
+              title={item.name}
+              className="
+                mx-6
+                flex
+                shrink-0
+                items-center
+                justify-center
+                rounded-2xl
+                px-2
+                py-3
+                transition-all
+                duration-300
+                hover:-translate-y-1
+                hover:opacity-80
+                focus-visible:outline-none
+                focus-visible:ring-2
+                focus-visible:ring-[#5543C8]
+                focus-visible:ring-offset-2
+                sm:mx-6
+                sm:px-3
+                md:mx-8
+                md:px-3
+              "
+            >
+              <img
+                src={item.src}
+                alt={`${item.name} logo`}
+                loading="lazy"
+                draggable={false}
+                className="
+                  h-[72px]
+                  w-auto
+                  max-w-[155px]
+                  object-contain
+                  transition-transform
+                  duration-300
+                  hover:scale-105
+                  sm:h-20
+                  sm:max-w-[170px]
+                  md:h-24
+                  md:max-w-[200px]
+                  lg:h-28
+                  lg:max-w-[230px]
+                "
+              />
+            </a>
+          ))}
         </div>
-
-        <div
-          style={{
-            width: "100%",
-            maxWidth: 1200,
-            margin: "0 auto",
-            padding: "0 40px",
-          }}
-        >
-          <Slider {...settings}>
-            {ecosystemCards.map((card) => (
-              <div key={card.id} style={{ padding: "0 15px" }}>
-                <button
-                  className="oxy-img-btn"
-                  onClick={() => handleCardClick(card.url)}
-                  aria-label={`Visit ${card.name}`}
-                >
-                  <img
-                    src={card.logo}
-                    alt={card.name}
-                    style={{
-                      width: "100%",
-                      maxWidth: 280,
-                      height: 200,
-                      objectFit: "contain",
-                      display: "block",
-                      margin: "0 auto",
-                    }}
-                  />
-                </button>
-              </div>
-            ))}
-          </Slider>
-        </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 };
 

@@ -318,7 +318,13 @@ const ProfilePage: React.FC = () => {
     useEffect(() => {
         if (user) {
             const profile = user.data?.body || user;
+            const hasExistingProfile = Boolean(
+                (profile.firstName && String(profile.firstName).trim()) ||
+                (profile.lastName && String(profile.lastName).trim()) ||
+                (profile.email && String(profile.email).trim())
+            );
             patch({
+                ...(hasExistingProfile ? { isEditingProfile: false } : {}),
                 profileForm: {
                     firstName: profile.firstName || "",
                     lastName: profile.lastName || "",
@@ -344,14 +350,20 @@ const ProfilePage: React.FC = () => {
             const res = await getUserProfile(uid);
             const profile = res.data?.body || res.data;
             if (res.success && profile) {
+                const hasExistingProfile = Boolean(
+                    (profile.firstName && String(profile.firstName).trim()) ||
+                    (profile.lastName && String(profile.lastName).trim()) ||
+                    (profile.email && String(profile.email).trim())
+                );
                 patch({
+                    isEditingProfile: !hasExistingProfile,
                     profileForm: {
                         firstName: profile.firstName || "",
                         lastName: profile.lastName || "",
                         email: profile.email || "",
                         alternativeNumber: profile.alternativeNumber || "",
                         whatsappNumber: profile.whatsappNumber || "",
-                        mobileNumber: profile.mobileNumber || "",
+                        mobileNumber: profile.mobileNumber || profile.phone || profile.phoneNumber || "",
                         gender: profile.gender || "",
                         panNumber: profile.panNumber || "",
                         panVerified: profile.panVerified || false,

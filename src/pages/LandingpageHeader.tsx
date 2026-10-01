@@ -10,11 +10,14 @@ type Props = {
 };
 
 const NAV_LINKS: LinkItem[] = [
-  { label: "Live Gold Rate", targetId: "live-rate" },
+  { label: "Live Gold Rates", targetId: "live-rate" },
   { label: "Buy Silver Coins", targetId: "buy-silver" },
   { label: "Buy Gold Coins", targetId: "buy-gold" },
-  { label: "Design Own Jewellery", targetId: "design-jewellery" },
-  { label: "About Us", targetId: "about" },
+
+  // { label: "Design Own Jewellery", targetId: "design-jewellery" },
+  { label: "Our Platforms", targetId: "platforms" },
+
+  { label: "Our Certificates", targetId: "our-certifications" },
 ];
 
 const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
@@ -57,12 +60,20 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
 
   const goTo = (targetId: string) => {
     setSidebarOpen(false);
+    
     if (targetId === "buy-silver" || targetId === "buy-gold") {
       window.location.href = "/login";
       return;
     }
+
     if (targetId === "login") {
+      
       navigate("/login");
+      return;
+    }
+    // "Our Certifications" → dedicated /certificates page
+    if (targetId === "our-certifications") {
+      navigate("/certificates");
       return;
     }
     const onLanding = location.pathname === "/" || location.pathname === "/oxygold";

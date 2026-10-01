@@ -743,10 +743,17 @@ const CartPage: React.FC = () => {
                                     </div>
                                 )}
 
+<<<<<<< HEAD
                                 {/* <div className="flex justify-between items-center text-[12px]">
                                     <span className="text-[#8A8A8A]">Insurance</span>
                                     <span className="font-medium text-[#1A1A1A]">Included</span>
                                 </div> */}
+=======
+                                <div className="flex justify-between items-center text-[12px]">
+                                    <span className="text-[#8A8A8A]">Insurance</span>
+                                    <span className="font-medium text-[#1A1A1A]">Included</span>
+                                </div>
+>>>>>>> a50ae7521e59168389aaa7c5cb2922ee899aff24
 
                                 <div className="border-t border-[#E8E0D5] pt-3 mt-3 flex justify-between items-center">
                                     <span className="text-[14px] font-semibold text-[#1A1A1A]">Total To Pay</span>

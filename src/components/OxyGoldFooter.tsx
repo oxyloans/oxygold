@@ -50,6 +50,20 @@ export default function OxyGoldFooter({
             <p className="text-gray-300/90 text-base leading-relaxed max-w-md">
               {aboutText}
             </p>
+
+            {/* Google Play Store Badge */}
+            <a
+              href="https://play.google.com/store/apps/details?id=com.oxygold.ai&hl=en_IN"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block transition-transform duration-200 hover:scale-105"
+            >
+              <img
+                src="https://s2.rdbuz.com/web/images/homeV2/appinstall/playStore.svg"
+                alt="Get it on Google Play"
+                className="w-28 sm:w-32 h-auto"
+              />
+            </a>
           </div>
 
           {/* Column 2: Contact Us */}

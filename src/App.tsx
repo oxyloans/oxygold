@@ -11,6 +11,7 @@ import oxygoldLogo from './assets/oxygoldlogo.png';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './Verified';
+import CertificatesPage from './components/CertificatesPage';
 
 declare global {
   interface Window {
@@ -133,6 +134,8 @@ function AppContent() {
     "/imageCreation/",
     "/videoCreation/",
     "/verified",
+    "/certificates",
+    "/certificates/",
     "/verified/",
     "/hiddenlogin",
     "/hiddenlogin/",
@@ -157,6 +160,8 @@ function AppContent() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/hiddenlogin" element={<HiddenLogin />} />
+            <Route path="/certificates" element={<CertificatesPage />} />
+            
             <Route path="/api-test" element={<APITest />} />
             <Route path="/select-gold" element={<ProtectedRoute> <GoldSelection /> </ProtectedRoute>} />
             <Route path="/bis-certificate" element={<BISCertificate />} />
