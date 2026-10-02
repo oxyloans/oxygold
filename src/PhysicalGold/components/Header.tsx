@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Search, ShoppingCart, User, Heart, Menu, X, ChevronDown, ChevronUp, LogOut } from "lucide-react";
+import { FaHandsHelping } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../CartContext";
 import { useWishlist } from "../WishlistContext";
@@ -180,6 +181,23 @@ const Header: React.FC<HeaderProps> = ({
                   </button>
                 </div>
 
+                {/* Help Desk */}
+                <button
+                  onClick={() => {
+                    const target = "/physical-gold/profile?tab=support";
+                    if (!isLoggedIn) {
+                      navigate("/login");
+                    } else {
+                      navigate(target);
+                    }
+                  }}
+                  className="p-2 transition-colors cursor-pointer text-foreground hover:text-primary"
+                  aria-label="Help Desk"
+                  title="Help Desk & Support"
+                >
+                  <FaHandsHelping size={19} />
+                </button>
+
                 {/* Cart */}
                 <button
                   onClick={() => {
@@ -229,7 +247,20 @@ const Header: React.FC<HeaderProps> = ({
           >
             <div className="mx-auto w-full max-w-7xl px-4 sm:px-5 md:px-6 lg:px-8">
               <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-2 py-2.5">
-                
+                <button
+                  type="button"
+                  onClick={() => onCategoryClick?.(ALL_CATEGORY_ID)}
+                  className={`relative cursor-pointer pb-1 font-sans text-[13px] uppercase tracking-wide transition-all duration-300 ${!selectedCategoryId || selectedCategoryId === ALL_CATEGORY_ID
+                    ? "font-semibold text-primary"
+                    : "text-[#27272A] hover:text-primary"
+                    }`}
+                >
+                  All
+                  <span
+                    className={`absolute bottom-0 left-0 h-[3px] rounded-t bg-primary transition-all duration-300 ${!selectedCategoryId || selectedCategoryId === ALL_CATEGORY_ID ? "w-full" : "w-0"
+                      }`}
+                  />
+                </button>
 
                 {categories.map((cat) => (
                   <button
@@ -278,7 +309,7 @@ const Header: React.FC<HeaderProps> = ({
                   </button>
                   {isCategoriesOpen && (
                     <div className="ml-4 mt-1 flex flex-col space-y-1 border-l-2 border-gray-100 pl-4">
-                      {/* <button
+                      <button
                         type="button"
                         onClick={() => {
                           setIsMobileMenuOpen(false);
@@ -291,7 +322,7 @@ const Header: React.FC<HeaderProps> = ({
                           }`}
                       >
                         All
-                      </button> */}
+                      </button>
 
                       {categories.map((cat) => (
                         <button
@@ -323,6 +354,16 @@ const Header: React.FC<HeaderProps> = ({
                 className="py-3 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-foreground hover:text-primary hover:bg-secondary"
               >
                 Wishlist
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  navigate("/physical-gold/profile?tab=support");
+                }}
+                className="py-3 px-4 text-sm font-sans rounded-md transition-colors uppercase tracking-wide text-left text-foreground hover:text-primary hover:bg-secondary"
+              >
+                Help Desk & Support
               </button>
 
               {isLoggedIn && (

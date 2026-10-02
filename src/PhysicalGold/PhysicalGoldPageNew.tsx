@@ -1,6 +1,18 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
-import { Package, Search, SlidersHorizontal, X } from "lucide-react";
+import { 
+  CheckCircle2, 
+  ChevronRight, 
+  Loader2, 
+  Package, 
+  Search, 
+  ShoppingCart, 
+  SlidersHorizontal, 
+  Sparkles, 
+  Tag, 
+  X, 
+  Zap 
+} from "lucide-react";
 import { useCart, isPhysicalGoldUserLoggedIn, ProfileIncompleteError } from "./CartContext";
 import FilterSidebar from "./components/FilterSidebar";
 import CategoryGrid from "./components/CategoryGrid";
@@ -14,6 +26,8 @@ import {
   fetchSubCategories,
   searchProducts,
   fetchProductImageURLs,
+  fetchGoldSilverRateBreakdown,
+  GoldSilverRateBreakdown,
 } from "./physicalGoldService";
 
 import "./styles.css";
@@ -93,6 +107,10 @@ const CompactProductCard: React.FC<{
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [unavailable, setUnavailable] = useState(false);
+  const [offersCache, setOffersCache] = useState<Record<string, GoldSilverRateBreakdown>>({});
+  const [loadingOffer, setLoadingOffer] = useState(false);
+  const [showOfferPopover, setShowOfferPopover] = useState(false);
+  const [offerError, setOfferError] = useState<string | null>(null);
   const busyRef = useRef(false);
   const selected = options.find(v => String(v.id) === selectedId);
   const cartItem = selected
@@ -100,6 +118,40 @@ const CompactProductCard: React.FC<{
     : undefined;
   const cartQuantity = cartItem?.quantity ?? 0;
   const inCart = cartQuantity > 0;
+
+  const handleFetchOffer = async (variantId?: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    let vId = variantId || selected?.id;
+    if (!vId && options.length > 0) vId = options[0].id;
+    
+    setShowOfferPopover(true);
+    if (!vId) {
+      try {
+        setLoadingOffer(true);
+        const res = await fetchProductVariants(product.id);
+        const avail = res.variants.filter(v => v.stockQuantity > 0);
+        if (avail.length > 0) {
+          vId = avail[0].id;
+          setSelectedId(String(vId));
+        }
+      } catch { /* ignore */ }
+    }
+    if (!vId) return;
+
+    const idStr = String(vId);
+    if (offersCache[idStr]) return;
+
+    setLoadingOffer(true);
+    setOfferError(null);
+    try {
+      const data = await fetchGoldSilverRateBreakdown(idStr);
+      setOffersCache(prev => ({ ...prev, [idStr]: data }));
+    } catch (err: any) {
+      setOfferError(err.message || "Failed to load price breakup");
+    } finally {
+      setLoadingOffer(false);
+    }
+  };
 
   const handleAdd = async () => {
     if (busyRef.current) return;
@@ -148,73 +200,165 @@ const CompactProductCard: React.FC<{
     }
   };
 
-  // Silently pre-fetch variants on mount so the MRP/discount badge is visible
-  // by default — without requiring the user to click "Add to Cart" first.
+  const handleBuyNow = async () => {
+    if (busyRef.current) return;
+    if (!isPhysicalGoldUserLoggedIn()) {
+      sessionStorage.setItem("redirectAfterLogin", window.location.pathname + window.location.search);
+      window.location.assign("/login");
+      return;
+    }
+    busyRef.current = true;
+    setBusy(true);
+    setMessage("");
+    try {
+      let variant = selected;
+      let currentProduct = cartProduct;
+      if (!options.length) {
+        const response = await fetchProductVariants(product.id);
+        currentProduct = response.product || product;
+        setCartProduct(currentProduct);
+        const available = response.variants.filter(v => v.stockQuantity > 0);
+        setOptions(available);
+        if (!available.length) {
+          setUnavailable(true);
+          setMessage("Currently out of stock.");
+          return;
+        }
+        variant = available[0];
+        setSelectedId(String(variant.id));
+      }
+      if (!variant) return;
+      await addToCart(currentProduct, variant);
+      navigate("/physical-gold/cart");
+    } catch (error) {
+      if (error instanceof ProfileIncompleteError) {
+        const returnTo = window.location.pathname + window.location.search;
+        navigate(`/physical-gold/profile?tab=info&returnTo=${encodeURIComponent(returnTo)}`);
+      } else {
+        setMessage(error instanceof Error ? error.message : "Could not proceed to checkout.");
+      }
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  };
+
+  // Silently pre-fetch variants on mount and prefetch breakup for default variant
   useEffect(() => {
     let cancelled = false;
-    fetchProductVariants(product.id).then(response => {
+    fetchProductVariants(product.id).then(async response => {
       if (cancelled) return;
       const available = response.variants.filter(v => v.stockQuantity > 0);
       if (!available.length) { setUnavailable(true); return; }
       setCartProduct(response.product || product);
       setOptions(available);
-      setSelectedId(String(available[0].id));
-    }).catch(() => { /* silently ignore — badge just won't show */ });
+      const firstId = String(available[0].id);
+      setSelectedId(firstId);
+
+      // Pre-fetch price breakup for default variant to determine if offer/discount exists
+      try {
+        const offerData = await fetchGoldSilverRateBreakdown(firstId);
+        if (!cancelled && offerData) {
+          setOffersCache(prev => ({ ...prev, [firstId]: offerData }));
+        }
+      } catch {
+        /* silently ignore */
+      }
+    }).catch(() => { /* silently ignore */ });
     return () => { cancelled = true; };
   }, [product.id]);
 
-  // MRP comes from the variant (populated by the background fetch above).
-  const mrpNum   = (selected as any)?.mrp   ?? null;
-  const priceNum = selected?.price           ?? null;
+  // MRP comes from the variant
+  const mrpNum = (selected as any)?.mrp ?? null;
+  const priceNum = selected?.price ?? null;
   const hasDiscount = mrpNum != null && priceNum != null && mrpNum > priceNum;
   const discountPct = hasDiscount ? Math.round(((mrpNum - priceNum) / mrpNum) * 100) : 0;
+  const activeOffer = selectedId ? offersCache[selectedId] : null;
+  const hasOfferDiscount = activeOffer != null && (
+    Number(activeOffer.discountPercentage || 0) > 0 ||
+    Number(activeOffer.discountAmount || 0) > 0
+  );
 
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-[#E8E2D8] bg-white shadow-sm transition-all duration-300 hover:border-[#C29B27]/60 hover:shadow-md">
-      {/* Image */}
-    <button
-  type="button"
-  onClick={onClick}
-  aria-label={`View ${product.productName}`}
-  className="relative aspect-square w-full shrink-0 overflow-hidden bg-[#FDFAF4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C29B27]"
->
-  <div className="h-full w-full p-2.5 transition-transform duration-500 motion-safe:group-hover:scale-105">
-    <ProductImage
-      urls={collectImageURLs(product)}
-      alt={product.productName}
-      className="object-contain"
-    />
-  </div>
+    <article 
+      onClick={onClick}
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-[#E8E2D8] bg-white shadow-sm transition-all duration-300 hover:border-[#C29B27]/60 hover:shadow-md cursor-pointer"
+    >
+      {/* Image Container */}
+      <div
+        className="relative aspect-square w-full shrink-0 overflow-hidden bg-[#FDFAF4]"
+      >
+        <div className="h-full w-full p-2.5 transition-transform duration-500 motion-safe:group-hover:scale-105">
+          <ProductImage
+            urls={collectImageURLs(product)}
+            alt={product.productName}
+            className="object-contain"
+          />
+        </div>
 
-  {/* Discount - Top Left */}
-  {hasDiscount && discountPct > 0 && (
-    <span className="absolute left-2 top-2 z-10 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-      {discountPct}% OFF
-    </span>
-  )}
+        {/* Discount - Top Left */}
+        {hasDiscount && discountPct > 0 && (
+          <span className="absolute left-2 top-2 z-10 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+            {discountPct}% OFF
+          </span>
+        )}
 
-  {/* Category - Top Right */}
-  {product.categoryName && (
-    <span className="absolute right-2 top-2 z-10 max-w-[55%] truncate rounded-md bg-black/60 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white shadow-sm backdrop-blur-sm">
-      {product.categoryName}
-    </span>
-  )}
-</button>
+        {/* Category - Top Right */}
+        {product.categoryName && (
+          <span className="absolute right-2 top-2 z-10 max-w-[55%] truncate rounded-md bg-black/60 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white shadow-sm backdrop-blur-sm">
+            {product.categoryName}
+          </span>
+        )}
+      </div>
 
       {/* Body */}
       <div className="flex flex-1 flex-col gap-2 p-3">
-        <button type="button" onClick={onClick} className="text-left focus-visible:outline-none">
+        <div>
           <h3 className="line-clamp-2 text-[13px] font-semibold leading-5 text-[#1A1A1A] transition-colors group-hover:text-[#C29B27]">
             {product.productName}
           </h3>
-        </button>
+        </div>
 
-        <div className="flex flex-wrap items-baseline gap-1.5">
-          <span className="text-[15px] font-bold text-[#C29B27]">
-            {selected ? `₹${selected.price.toLocaleString("en-IN")}` : displayPrice(product.priceRange)}
-          </span>
-          {hasDiscount && (
-            <span className="text-[11px] text-[#8A8A8A] line-through">₹{mrpNum.toLocaleString("en-IN")}</span>
+        {/* Price & View Offer row */}
+        <div className="flex items-center justify-between gap-1 flex-wrap">
+          <div className="flex flex-wrap items-baseline gap-1.5">
+            <span className="text-[15px] font-bold text-[#C29B27]">
+              {selected ? `₹${selected.price.toLocaleString("en-IN")}` : displayPrice(product.priceRange)}
+            </span>
+            {hasDiscount && (
+              <span className="text-[11px] text-[#8A8A8A] line-through">₹{mrpNum.toLocaleString("en-IN")}</span>
+            )}
+          </div>
+
+          {/* View Offer Hover Container - Only displayed if discount exists */}
+          {hasOfferDiscount && (
+            <div
+              className="relative inline-block"
+              onMouseEnter={() => {
+                handleFetchOffer(selected?.id ? String(selected.id) : undefined);
+                setShowOfferPopover(true);
+              }}
+              onMouseLeave={() => {
+                setShowOfferPopover(false);
+              }}
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowOfferPopover(prev => !prev);
+                  if (!showOfferPopover) {
+                    handleFetchOffer(selected?.id ? String(selected.id) : undefined, e);
+                  }
+                }}
+                className="cursor-pointer inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors shadow-2xs"
+                title="Hover to view Price Breakup & GST Offer"
+              >
+                {/* <Sparkles size={10} className="text-emerald-600 animate-pulse" /> */}
+                <span>View Offer</span>
+                <Tag size={9} className="text-emerald-600" />
+              </button>
+            </div>
           )}
         </div>
 
@@ -222,7 +366,6 @@ const CompactProductCard: React.FC<{
           <div className="flex flex-wrap gap-1">
             <span className="rounded-md border border-[#E8E2D8] bg-[#F9F7F4] px-1.5 py-0.5 text-[10px] font-semibold text-[#6B6B6B]">{selected.purity}</span>
             <span className="rounded-md border border-[#E8E2D8] bg-[#F9F7F4] px-1.5 py-0.5 text-[10px] font-semibold text-[#6B6B6B]">{selected.weight}g</span>
-            {/* {selected.size && <span className="rounded-md border border-[#E8E2D8] bg-[#F9F7F4] px-1.5 py-0.5 text-[10px] font-semibold text-[#6B6B6B]">{selected.size}</span>} */}
           </div>
         )}
 
@@ -230,8 +373,22 @@ const CompactProductCard: React.FC<{
           <select
             value={selectedId}
             disabled={busy}
-            onChange={e => { setSelectedId(e.target.value); setMessage(""); }}
-            className="h-8 w-full rounded-lg border border-[#E8E2D8] bg-white px-2 text-[11px] text-[#1A1A1A] focus:border-[#C29B27] focus:outline-none"
+            onClick={(e) => e.stopPropagation()}
+            onChange={e => { 
+              e.stopPropagation();
+              const newId = e.target.value;
+              setSelectedId(newId); 
+              setMessage(""); 
+              if (!offersCache[newId]) {
+                fetchGoldSilverRateBreakdown(newId)
+                  .then(data => {
+                    if (data) setOffersCache(prev => ({ ...prev, [newId]: data }));
+                  })
+                  .catch(() => {});
+              }
+              if (showOfferPopover) handleFetchOffer(newId);
+            }}
+            className="h-8 w-full rounded-lg border border-[#E8E2D8] bg-white px-2 text-[11px] text-[#1A1A1A] focus:border-[#C29B27] focus:outline-none cursor-pointer"
           >
             {options.map(v => (
               <option key={v.id} value={String(v.id)}>
@@ -241,7 +398,8 @@ const CompactProductCard: React.FC<{
           </select>
         )}
 
-        <div className="mt-auto flex flex-col gap-1.5 pt-1">
+        {/* Action Buttons: Add to Cart & Buy Now */}
+        <div className="mt-auto flex flex-col gap-1.5 pt-1" onClick={(e) => e.stopPropagation()}>
           {inCart && cartItem ? (
             <div className="flex h-9 w-full items-center justify-between rounded-xl border border-[#D9C89A] bg-[#F8F1E1] px-2">
               <button
@@ -251,7 +409,7 @@ const CompactProductCard: React.FC<{
                   await decrementQuantity(cartItem.variant.id, cartItem.cartId);
                 }}
                 aria-label="Decrease quantity"
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#8B6914] text-lg font-bold leading-none text-white transition hover:bg-[#7A5C10] active:scale-95"
+                className="cursor-pointer flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#8B6914] text-lg font-bold leading-none text-white transition hover:bg-[#7A5C10] active:scale-95"
               >
                 −
               </button>
@@ -267,37 +425,152 @@ const CompactProductCard: React.FC<{
                   await incrementQuantity(cartItem.variant.id);
                 }}
                 aria-label="Increase quantity"
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#8B6914] text-lg font-bold leading-none text-white transition hover:bg-[#7A5C10] active:scale-95"
+                className="cursor-pointer flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#8B6914] text-lg font-bold leading-none text-white transition hover:bg-[#7A5C10] active:scale-95"
               >
                 +
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              disabled={busy || unavailable}
-              onClick={handleAdd}
-              className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-[#C29B27] text-[12px] font-semibold text-white shadow-sm transition-all hover:bg-[#A88820] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {busy ? (
-                <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                </svg>
-              ) : unavailable ? "Out of Stock" : "Add to Cart"}
-            </button>
+            <div className="grid grid-cols-2 gap-1.5 w-full">
+              <button
+                type="button"
+                disabled={busy || unavailable}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAdd();
+                }}
+                className="cursor-pointer flex h-9 w-full items-center justify-center gap-1 rounded-xl border border-[#C29B27] bg-white text-[11px] font-semibold text-[#8B6914] shadow-2xs transition-all hover:bg-amber-50 hover:border-[#8B6914] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {busy ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <>
+                    <ShoppingCart size={13} className="shrink-0" />
+                    <span>Add to Cart</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                disabled={busy || unavailable}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleBuyNow();
+                }}
+                className="cursor-pointer flex h-9 w-full items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-[#C29B27] to-[#8B6914] text-[11px] font-semibold text-white shadow-sm transition-all hover:from-[#B08B20] hover:to-[#78590E] hover:shadow-md active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {busy ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <>
+                    <Zap size={13} className="shrink-0 fill-white" />
+                    <span>Buy Now</span>
+                  </>
+                )}
+              </button>
+            </div>
           )}
 
-          <button type="button" onClick={onClick} className="h-7 text-[11px] font-medium text-[#8A8A8A] hover:text-[#C29B27] transition-colors">
-            View Details →
-          </button>
+          <div 
+            className="h-6 text-[11px] font-medium text-[#8A8A8A] group-hover:text-[#C29B27] transition-colors flex items-center justify-center gap-1"
+          >
+            <span>View Details</span>
+            <ChevronRight size={12} className="transition-transform duration-200 group-hover:translate-x-0.5" />
+          </div>
         </div>
 
-        {/* {message && (
-          <p role="status" className={`text-[11px] leading-snug ${message.includes("Added") ? "text-emerald-600" : "text-[#8A8A8A]"}`}>
-            {message}
-          </p>
-        )} */}
+        {/* View Offer Popover */}
+        {hasOfferDiscount && showOfferPopover && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            onMouseEnter={() => setShowOfferPopover(true)}
+            onMouseLeave={() => setShowOfferPopover(false)}
+            className="absolute inset-x-2 bottom-2 z-30 rounded-xl border border-amber-300 bg-white/98 backdrop-blur-md p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+          >
+            <div className="flex items-center justify-between border-b border-[#F0EBE1] pb-1.5 mb-2">
+              <div className="flex items-center gap-1.5">
+                <div className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-100 text-emerald-700">
+                  <Tag size={11} />
+                </div>
+                <span className="text-[12px] font-bold text-[#1A1A1A]">Price Breakup & Offer</span>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowOfferPopover(false);
+                }}
+                className="cursor-pointer rounded-full p-1 text-[#8A8A8A] hover:bg-stone-100 hover:text-[#1A1A1A]"
+              >
+                <X size={13} />
+              </button>
+            </div>
+
+            {loadingOffer ? (
+              <div className="flex flex-col items-center justify-center py-4 text-xs text-[#8A8A8A] gap-1.5">
+                <Loader2 size={16} className="animate-spin text-[#C29B27]" />
+                <span>Fetching live price breakup...</span>
+              </div>
+            ) : offerError ? (
+              <div className="py-2 text-[11px] text-rose-600 text-center">
+                {offerError}
+              </div>
+            ) : activeOffer ? (
+              <div className="space-y-1.5 text-[11px]">
+                {/* 1. Base Price */}
+                <div className="flex justify-between text-[#6B6B6B]">
+                  <span>Base Price:</span>
+                  <span className="font-medium text-[#1A1A1A]">₹{Number(activeOffer.variantPrice || 0).toLocaleString("en-IN")}</span>
+                </div>
+
+                {/* 2. GST */}
+                <div className="flex justify-between text-[#6B6B6B]">
+                  <span>GST ({activeOffer.gstPercentage}%):</span>
+                  <span className="font-medium text-[#1A1A1A]">₹{Number(activeOffer.gstAmount || 0).toFixed(2)}</span>
+                </div>
+
+                {/* 3. Making Charges (if any) */}
+                {Number(activeOffer.makingAmount || 0) > 0 && (
+                  <div className="flex justify-between text-[#6B6B6B]">
+                    <span>Making Charges:</span>
+                    <span className="font-medium text-[#1A1A1A]">₹{Number(activeOffer.makingAmount || 0).toFixed(2)}</span>
+                  </div>
+                )}
+
+                {/* 4. Total Amount */}
+                <div className="flex justify-between text-[#6B6B6B] border-t border-dashed border-[#E8E2D8] pt-1">
+                  <span className="font-semibold text-[#1A1A1A]">Total Amount:</span>
+                  <span className="font-semibold text-[#1A1A1A]">
+                    ₹{Number(activeOffer.totalAmount ?? (Number(activeOffer.variantPrice || 0) + Number(activeOffer.gstAmount || 0) + Number(activeOffer.makingAmount || 0))).toFixed(2)}
+                  </span>
+                </div>
+
+                {/* 5. Discount / GST Waiver */}
+                {Number(activeOffer.discountAmount || 0) > 0 && (
+                  <div className="flex justify-between text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                    <span>GST Waiver Discount:</span>
+                    <span>-₹{Number(activeOffer.discountAmount || 0).toFixed(2)}</span>
+                  </div>
+                )}
+
+                {/* 6. Final Amount */}
+                <div className="border-t border-[#F0EBE1] pt-1 flex justify-between items-center text-[12px] font-bold text-[#8B6914]">
+                  <span>Final Amount:</span>
+                  <span>₹{Number(activeOffer.finalAmount || 0).toLocaleString("en-IN")}</span>
+                </div>
+
+                <p className="text-[9.5px] text-emerald-700 bg-emerald-50/70 rounded px-1.5 py-0.5 text-center font-medium">
+                  ✨ OxyGold.ai 100% GST Paid on your behalf!
+                </p>
+              </div>
+            ) : (
+              <div className="py-3 text-[11px] text-[#8A8A8A] text-center">
+                Select an option to view breakup
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </article>
   );
@@ -385,21 +658,32 @@ const PhysicalGoldPageNew: React.FC = () => {
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => setSearchInput(event.target.value);
 
   const handleCategoryClick = useCallback((categoryId: string) => {
-    navigate(`/physical-gold/category/${encodeURIComponent(categoryId)}`);
+    if (categoryId === "__all__" || categoryId === "all") {
+      navigate("/physical-gold");
+    } else {
+      navigate(`/physical-gold/category/${encodeURIComponent(categoryId)}`);
+    }
   }, [navigate]);
 
   const handleSubCategoryNavigation = useCallback((subCategoryId: string) => {
-    if (!selectedCategoryId) return;
-    navigate(`/physical-gold/category/${encodeURIComponent(selectedCategoryId)}/subcategory/${encodeURIComponent(subCategoryId)}`);
+    const isAll = !selectedCategoryId || selectedCategoryId === "__all__" || selectedCategoryId === "all";
+    if (isAll) {
+      navigate(`/physical-gold/category/__all__/subcategory/${encodeURIComponent(subCategoryId)}`);
+    } else {
+      navigate(`/physical-gold/category/${encodeURIComponent(selectedCategoryId)}/subcategory/${encodeURIComponent(subCategoryId)}`);
+    }
   }, [navigate, selectedCategoryId]);
 
   useEffect(() => {
     let cancelled = false;
     setLoadError("");
-    setSelectedCategoryId(routeCategoryId || "");
+    const isAll = !routeCategoryId || routeCategoryId === "__all__" || routeCategoryId === "all";
+    const currentCatId = isAll ? "__all__" : (routeCategoryId || "");
+
+    setSelectedCategoryId(currentCatId);
     setSelectedSubCategoryId("");
-    setShowProducts(Boolean(routeCategoryId));
-    setLayoutSelectedCategoryId(routeCategoryId);
+    setShowProducts(true);
+    setLayoutSelectedCategoryId(currentCatId);
     setProducts([]);
     setCategoriesReady(false);
     setSubCategories([]);
@@ -408,16 +692,39 @@ const PhysicalGoldPageNew: React.FC = () => {
     setTotalPages(0);
     setTotalElements(0);
     clearFilters();
-    if (!routeCategoryId || !categories.length) return;
+
+    if (!categories.length) return;
+
+    if (isAll) {
+      Promise.all(categories.map(c => fetchSubCategories(c.id).catch(() => [])))
+        .then(results => {
+          if (cancelled) return;
+          const allSubs = results.flat();
+          const uniqueSubs = Array.from(new Map(allSubs.map(s => [s.id, s])).values());
+          setSubCategories(uniqueSubs);
+          if (routeSubCategoryId && !uniqueSubs.some(sub => sub.id === routeSubCategoryId)) {
+            navigate("/physical-gold", { replace: true });
+            return;
+          }
+          setSelectedSubCategoryId(routeSubCategoryId || "");
+          setCategoriesReady(true);
+        })
+        .catch(() => {
+          if (!cancelled) setLoadError("Could not load collection. Please try again.");
+        });
+      return () => { cancelled = true; };
+    }
+
     if (!categories.some(c => c.id === routeCategoryId)) {
-      navigate("/physical-gold", {replace: true});
+      navigate("/physical-gold", { replace: true });
       return;
     }
+
     fetchSubCategories(routeCategoryId).then(data => {
       if (cancelled) return;
       setSubCategories(data);
       if (routeSubCategoryId && !data.some(sub => sub.id === routeSubCategoryId)) {
-        navigate(`/physical-gold/category/${encodeURIComponent(routeCategoryId)}`, {replace: true});
+        navigate(`/physical-gold/category/${encodeURIComponent(routeCategoryId)}`, { replace: true });
         return;
       }
       setSelectedSubCategoryId(routeSubCategoryId || "");
@@ -425,18 +732,19 @@ const PhysicalGoldPageNew: React.FC = () => {
     }).catch(() => {
       if (!cancelled) setLoadError("Could not load this collection. Please try again.");
     });
+
     return () => { cancelled = true; };
   }, [routeCategoryId, routeSubCategoryId, categories, navigate, setLayoutSelectedCategoryId, retryCount]);
 
   useEffect(() => {
-    if (!categoriesReady || !selectedCategoryId || selectedCategoryId !== routeCategoryId || selectedSubCategoryId !== (routeSubCategoryId || "")) return;
+    const isAll = !routeCategoryId || routeCategoryId === "__all__" || routeCategoryId === "all";
+    const expectedCatId = isAll ? "__all__" : routeCategoryId;
+    if (!categoriesReady || !selectedCategoryId || selectedCategoryId !== expectedCatId || selectedSubCategoryId !== (routeSubCategoryId || "")) return;
     let cancelled = false;
     setLoadingProds(true);
     setLoadError("");
     const load = async () => {
       try {
-        // Category routes aggregate their subcategories; direct subcategory routes
-        // retain the existing server pagination and filter contract.
         const query = async (categoryId: string, page: number) => {
           const response = await searchProducts({
             ...filters, categoryId: Number(categoryId), productType: "PHYSICAL",
@@ -445,25 +753,29 @@ const PhysicalGoldPageNew: React.FC = () => {
           return response.data || response;
         };
         let data: any;
-        if (selectedSubCategoryId || !subCategories.length) {
+        if (selectedSubCategoryId || (!subCategories.length && !isAll)) {
           data = await query(selectedSubCategoryId || selectedCategoryId, filters.page);
         } else {
           const mergedFacets = {byPurity: {} as Record<string, number>, bySize: {} as Record<string, number>};
           const groups = await Promise.all(subCategories.map(async sub => {
-            const first = await query(sub.id, 0);
-            for (const key of ["byPurity", "bySize"] as const) {
-              for (const [value, count] of Object.entries(first.facets?.[key] || {})) {
-                mergedFacets[key][value] = (mergedFacets[key][value] || 0) + Number(count);
+            try {
+              const first = await query(sub.id, 0);
+              for (const key of ["byPurity", "bySize"] as const) {
+                for (const [value, count] of Object.entries(first.facets?.[key] || {})) {
+                  mergedFacets[key][value] = (mergedFacets[key][value] || 0) + Number(count);
+                }
               }
+              const rows = [...(first.results || [])];
+              const pageCount = first.totalPages ?? Math.ceil((first.total ?? first.totalElements ?? rows.length) / filters.pageSize);
+              for (let page = 1; page < pageCount; page += 1) {
+                if (cancelled) return [];
+                const next = await query(sub.id, page);
+                rows.push(...(next.results || []));
+              }
+              return rows.map((row: any) => ({...row, categoryId: row.categoryId ?? sub.id}));
+            } catch {
+              return [];
             }
-            const rows = [...(first.results || [])];
-            const pageCount = first.totalPages ?? Math.ceil((first.total ?? first.totalElements ?? rows.length) / filters.pageSize);
-            for (let page = 1; page < pageCount; page += 1) {
-              if (cancelled) return [];
-              const next = await query(sub.id, page);
-              rows.push(...(next.results || []));
-            }
-            return rows.map((row: any) => ({...row, categoryId: row.categoryId ?? sub.id}));
           }));
           if (cancelled) return;
           const rows: any[] = Array.from(new Map(groups.flat().map(row => [String(row.id), row])).values());
@@ -487,7 +799,6 @@ const PhysicalGoldPageNew: React.FC = () => {
             total: rows.length, totalPages: Math.ceil(rows.length / filters.pageSize), facets: mergedFacets};
         }
         const enriched = await Promise.all((data.results || []).map(async (p: any) => {
-          // Preserve search response images; append views from the image endpoint.
           let imageCandidates = collectImageURLs(p);
           try {
             const images = await fetchProductImageURLs(String(p.id));
@@ -496,7 +807,7 @@ const PhysicalGoldPageNew: React.FC = () => {
           return {...p, id: String(p.id), productName: p.name || p.productName || "Product",
             priceRange: p.priceRange || (typeof p.price === "number" ? `₹${p.price.toLocaleString("en-IN")}` : "Price on request"),
             subCategoryId: String(p.categoryId || selectedSubCategoryId),
-            categoryName: p.categoryName || categories.find(c => c.id === selectedCategoryId)?.name || "",
+            categoryName: p.categoryName || categories.find(c => c.id === String(p.categoryId || selectedCategoryId))?.name || "",
             imageUrl: imageCandidates[0] || "", imageCandidates};
         }));
         if (cancelled) return;
@@ -519,9 +830,8 @@ const PhysicalGoldPageNew: React.FC = () => {
 
   const handleLogoClick = useCallback(() => {
     navigate("/physical-gold");
-    setShowProducts(false);
-    setSelectedCategoryId("");
-    setLayoutSelectedCategoryId(undefined);
+    setSelectedCategoryId("__all__");
+    setLayoutSelectedCategoryId("__all__");
     setSearchInput("");
     clearFilters();
     window.scrollTo(0, 0);
@@ -531,7 +841,8 @@ const PhysicalGoldPageNew: React.FC = () => {
     return <LoadingSpinner fullScreen message="Loading Collection..." />;
   }
 
-  const categoryName = categories.find(c => c.id === selectedCategoryId)?.name || "Collection";
+  const isAll = !selectedCategoryId || selectedCategoryId === "__all__" || selectedCategoryId === "all";
+  const categoryName = isAll ? "All Jewellery" : (categories.find(c => c.id === selectedCategoryId)?.name || "Collection");
   const subCategoryName = subCategories.find(c => c.id === selectedSubCategoryId)?.name || "Products";
   const activeCount = [filters.purity, filters.size, filters.minPrice, filters.maxPrice,
     filters.minWeight, filters.maxWeight, filters.inStock].filter(v => v !== undefined && v !== "").length;
@@ -547,6 +858,12 @@ const PhysicalGoldPageNew: React.FC = () => {
               <button onClick={handleLogoClick} className="min-h-8 font-medium hover:text-[#C29B27] transition-colors">Home</button>
               <span className="text-[#D1C7BB]">›</span>
               <span className="font-semibold text-[#1A1A1A]">{categoryName}</span>
+              {selectedSubCategoryId && (
+                <>
+                  <span className="text-[#D1C7BB]">›</span>
+                  <span className="font-semibold text-[#8B6914]">{subCategoryName}</span>
+                </>
+              )}
             </nav>
             <h1 className="mb-2 text-2xl font-bold tracking-tight text-[#1A1A1A]">{categoryName}</h1>
             <div className="mb-2 flex w-full min-w-0 flex-col gap-3 md:flex-row md:items-center">
@@ -555,7 +872,13 @@ const PhysicalGoldPageNew: React.FC = () => {
               aria-label="Subcategories"
             >
               <button type="button" aria-pressed={!selectedSubCategoryId}
-                onClick={() => navigate(`/physical-gold/category/${encodeURIComponent(selectedCategoryId)}`)}
+                onClick={() => {
+                  if (isAll) {
+                    navigate("/physical-gold");
+                  } else {
+                    navigate(`/physical-gold/category/${encodeURIComponent(selectedCategoryId)}`);
+                  }
+                }}
                 className={`shrink-0 touch-manipulation rounded-xl border px-4 py-2.5 text-[13px] font-semibold transition-all ${
                   !selectedSubCategoryId
                     ? "border-[#C29B27] bg-amber-50 text-[#8B6914]"

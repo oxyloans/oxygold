@@ -17,7 +17,11 @@ import {
     Coins,
     Tag,
     CheckCircle2,
+    Plus,
+    PartyPopper,
+    Gem,
 } from "lucide-react";
+
 import { motion } from "framer-motion";
 import { load } from "@cashfreepayments/cashfree-js";
 import { QuantitySelector } from "./components/ui/QuantitySelector";
@@ -28,6 +32,8 @@ import {
     fetchWalletBalance,
     confirmOrder,
     getUserProfile,
+    fetchGoldSilverRateBreakdown,
+    GoldSilverRateBreakdown
 } from "./physicalGoldService";
 
 /* ────────────────────────────────────────────────────────── */
@@ -194,22 +200,88 @@ const CartPage: React.FC = () => {
         totalPayableAmount,
         deliveryFee,
         deliveryDistanceKm,
+    
         ratePerKm,
         totalDiscountAmount,
         totalDiscountPercentage,
     } = useCart();
 
-    const [showBreakdown, setShowBreakdown] = useState(false);
+    const priceBreakdownRef = useRef<HTMLDivElement | null>(null);
+    const [rateBreakdown, setRateBreakdown] = useState<GoldSilverRateBreakdown | null>(null);
     const [showDiscountModal, setShowDiscountModal] = useState(false);
     const discountModalShownRef = useRef(false);
-    const priceBreakdownRef = useRef<HTMLDivElement | null>(null);
 
-    const isSilverCart = cartItems.some(
+    const hasSilverItems = cartItems.some(
         (item) =>
-            /silver/i.test(item.product.productName || "") ||
-            /silver/i.test(item.variant.purity || "")
+            /silver/i.test(item.product?.productName || "") ||
+            /silver/i.test(item.variant?.purity || "")
     );
-    const metalName = isSilverCart ? "Silver" : "Gold";
+    const isSilverCart = hasSilverItems;
+    const metalName = hasSilverItems ? "Silver" : "Gold";
+
+    useEffect(() => {
+        if (!cartItems || cartItems.length === 0) {
+            setRateBreakdown(null);
+            setShowDiscountModal(false);
+            return;
+        }
+
+        let isMounted = true;
+        (async () => {
+            try {
+                // Fetch rate breakdown for items in the cart
+                const breakdowns = await Promise.all(
+                    cartItems.map(async (item) => {
+                        try {
+                            const res = await fetchGoldSilverRateBreakdown(item.variant.id);
+                            return ((res as any)?.data ?? (res as any)?.body ?? res) as GoldSilverRateBreakdown;
+                        } catch (err) {
+                            console.error(`[CartSlider] Failed breakdown for variant ${item.variant.id}:`, err);
+                            return null;
+                        }
+                    })
+                );
+
+                if (!isMounted) return;
+
+                const valid = breakdowns.filter((b): b is GoldSilverRateBreakdown => b !== null);
+                if (valid.length > 0) {
+                    // Pick the breakdown that contains the discount (or first item) directly without any calculations
+                    const targetBreakdown =
+                        valid.find(
+                            (b) => Number(b.discountPercentage || 0) > 0 || Number(b.discountAmount || 0) > 0
+                        ) ?? valid[0];
+
+                    console.log("[CartSlider] Direct API breakdown response (no calculation):", targetBreakdown);
+                    setRateBreakdown(targetBreakdown);
+
+                    const discPct = Number(targetBreakdown.discountPercentage || 0);
+                    const discAmt = Number(targetBreakdown.discountAmount || 0);
+
+                    // If discount is not zero, open modal
+                    if (discPct > 0 || discAmt > 0) {
+                        setShowDiscountModal(true);
+                    } else {
+                        setShowDiscountModal(false);
+                    }
+                } else {
+                    setRateBreakdown(null);
+                    setShowDiscountModal(false);
+                }
+            } catch (err) {
+                console.error("[CartSlider] Error fetching rate breakdowns:", err);
+                if (isMounted) {
+                    setRateBreakdown(null);
+                    setShowDiscountModal(false);
+                }
+            }
+        })();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [cartItems]);
+
     const [s, setS] = useState<PageState>({
         addresses: [],
         selectedAddressId: "",
@@ -236,21 +308,6 @@ const CartPage: React.FC = () => {
         (partial: Partial<PageState>) => setS((prev) => ({ ...prev, ...partial })),
         []
     );
-
-    useEffect(() => {
-        if (totalDiscountAmount <= 0 || cartItems.length === 0) {
-            setShowDiscountModal(false);
-            return;
-        }
-
-        if (!discountModalShownRef.current) {
-            const timer = window.setTimeout(() => {
-                setShowDiscountModal(true);
-                discountModalShownRef.current = true;
-            }, 600);
-            return () => window.clearTimeout(timer);
-        }
-    }, [totalDiscountAmount, cartItems.length]);
 
     useEffect(() => {
         const stored = localStorage.getItem("user");
@@ -531,22 +588,139 @@ const CartPage: React.FC = () => {
                 description={<p>We need your profile details to process this order.</p>}
             />
 
+            {/* GST Rate & Discount Breakdown Modal */}
+            {showDiscountModal && rateBreakdown && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 cursor-pointer"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="cart-discount-title"
+                    onClick={() => setShowDiscountModal(false)}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.92, y: 24 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                        className="relative w-full max-w-sm overflow-hidden rounded-[32px] bg-white p-6 sm:p-7 text-center shadow-2xl ring-1 ring-black/5 cursor-default"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Corner decorative icons */}
+                        <span className="pointer-events-none absolute left-6 top-6 text-purple-300">
+                            <Sparkles size={18} />
+                        </span>
+                        <span className="pointer-events-none absolute right-12 top-7 text-amber-300 text-xs">
+                            ✨
+                        </span>
+
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowDiscountModal(false);
+                            }}
+                            className="absolute right-4 top-4 z-20 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                            aria-label="Close"
+                        >
+                            <X size={16} />
+                        </button>
+
+                        <div className="relative z-10 pt-1">
+                            {/* Party Popper Celebration Icon */}
+                            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#7C3AED] to-[#8B5CF6] text-white shadow-lg shadow-purple-300/50">
+                                <PartyPopper size={26} />
+                            </div>
+
+                            {/* Header Title */}
+                            <h2
+                                id="cart-discount-title"
+                                className="text-xl font-extrabold text-[#7C3AED] flex items-center justify-center gap-1.5"
+                            >
+                                GST & Making Charges on Us 🎉
+                            </h2>
+
+                            {/* Mint Green Banner */}
+                            <div className="mt-3.5 mb-4 rounded-2xl border border-emerald-100 bg-[#E8F8F0] p-3 text-center">
+                                <p className="text-[13px] font-bold text-emerald-900 flex items-center justify-center gap-1">
+                                    <span>✨</span> Exclusive for <span className="underline decoration-emerald-600 underline-offset-2">Silver Purchases</span>
+                                </p>
+                                <p className="mt-0.5 text-[11px] font-medium text-emerald-700">
+                                    Zero Making Charges + 100% GST Covered by OXYGOLD.AI!
+                                </p>
+                            </div>
+
+                            {/* Price Breakdown Box */}
+                            <div className="my-4 rounded-2xl border border-dashed border-gray-200 bg-white p-3.5 text-left text-[13px] space-y-2.5 shadow-2xs">
+                                <div className="flex justify-between items-center text-gray-700">
+                                    <span className="font-medium text-gray-600">GST ({rateBreakdown.gstPercentage ?? 3}%)</span>
+                                    <span className="font-bold text-gray-900">
+                                        ₹{Number(rateBreakdown.gstAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-gray-700">
+                                    <span className="font-medium text-gray-600">Making Charges</span>
+                                    <span className="font-bold text-gray-900">
+                                        ₹{Number(rateBreakdown.makingAmount || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-emerald-600 font-bold pt-1">
+                                    <span className="flex items-center gap-1.5 text-gray-900">
+                                        <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
+                                        Oxygold.in GST Waiver:
+                                    </span>
+                                    <span className="text-emerald-600">
+                                        -₹{Number(rateBreakdown.discountAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                                <div className="rounded-xl bg-[#E8F8F0] px-3 py-2 flex justify-between items-center text-[12px] mt-2">
+                                    <span className="font-semibold text-emerald-900">Your Net Extra Charges</span>
+                                    <span className="font-bold text-emerald-700">
+                                        ₹0.00 (Zero Extra Tax)
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Highlight Badges */}
+                            <div className="mb-5 flex justify-center gap-2.5">
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-100 bg-purple-50 px-3 py-1.5 text-[11px] font-bold text-purple-700">
+                                    <Gem size={13} className="text-purple-600" /> Valid Only on Silver
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-[#E8F8F0] px-3 py-1.5 text-[11px] font-bold text-emerald-700">
+                                    <CheckCircle2 size={13} className="text-emerald-600" /> 100% Tax Covered
+                                </span>
+                            </div>
+
+                            {/* Main Button */}
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowDiscountModal(false);
+                                }}
+                                className="w-full cursor-pointer rounded-2xl py-3.5 text-[14px] font-bold text-white bg-gradient-to-r from-[#7C3AED] to-[#6366F1] hover:from-[#6D28D9] hover:to-[#4F46E5] shadow-lg shadow-purple-300/40 transition active:scale-[0.99]"
+                            >
+                                Awesome, Got It!
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
             <main className="pt-24 md:pt-36 lg:pt-36 pb-16 max-w-5xl mx-auto px-4 sm:px-4">
 
-                {/* Back */}
+                {/* Back to Store */}
                 <button
-                    onClick={() => navigate(-1)}
+                    onClick={() => navigate("/physical-gold")}
                     className="mb-2 mt-2 cursor-pointer inline-flex items-center gap-1.5 text-[14px] font-medium text-[#8A8A8A] hover:text-[#8B6914] transition"
                 >
                     <ArrowLeft className="h-3.5 w-3.5" /> Back to Store
                 </button>
 
                 {/* Page Title + Breadcrumb */}
-                <div className="mb-2">
+                <div className="mb-4">
                     <h1 className="text-[20px] font-semibold text-[#1A1A1A]">
                         {s.checkoutStep === "cart" ? `Shopping Cart (${totalItems})` : "Checkout"}
                     </h1>
-                    <div className="flex pt-2 items-center gap-3 text-[14px] text-[#8A8A8A]">
+                    <div className="flex pt-1.5 items-center gap-3 text-[14px] text-[#8A8A8A]">
                         <span
                             className={`cursor-pointer ${s.checkoutStep === "cart" ? "text-[#8B6914] font-semibold" : ""}`}
                             onClick={() => patch({ checkoutStep: "cart" })}
@@ -566,52 +740,82 @@ const CartPage: React.FC = () => {
                     <div className="space-y-3">
                         {s.checkoutStep === "cart" ? (
                             <>
-                                {cartItems.map(({ cartId, product, variant, quantity }) => {
-                                    const lineTotal = variant.price * quantity;
-                                    return (
-                                        <div
-                                            key={variant.id}
-                                            className="flex items-center gap-4 p-4 rounded-xl border border-[#E8E0D5] bg-white hover:border-[#C9B87A] transition group"
-                                        >
-                                            {/* Image */}
-                                            <div className="h-20 w-20 flex-shrink-0 rounded-lg overflow-hidden bg-[#F5F2EE] border border-[#E8E0D5]">
-                                                <img
-                                                    src={product.imageUrl}
-                                                    alt={product.productName}
-                                                    className="h-full w-full object-cover mix-blend-multiply"
-                                                />
-                                            </div>
-
-                                            {/* Info */}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <h3 className="text-[14px] font-semibold text-[#1A1A1A] leading-snug">{product.productName}</h3>
-                                                    <button
-                                                        onClick={() => requestRemove(variant.id)}
-                                                        className="shrink-0 p-1 text-[#D1C7BB] hover:text-rose-500 transition opacity-0 group-hover:opacity-100"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
-                                                <p className="text-[11px] text-[#8A8A8A] mt-0.5">
-                                                    {variant.purity} {" "}
-                                                    {variant.weight}g
-                                                    {/* {variant.size || "Standard"} */}
-                                                </p>
-                                                <div className="flex items-center justify-between mt-3">
-                                                    <QuantitySelector
-                                                        quantity={quantity}
-                                                        onIncrease={() => handleIncrement(variant.id)}
-                                                        onDecrease={() => handleDecrement(variant.id, cartId)}
+                                <div className="space-y-3 max-h-[380px] sm:max-h-[420px] overflow-y-auto pr-1.5 overscroll-contain scroll-smooth [scrollbar-width:thin] [scrollbar-color:#D1C7BB_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[#F5F2EE] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D1C7BB] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#8B6914]">
+                                    {cartItems.map(({ cartId, product, variant, quantity }) => {
+                                        const lineTotal = variant.price * quantity;
+                                        return (
+                                            <div
+                                                key={variant.id}
+                                                className="flex items-center gap-4 p-4 rounded-xl border border-[#E8E0D5] bg-white hover:border-[#C9B87A] transition group"
+                                            >
+                                                {/* Image */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => product.id && navigate(`/physical-gold/product/${product.id}`)}
+                                                    className="h-20 w-20 flex-shrink-0 rounded-lg overflow-hidden bg-[#F5F2EE] border border-[#E8E0D5] cursor-pointer hover:border-[#8B6914]/60 transition group/img"
+                                                    title={`View ${product.productName}`}
+                                                >
+                                                    <img
+                                                        src={product.imageUrl}
+                                                        alt={product.productName}
+                                                        className="h-full w-full object-cover mix-blend-multiply transition-transform duration-300 group-hover/img:scale-105"
                                                     />
-                                                    <span className="text-[15px] font-semibold text-[#8B6914]">
-                                                        ₹{lineTotal.toLocaleString("en-IN")}
-                                                    </span>
+                                                </button>
+
+                                                {/* Info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => product.id && navigate(`/physical-gold/product/${product.id}`)}
+                                                            className="text-left cursor-pointer group/title"
+                                                        >
+                                                            <h3 className="text-[14px] font-semibold text-[#1A1A1A] leading-snug group-hover/title:text-[#8B6914] transition-colors">
+                                                                {product.productName}
+                                                            </h3>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => requestRemove(variant.id)}
+                                                            className="shrink-0 p-1 text-[#D1C7BB] hover:text-rose-500 transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                                                            title="Remove item"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-[11px] text-[#8A8A8A] mt-0.5">
+                                                        {variant.purity} {" "}
+                                                        {variant.weight}g
+                                                        {/* {variant.size || "Standard"} */}
+                                                    </p>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <QuantitySelector
+                                                            quantity={quantity}
+                                                            onIncrease={() => handleIncrement(variant.id)}
+                                                            onDecrease={() => handleDecrement(variant.id, cartId)}
+                                                            disabled={s.incrementingId === variant.id || s.decrementingId === variant.id}
+                                                        />
+                                                        <span className="text-[15px] font-semibold text-[#8B6914]">
+                                                            ₹{lineTotal.toLocaleString("en-IN")}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
+
+                                {cartItems.length > 0 && (
+                                    <div className="pt-3 flex justify-center items-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate("/physical-gold")}
+                                            className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#E8E0D5] bg-white text-[13px] font-semibold text-[#8B6914] hover:bg-[#F5EDD6]/40 hover:border-[#8B6914]/50 hover:shadow-xs transition-all active:scale-95 shadow-2xs"
+                                        >
+                                            <ShoppingBag size={16} className="text-[#8B6914] shrink-0" />
+                                            <span>Continue Shopping</span>
+                                        </button>
+                                    </div>
+                                )}
                             </>
                         ) : (
                             <div className="space-y-5">
@@ -643,7 +847,7 @@ const CartPage: React.FC = () => {
                                                             <p className="text-[11px] text-[#8A8A8A]">{addr.landMark}, {addr.flatNo}</p>
                                                             {missingLocation && (
                                                                 <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
-                                                                    <AlertTriangle size={10} /> Location not captured — edit address to add
+                                                                    <AlertTriangle size={10} /> Location not captured — <button onClick={() => navigate("/physical-gold/profile?tab=address")} className="underline font-semibold">edit the address</button>
                                                                 </p>
                                                             )}
                                                         </div>
@@ -702,11 +906,10 @@ const CartPage: React.FC = () => {
                                     </div>
                                 )}
                                 <div
-                                    className={`space-y-2 ${
-                                        cartItems.length > 3
+                                    className={`space-y-2 ${cartItems.length > 3
                                             ? "max-h-[135px] overflow-y-auto pr-1.5 overscroll-contain scroll-smooth [scrollbar-width:thin] [scrollbar-color:#D1C7BB_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[#F5F2EE] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D1C7BB] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#8B6914]"
                                             : ""
-                                    }`}
+                                        }`}
                                 >
                                     {cartItems.map(({ product, variant, quantity }) => (
                                         <div
@@ -758,27 +961,17 @@ const CartPage: React.FC = () => {
                                 )}
 
                                 {totalDiscountAmount > 0 && (
-                                    <div
-                                        onClick={() => setShowDiscountModal(true)}
-                                        className="flex justify-between items-center text-[12px] cursor-pointer group/disc hover:bg-emerald-50/60 rounded-md -mx-1 px-1 py-0.5 transition-colors"
-                                        title="Click to view discount details"
-                                    >
+                                    <div className="flex justify-between items-center text-[12px]">
                                         <span className="text-emerald-600 flex items-center gap-1 font-medium">
                                             Discount
-                                            {/* {totalDiscountPercentage > 0 && (
-                                                <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                                                    -{totalDiscountPercentage}%
-                                                </span>
-                                            )} */}
                                         </span>
                                         <span className="font-semibold text-emerald-600 flex items-center gap-1">
                                             -₹{totalDiscountAmount.toLocaleString("en-IN")}
-                                            {/* <Sparkles size={11} className="text-emerald-500" /> */}
                                         </span>
                                     </div>
                                 )}
 
-                               {/* <div className="flex justify-between items-center text-[12px]">
+                                {/* <div className="flex justify-between items-center text-[12px]">
                                     <span className="text-[#8A8A8A]">Insurance</span>
                                     <span className="font-medium text-[#1A1A1A]">Included</span>
                                 </div> */}
@@ -843,148 +1036,6 @@ const CartPage: React.FC = () => {
 
                 </div>
             </main>
-            {/* 100% GST Paid by OxyGold.ai Discount Modal */}
-            {showDiscountModal && totalDiscountAmount > 0 && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 cursor-pointer"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="discount-title"
-                    onClick={() => setShowDiscountModal(false)}
-                >
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.92, y: 24 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                        className={`relative w-full max-w-sm overflow-hidden rounded-[28px] bg-gradient-to-b p-6 sm:p-7 text-center shadow-2xl ring-1 cursor-default ${
-                            isSilverCart
-                                ? "from-slate-50 via-white to-slate-50 ring-slate-200/60"
-                                : "from-amber-50 via-white to-amber-50 ring-amber-200/60"
-                        }`}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* ambient glow */}
-                        <motion.div
-                            animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.5, 0.3] }}
-                            transition={{ duration: 4, repeat: Infinity }}
-                            className={`pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full blur-3xl ${
-                                isSilverCart ? "bg-slate-200/60" : "bg-amber-200/50"
-                            }`}
-                        />
-                        <motion.span
-                            animate={{ y: [0, -6, 0], rotate: [0, 12, 0] }}
-                            transition={{ duration: 3, repeat: Infinity }}
-                            className={`pointer-events-none absolute left-7 top-6 ${isSilverCart ? "text-slate-400" : "text-amber-300"}`}
-                        >
-                            <Sparkles size={18} />
-                        </motion.span>
-
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowDiscountModal(false);
-                            }}
-                            className="absolute right-4 top-4 z-20 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/80 text-[#8A8A8A] shadow-xs ring-1 ring-black/5 hover:bg-[#F5F2EE] hover:text-[#1A1A1A] transition-colors"
-                            aria-label="Close"
-                        >
-                            <X size={16} />
-                        </button>
-
-                        <div className="relative z-10">
-                            {/* Icon */}
-                            <div
-                                className={`mx-auto mb-3.5 flex h-13 w-13 items-center justify-center rounded-2xl shadow-lg ${
-                                    isSilverCart
-                                        ? "bg-gradient-to-br from-slate-500 to-slate-700 text-white shadow-slate-200"
-                                        : "bg-gradient-to-br from-[#C29B27] to-[#9B7416] text-white shadow-amber-200"
-                                }`}
-                            >
-                                <Tag size={24} />
-                            </div>
-
-                            {/* Top Badge */}
-                            <span
-                                className={`mb-2.5 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold ${
-                                    isSilverCart
-                                        ? "border-slate-200 bg-slate-50 text-slate-700"
-                                        : "border-amber-200 bg-amber-50 text-amber-700"
-                                }`}
-                            >
-                                <CheckCircle2 size={12} className="text-emerald-600" /> 100% GST Paid by OxyGold.ai
-                            </span>
-
-                            <h2
-                                id="discount-title"
-                                className={`text-xl font-black ${isSilverCart ? "text-slate-800" : "text-[#8B6914]"}`}
-                            >
-                                Congratulations! 🎉
-                            </h2>
-                            <p className="mt-1 text-[15px] font-bold text-[#1A1A1A]">
-                                We are paying the GST amount on your behalf!
-                            </p>
-                            <p className="mt-2 text-[12px] leading-relaxed text-[#5A5A5A]">
-                                For your {metalName.toLowerCase()} purchase, <strong className="text-[#1A1A1A]">OxyGold.ai</strong> covers the complete government GST so you don't have to pay extra. The entire tax amount is waived as an instant discount!
-                            </p>
-
-                            {/* GST Breakdown Box */}
-                            <div className="my-4 rounded-xl border border-[#EFE7DC] bg-[#FAF8F5] p-3.5 text-left text-[12px] space-y-2">
-                                <div className="flex justify-between items-center text-[#5A5A5A]">
-                                    <span>Government GST ({totalDiscountPercentage || 3}%)</span>
-                                    <span className="font-semibold text-[#1A1A1A]">
-                                        ₹{(totalGstCharges || totalDiscountAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center text-emerald-700 font-semibold">
-                                    <span className="flex items-center gap-1">
-                                        <Tag size={11} /> OxyGold.ai GST Waiver:
-                                    </span>
-                                    <span>
-                                        -₹{totalDiscountAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                                    </span>
-                                </div>
-                                <div className="border-t border-[#E8E0D5] pt-2 flex justify-between items-center">
-                                    <span className="font-bold text-[#1A1A1A]">Your Net Tax Contribution</span>
-                                    <span className="font-extrabold text-emerald-700 text-[12px]">
-                                        ₹0.00 <span className="font-medium text-[10px] text-emerald-600">(Zero Extra Tax)</span>
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Highlight Badges */}
-                            <div className="mb-5 flex justify-center gap-2 flex-wrap">
-                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-                                    <CheckCircle2 size={11} /> 100% Tax Covered
-                                </span>
-                                <span
-                                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold ${
-                                        isSilverCart
-                                            ? "border-slate-200 bg-slate-100 text-slate-700"
-                                            : "border-amber-200 bg-amber-100 text-amber-800"
-                                    }`}
-                                >
-                                    <Sparkles size={11} /> Pure {metalName} Offer
-                                </span>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowDiscountModal(false);
-                                }}
-                                className={`w-full cursor-pointer rounded-full py-2.5 text-[13px] font-bold text-white shadow-lg transition hover:opacity-95 active:scale-[0.99] ${
-                                    isSilverCart
-                                        ? "bg-gradient-to-r from-slate-600 to-slate-800 shadow-slate-200"
-                                        : "bg-gradient-to-r from-[#C29B27] to-[#9B7416] shadow-amber-200"
-                                }`}
-                            >
-                                Awesome, Got it
-                            </button>
-                        </div>
-                    </motion.div>
-                </div>
-            )}
         </div>
     );
 };

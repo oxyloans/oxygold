@@ -5,19 +5,22 @@ export interface QuantitySelectorProps {
     quantity: number;
     onIncrease: () => void;
     onDecrease: () => void;
+    disabled?: boolean;
 }
 
 export const QuantitySelector: React.FC<QuantitySelectorProps> = ({
     quantity,
     onIncrease,
     onDecrease,
+    disabled = false,
 }) => {
     return (
         <div className="flex items-center gap-3">
             <button
                 type="button"
+                disabled={disabled}
                 onClick={onDecrease}
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-[#E5E5E5] bg-white text-[#1A1A1A] transition hover:border-[#1A1A1A] hover:bg-[#F9F7F3]"
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-[#E5E5E5] bg-white text-[#1A1A1A] transition hover:border-[#1A1A1A] hover:bg-[#F9F7F3] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
                 <Minus className="h-3.5 w-3.5" strokeWidth={2.5} />
             </button>
@@ -26,8 +29,9 @@ export const QuantitySelector: React.FC<QuantitySelectorProps> = ({
             </span>
             <button
                 type="button"
+                disabled={disabled}
                 onClick={onIncrease}
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-[#E5E5E5] bg-white text-[#1A1A1A] transition hover:border-[#1A1A1A] hover:bg-[#F9F7F3]"
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-[#E5E5E5] bg-white text-[#1A1A1A] transition hover:border-[#1A1A1A] hover:bg-[#F9F7F3] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
                 <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
             </button>

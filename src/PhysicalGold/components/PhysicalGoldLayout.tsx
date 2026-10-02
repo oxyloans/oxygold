@@ -26,23 +26,35 @@ const PhysicalGoldLayout: React.FC = () => {
         } else if (state?.categoryId) {
             setSelectedCategoryId(state.categoryId);
         } else if (state?.reset) {
-            setSelectedCategoryId(undefined);
+            setSelectedCategoryId("__all__");
         } else if (
                    location.pathname === '/physical-gold/cart' || 
                    location.pathname === '/physical-gold/wishlist' ||
                    location.pathname === '/physical-gold/profile' ||
                    location.pathname === '/physical-gold/checkout') {
             setSelectedCategoryId(undefined);
+        } else if (location.pathname === '/physical-gold' || location.pathname === '/physical-gold/') {
+            setSelectedCategoryId("__all__");
+        } else {
+            const match = location.pathname.match(/\/physical-gold\/category\/([^/]+)/);
+            if (match && match[1]) {
+                setSelectedCategoryId(decodeURIComponent(match[1]));
+            }
         }
     }, [location.state, location.pathname]);
 
     const handleCategoryClick = (categoryId: string) => {
-        setSelectedCategoryId(categoryId);
-        navigate(`/physical-gold/category/${encodeURIComponent(categoryId)}`);
+        if (categoryId === "__all__" || categoryId === "all") {
+            setSelectedCategoryId("__all__");
+            navigate("/physical-gold");
+        } else {
+            setSelectedCategoryId(categoryId);
+            navigate(`/physical-gold/category/${encodeURIComponent(categoryId)}`);
+        }
     };
 
     const handleLogoClick = () => {
-        setSelectedCategoryId(undefined);
+        setSelectedCategoryId("__all__");
         navigate("/physical-gold");
         window.scrollTo(0, 0);
     };

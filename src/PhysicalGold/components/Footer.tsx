@@ -55,8 +55,8 @@ const Footer: React.FC = () => {
             <ul className="space-y-2 text-sm">
               <li><a href="/privacy-policy.html" className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>Privacy Policy</a></li>
               <li><button onClick={() => navigate("/physical-gold/terms-conditions")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>Terms & Conditions</button></li>
-              <li><button onClick={() => navigate("/physical-gold/shipping-policy")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>Shipping Policy</button></li>
-              <li><button onClick={() => navigate("/physical-gold/return-refund-policy")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>Return & Refund Policy</button></li>
+              {/* <li><button onClick={() => navigate("/physical-gold/shipping-policy")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>Shipping Policy</button></li>
+              <li><button onClick={() => navigate("/physical-gold/return-refund-policy")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>Return & Refund Policy</button></li> */}
               <li><button onClick={() => navigate("/physical-gold/faq")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>FAQs</button></li>
             </ul>
           </div>

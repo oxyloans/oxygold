@@ -66,6 +66,7 @@ import { type Order, type OrderItem, resolveS3ImageUrl } from "./physicalGoldDat
 import PhysicalGoldHeader from "./components/Header";
 import Toast, { ToastType } from "./components/Toast";
 import Dropdown from "./components/Dropdown";
+import TokenManager from "../utils/tokenManager";
 import { validateEmail, validateMobileNumber, formatMobileNumber, validatePincode, getPincodeError, formatPincode } from "./utils/validations";
 
 const DISPLAY_INR = (v: number) =>
@@ -252,6 +253,8 @@ const ProfilePage: React.FC = () => {
     const [reviewError, setReviewError] = useState("");
     const [isSavingReview, setIsSavingReview] = useState(false);
     const [retryingOrderId, setRetryingOrderId] = useState<number | null>(null);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     const [locationSearch, setLocationSearch] = useState("");
     const [locationSuggestions, setLocationSuggestions] = useState<{ description: string; place_id: string }[]>([]);
@@ -473,19 +476,6 @@ const ProfilePage: React.FC = () => {
     }, [s.activeTab, fetchProfile, loadAddresses, fetchWalletInfo, loadOrders]);
 
     /* ── actions ── */
-    const handleLogout = async () => {
-        try {
-            const stored = localStorage.getItem("user");
-            if (stored) {
-                const ud = JSON.parse(stored);
-                if (ud.data?.accessToken) await logout(ud.data.accessToken);
-            }
-        } catch (e) { console.error("Logout failed:", e); }
-        const { default: TokenManager } = await import('../utils/tokenManager');
-        TokenManager.getInstance().clearTokens();
-        navigate("/login", { replace: true });
-    };
-
     const validatePan = (pan: string): boolean => {
         const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
         return panRegex.test(pan);
@@ -519,10 +509,8 @@ const ProfilePage: React.FC = () => {
         }
         if (!profileForm.gender) errors.gender = "Gender is required";
 
-        // PAN validation
-        if (!profileForm.panNumber.trim()) {
-            errors.panNumber = "PAN number is required";
-        } else if (!validatePan(profileForm.panNumber.toUpperCase())) {
+        // Optional PAN validation
+        if (profileForm.panNumber.trim() && !validatePan(profileForm.panNumber.toUpperCase())) {
             errors.panNumber = "Invalid PAN format (e.g., ABCDE1234F)";
         }
 
@@ -538,27 +526,6 @@ const ProfilePage: React.FC = () => {
 
         patch({ isSavingProfile: true, profileErrors: {} });
         try {
-            // Verify PAN if not verified
-            if (!profileForm.panVerified) {
-                patch({ isVerifyingPan: true });
-                try {
-                    await verifyPan({
-                        pan: profileForm.panNumber.toUpperCase(),
-                        firstName: profileForm.firstName.trim(),
-                        lastName: profileForm.lastName.trim(),
-                    });
-                    patch({ isVerifyingPan: false });
-                } catch (panErr: any) {
-                    patch({
-                        isVerifyingPan: false,
-                        isSavingProfile: false,
-                        profileErrors: { panNumber: panErr.message || "PAN verification failed" },
-                        toast: { message: getApiErrorMessage(panErr, "PAN verification failed. Please check your details."), type: "error" }
-                    });
-                    return;
-                }
-            }
-
             await saveUserProfile({
                 userId: uid,
                 email: profileForm.email,
@@ -567,7 +534,7 @@ const ProfilePage: React.FC = () => {
                 firstName: profileForm.firstName,
                 lastName: profileForm.lastName,
                 gender: profileForm.gender,
-                panNumber: profileForm.panNumber.toUpperCase(),
+                panNumber: profileForm.panNumber.trim() ? profileForm.panNumber.trim().toUpperCase() : "",
             });
             const updatedUser = JSON.parse(JSON.stringify(userData));
             const profile = updatedUser.data?.body || updatedUser;
@@ -577,8 +544,7 @@ const ProfilePage: React.FC = () => {
             profile.alternativeNumber = profileForm.alternativeNumber;
             profile.whatsappNumber = profileForm.whatsappNumber;
             profile.gender = profileForm.gender;
-            profile.panNumber = profileForm.panNumber.toUpperCase();
-            profile.panVerified = true;
+            profile.panNumber = profileForm.panNumber.trim() ? profileForm.panNumber.trim().toUpperCase() : "";
             localStorage.setItem("user", JSON.stringify(updatedUser));
             setUser(updatedUser);
             patch({ isEditingProfile: false, toast: { message: "Profile updated successfully", type: "success" } });
@@ -1194,6 +1160,26 @@ const ProfilePage: React.FC = () => {
         }
     };
 
+    const handleLogout = async () => {
+        setIsLoggingOut(true);
+        try {
+            const stored = localStorage.getItem("user");
+            if (stored) {
+                const ud = JSON.parse(stored);
+                if (ud.data?.accessToken) {
+                    await logout(ud.data.accessToken);
+                }
+            }
+        } catch (e) {
+            console.error("Logout failed:", e);
+        } finally {
+            TokenManager.getInstance().clearTokens();
+            setShowLogoutConfirm(false);
+            setIsLoggingOut(false);
+            navigate("/login", { replace: true });
+        }
+    };
+
     const displayName = user
         ? `${user.data?.body?.firstName || user.firstName || ""} ${user.data?.body?.lastName || user.lastName || ""}`.trim() || "My Account"
         : "My Account";
@@ -1235,8 +1221,8 @@ const ProfilePage: React.FC = () => {
                 </button>
 
                 {/* Profile Header Card */}
-                <div className="bg-white border border-[#E8E0D5] rounded-xl px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-1 shadow-sm">
-                    <div className="flex items-center gap-4">
+                <div className="bg-white border border-[#E8E0D5] rounded-xl px-4 sm:px-6 py-4 flex flex-row items-center justify-between gap-3 mb-1 shadow-sm">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                         <div className="h-11 w-11 rounded-full bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0">
                             <User className="h-5 w-5" strokeWidth={1.8} />
                         </div>
@@ -1247,18 +1233,29 @@ const ProfilePage: React.FC = () => {
                             </p>
                         </div>
                     </div>
-                    {s.activeTab === 'info' && (
+                    <div className="flex items-center gap-2 shrink-0">
+                        {s.activeTab === 'info' && !s.isEditingProfile && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSearchParams({ tab: "info" });
+                                    patch({ activeTab: "info", isEditingProfile: true });
+                                }}
+                                className="cursor-pointer inline-flex items-center justify-center gap-1.5 border border-[#E8E0D5] bg-white rounded-lg px-3 sm:px-3.5 py-1.5 text-[12px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] hover:border-[#D1C7BB] transition shadow-2xs active:scale-95"
+                            >
+                                <Pencil className="h-3 w-3 text-[#8B6914]" />
+                                <span>Edit Profile</span>
+                            </button>
+                        )}
                         <button
-                            onClick={() => {
-                                setSearchParams({ tab: "info" });
-                                patch({ activeTab: "info", isEditingProfile: true });
-                            }}
-                            className="inline-flex items-center justify-center gap-1.5 border border-[#E8E0D5] rounded-lg px-3.5 py-1.5 text-[14px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition shrink-0 w-full sm:w-auto"
+                            type="button"
+                            onClick={() => setShowLogoutConfirm(true)}
+                            className="cursor-pointer inline-flex items-center justify-center gap-1.5 border border-rose-200 bg-rose-50/70 rounded-lg px-3 sm:px-3.5 py-1.5 text-[12px] font-medium text-rose-600 hover:bg-rose-100 hover:border-rose-300 transition shrink-0 shadow-2xs active:scale-95"
                         >
-                            <Pencil className="h-3 w-3" />
-                            Edit Profile
+                            <LogOut className="h-3.5 w-3.5 text-rose-500" />
+                            <span>Log Out</span>
                         </button>
-                    )}
+                    </div>
                 </div>
 
                 {/* Tabs */}
@@ -1417,14 +1414,7 @@ const ProfilePage: React.FC = () => {
                                         {s.profileErrors.whatsappNumber && <p className="text-[11px] text-rose-500 mt-1">{s.profileErrors.whatsappNumber}</p>}
                                     </div>
                                     <div>
-                                        <label className={labelCls}>
-                                            PAN Number<span className="text-rose-500 ml-1">*</span>
-                                            {s.profileForm.panVerified && (
-                                                <span className="ml-2 inline-flex items-center gap-1 text-emerald-600 text-[10px] font-semibold">
-                                                    <CheckCircle2 className="h-3 w-3" /> Verified
-                                                </span>
-                                            )}
-                                        </label>
+                                        <label className={labelCls}>PAN Number</label>
                                         <input
                                             type="text"
                                             value={s.profileForm.panNumber}
@@ -1432,29 +1422,24 @@ const ProfilePage: React.FC = () => {
                                                 const formatted = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
                                                 if (formatted.length <= 10) {
                                                     patchProfile({ panNumber: formatted });
-                                                    if (s.profileErrors.panNumber && formatted.trim()) {
-                                                        patch({ profileErrors: removeErrorKey(s.profileErrors, "panNumber") });
+                                                    if (s.profileErrors.panNumber) {
+                                                        if (!formatted.trim() || validatePan(formatted)) {
+                                                            patch({ profileErrors: removeErrorKey(s.profileErrors, "panNumber") });
+                                                        }
                                                     }
                                                 }
                                             }}
                                             placeholder="ABCDE1234F"
                                             maxLength={10}
-                                            disabled={s.profileForm.panVerified}
-                                            className={`${inputCls} ${s.profileForm.panVerified ? "bg-[#F5F2EE] cursor-not-allowed opacity-60" : ""} ${s.profileErrors.panNumber ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
+                                            className={`${inputCls} ${s.profileErrors.panNumber ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/10" : ""}`}
                                         />
                                         {s.profileErrors.panNumber && <p className="text-[11px] text-rose-500 mt-1">{s.profileErrors.panNumber}</p>}
-                                        {s.profileForm.panVerified && <p className="text-[11px] text-[#8A8A8A] mt-1">PAN is verified and cannot be changed.</p>}
                                     </div>
 
                                     <div className="flex gap-3 pt-2">
                                         <button onClick={() => patch({ isEditingProfile: false, profileErrors: {} })} className="px-5 py-2 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition">Cancel</button>
-                                        <button onClick={handleSaveProfile} disabled={s.isSavingProfile || s.isVerifyingPan} className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-60">
-                                            {s.isVerifyingPan ? (
-                                                <>
-                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                    Verifying PAN...
-                                                </>
-                                            ) : s.isSavingProfile ? (
+                                        <button onClick={handleSaveProfile} disabled={s.isSavingProfile} className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-60">
+                                            {s.isSavingProfile ? (
                                                 <>
                                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                                     Saving...
@@ -1478,39 +1463,16 @@ const ProfilePage: React.FC = () => {
                                         <InfoRow label="Mobile Number" value={s.profileForm.mobileNumber} />
                                         <InfoRow label="Alt. Number" value={s.profileForm.alternativeNumber} />
                                         <InfoRow label="WhatsApp" value={s.profileForm.whatsappNumber} />
-                                        <div className="flex flex-col sm:flex-row sm:items-center border-b border-[#F0EBE1] py-3.5 last:border-b-0 gap-1 sm:gap-0">
-                                            <span className="w-full sm:w-36 text-[12px] text-[#8A8A8A] shrink-0">PAN Number</span>
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <span className="text-[13px] font-semibold text-[#1A1A1A] break-all">
-                                                    {s.profileForm.panNumber ? (
-                                                        s.profileForm.panVerified ?
-                                                            `${s.profileForm.panNumber.slice(0, 5)}****${s.profileForm.panNumber.slice(-1)}` :
-                                                            s.profileForm.panNumber
-                                                    ) : "—"}
-                                                </span>
-                                                {s.profileForm.panVerified && (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold shrink-0">
-                                                        <CheckCircle2 className="h-3 w-3" /> Verified
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <InfoRow label="PAN Number" value={s.profileForm.panNumber || "—"} />
                                     </div>
-                                    <div className="mt-6 flex items-center justify-between border-t border-[#F0EBE1] pt-4">
-                                        <button onClick={() => patch({ isEditingProfile: true })} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#E8E0D5] text-[12px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition">
-                                            <Pencil className="h-3 w-3" /> Edit Information
-                                        </button>
-                                        <button onClick={handleLogout} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-rose-500 hover:text-rose-600 transition">
-                                            <LogOut className="h-3.5 w-3.5" /> Sign Out
-                                        </button>
-                                    </div>
-                                    <div className="mt-5 border-t border-[#F0EBE1] pt-4">
+                                    <div className="mt-6 flex items-center justify-start border-t border-[#F0EBE1] pt-4">
                                         <button
                                             type="button"
-                                            onClick={() => navigate("/physical-gold/account-deletion")}
-                                            className="text-[12px] font-medium text-rose-500 transition hover:text-rose-700"
+                                            onClick={() => patch({ isEditingProfile: true })}
+                                            className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#E8E0D5] bg-white text-[12px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] hover:border-[#D1C7BB] transition shadow-2xs active:scale-95"
                                         >
-                                            Request account deletion
+                                            <Pencil className="h-3.5 w-3.5 text-[#8B6914]" />
+                                            <span>Edit Information</span>
                                         </button>
                                     </div>
                                 </div>
@@ -1786,6 +1748,7 @@ const ProfilePage: React.FC = () => {
                                             order.orderStatus?.toUpperCase() !== 'EXPIRED' &&
                                             order.orderStatus?.toUpperCase() !== 'CANCELLED' &&
                                             order.orderStatus?.toUpperCase() !== 'FAILED';
+                                        const isPaymentFailed = order.paymentStatus?.toUpperCase() === 'FAILED' || order.orderStatus?.toUpperCase() === 'FAILED';
                                         const isOrderSuccessful = order.orderStatus?.toUpperCase() === 'CONFIRMED' ||
                                             order.orderStatus?.toUpperCase() === 'DELIVERED' ||
                                             order.orderStatus?.toUpperCase() === 'COMPLETED' ||
@@ -1796,8 +1759,8 @@ const ProfilePage: React.FC = () => {
                                             <div key={order.orderId} className="border border-[#E8E0D5] rounded-xl overflow-hidden bg-white">
                                                 {/* Order Header */}
                                                 <div
-                                                    onClick={() => toggleOrderExpand(order.orderId)}
-                                                    className="flex items-start gap-3 px-4 py-4 cursor-pointer hover:bg-[#FAF8F5] transition-colors"
+                                                    onClick={() => !isPaymentFailed && toggleOrderExpand(order.orderId)}
+                                                    className={`flex items-start gap-3 px-4 py-4 ${!isPaymentFailed ? "cursor-pointer hover:bg-[#FAF8F5]" : ""} transition-colors`}
                                                 >
                                                     <div className="h-10 w-10 rounded-xl bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
                                                         <Package className="h-5 w-5" />
@@ -1856,40 +1819,41 @@ const ProfilePage: React.FC = () => {
                                                 </div>
 
                                                 {/* Actions */}
-                                                <div className="flex items-center gap-2 px-4 pb-3 border-t border-[#F0EBE1] pt-3">
-                                                    {isOrderSuccessful && (
+                                                {!isPaymentFailed && (
+                                                    <div className="flex items-center gap-2 px-4 pb-3 border-t border-[#F0EBE1] pt-3">
+                                                        {isOrderSuccessful && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    try {
+                                                                        const res = await getInvoicePreviewUrl(order.orderNumber);
+                                                                        const b = await res.blob();
+                                                                        const u = URL.createObjectURL(b);
+                                                                        window.open(u, "_blank");
+                                                                    } catch (err) { console.error(err); }
+                                                                }}
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition"
+                                                            >
+                                                                <FileText className="h-3 w-3" /> Invoice
+                                                            </button>
+                                                        )}
                                                         <button
                                                             type="button"
-                                                            onClick={async (e) => {
+                                                            onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                try {
-                                                                    const res = await getInvoicePreviewUrl(order.orderNumber);
-                                                                    const b = await res.blob();
-                                                                    const u = URL.createObjectURL(b);
-                                                                    window.open(u, "_blank");
-                                                                } catch (err) { console.error(err); }
+                                                                toggleOrderExpand(order.orderId);
                                                             }}
-                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition"
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition ml-auto"
                                                         >
-                                                            <FileText className="h-3 w-3" /> Invoice
+                                                            {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                                            {isExp ? "Hide Details" : (isOrderSuccessful ? "Track Order" : "Order Details")}
                                                         </button>
-                                                    )}
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            toggleOrderExpand(order.orderId);
-                                                        }}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition ml-auto"
-                                                    >
-                                                        {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                                        {isExp ? "Hide Details" : (isOrderSuccessful ? "Track Order" : "Order Details")}
-                                                    </button>
-                                                </div>
-
+                                                    </div>
+                                                )}
 
                                                 {/* Expanded Details */}
-                                                {isExp && (
+                                                {isExp && !isPaymentFailed && (
                                                     <div className="border-t border-[#F0EBE1] bg-[#FAFAF8] px-5 py-4 space-y-3">
                                                         <div className="flex items-center justify-between mb-2">
                                                             <p className="text-[11px] font-semibold text-[#8A8A8A] uppercase tracking-wider">
@@ -2556,6 +2520,68 @@ const ProfilePage: React.FC = () => {
                                     </>
                                 ) : (
                                     "Yes, Cancel Query"
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Logout Confirmation Modal */}
+            {showLogoutConfirm && (
+                <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center px-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+                    onClick={() => !isLoggingOut && setShowLogoutConfirm(false)}
+                >
+                    <div
+                        className="bg-white border border-[#E8E0D5] rounded-2xl shadow-2xl w-full max-w-sm p-6 relative overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            disabled={isLoggingOut}
+                            onClick={() => setShowLogoutConfirm(false)}
+                            className="absolute right-4 top-4 h-7 w-7 flex items-center justify-center rounded-full text-[#8A8A8A] hover:bg-[#F5F2EE] hover:text-[#1A1A1A] transition cursor-pointer"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="h-11 w-11 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0">
+                                <LogOut className="h-5 w-5 text-rose-500" />
+                            </div>
+                            <div>
+                                <h3 className="text-[16px] font-bold text-[#1A1A1A]">Confirm Log Out</h3>
+                                <p className="text-[12px] text-[#8A8A8A]">You will need to sign in again</p>
+                            </div>
+                        </div>
+                        <p className="text-[13px] text-[#5A5A5A] mb-6 leading-relaxed">
+                            Are you sure you want to log out of your OxyGold account?
+                        </p>
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                disabled={isLoggingOut}
+                                onClick={() => setShowLogoutConfirm(false)}
+                                className="flex-1 px-4 py-2.5 rounded-xl border border-[#E8E0D5] text-[13px] font-medium text-[#5A5A5A] hover:bg-[#F5F2EE] transition cursor-pointer disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={isLoggingOut}
+                                onClick={handleLogout}
+                                className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-semibold transition cursor-pointer shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-60"
+                            >
+                                {isLoggingOut ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span>Logging out...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <LogOut className="h-3.5 w-3.5" />
+                                        <span>Log Out</span>
+                                    </>
                                 )}
                             </button>
                         </div>

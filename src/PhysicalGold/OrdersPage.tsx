@@ -140,14 +140,16 @@ const OrdersPage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {orders.map((order) => (
+                        {orders.map((order) => {
+                            const isPaymentFailed = order.paymentStatus?.toUpperCase() === 'FAILED' || order.orderStatus?.toUpperCase() === 'FAILED';
+                            return (
                             <div
                                 key={order.orderId}
                                 className="group rounded-2xl border border-zinc-200 bg-white overflow-hidden transition-all hover:shadow-md"
                             >
                                 <div
-                                    onClick={() => toggleExpand(order.orderId)}
-                                    className="p-5 sm:p-6 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                                    onClick={() => !isPaymentFailed && toggleExpand(order.orderId)}
+                                    className={`p-5 sm:p-6 ${!isPaymentFailed ? "cursor-pointer" : ""} flex flex-col sm:flex-row sm:items-center justify-between gap-4`}
                                 >
                                     <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                                         <div className="space-y-1">
@@ -172,13 +174,15 @@ const OrdersPage: React.FC = () => {
                                         <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shadow-sm ${getStatusColor(order.orderStatus)}`}>
                                             {order.orderStatus}
                                         </div>
-                                        <div className="text-zinc-400 group-hover:text-zinc-900 transition-colors">
-                                            {expandedOrderId === order.orderId ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                                        </div>
+                                        {!isPaymentFailed && (
+                                            <div className="text-zinc-400 group-hover:text-zinc-900 transition-colors">
+                                                {expandedOrderId === order.orderId ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
-                                {expandedOrderId === order.orderId && (
+                                {expandedOrderId === order.orderId && !isPaymentFailed && (
                                     <div className="border-t border-zinc-100 bg-zinc-50 p-5 sm:p-6 animate-in slide-in-from-top-2 duration-200">
                                         <h3 className="text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2 text-zinc-400">
                                             <Tag className="h-3.5 w-3.5" />
@@ -262,7 +266,8 @@ const OrdersPage: React.FC = () => {
                                     </div>
                                 )}
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </main>

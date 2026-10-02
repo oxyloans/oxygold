@@ -1116,8 +1116,7 @@ export interface GoldSilverRateBreakdown {
   finalAmount: number;
 }
 
-// This is the same price-breakdown endpoint used by the item display page.
-// It intentionally does not use the product-variant response.
+
 export const fetchGoldSilverRateBreakdown = async (
   variantId: string,
 ): Promise<GoldSilverRateBreakdown> => {

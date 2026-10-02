@@ -9,6 +9,7 @@ import {
   UserCircle,
   X,
 } from "lucide-react";
+import { FaHandsHelping } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 interface PhysicalGoldHeaderProps {
@@ -120,6 +121,17 @@ const PhysicalGoldHeader: React.FC<PhysicalGoldHeaderProps> = ({
             <Search className="h-4 w-4" />
           </button>
 
+          {/* Help Desk */}
+          <button
+            type="button"
+            onClick={() => navigate("/physical-gold/profile?tab=support")}
+            aria-label="Help Desk & Support"
+            title="Help Desk & Support"
+            className="cursor-pointer relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white/80 shadow-lg transition hover:scale-105 hover:border-yellow-300/50 hover:text-yellow-200 focus:outline-none"
+          >
+            <FaHandsHelping className="h-4 w-4" />
+          </button>
+
           {/* Cart */}
           <button
             type="button"
@@ -171,6 +183,16 @@ const PhysicalGoldHeader: React.FC<PhysicalGoldHeaderProps> = ({
                   >
                     <Package className="h-4 w-4 text-emerald-400" />
                     <span className="font-semibold">My Orders</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      navigate("/physical-gold/profile?tab=support");
+                    }}
+                    className="cursor-pointer flex w-full items-center gap-3 px-4 py-3 text-sm text-white/85 hover:bg-white/8 transition-colors border-t border-white/10"
+                  >
+                    <FaHandsHelping className="h-4 w-4 text-yellow-400" />
+                    <span className="font-semibold">Help Desk</span>
                   </button>
                 </div>
               </div>

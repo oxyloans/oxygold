@@ -86,28 +86,14 @@ const TermsConditions: React.FC = () => {
             </section>
 
             <section>
-              <h2 className="mb-3 text-[18px] font-semibold text-[#1A1A1A]">5. Returns and Exchanges</h2>
-              <p className="mb-3">Our return policy includes:</p>
-              <ul className="mb-3 list-disc space-y-2 pl-6">
-                <li>15-day return period from date of delivery</li>
-                <li>Products must be in original condition with tags and certificates</li>
-                <li>Customized or engraved items cannot be returned</li>
-                <li>Lifetime exchange available at 100% value</li>
-              </ul>
-              <p>
-                Information relating to returns, exchanges, refunds, and customer communications may be processed for the purposes of providing these services, maintaining transaction records, preventing fraud or misuse, and complying with applicable legal or regulatory requirements.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="mb-3 text-[18px] font-semibold text-[#1A1A1A]">6. Intellectual Property</h2>
+              <h2 className="mb-3 text-[18px] font-semibold text-[#1A1A1A]">5. Intellectual Property</h2>
               <p>
                 All content on this website, including images, text, logos, and designs, is the property of OXYIDEAS PARTNERS LLP and protected by copyright laws. Unauthorized use is prohibited.
               </p>
             </section>
 
             <section>
-              <h2 className="mb-3 text-[18px] font-semibold text-[#1A1A1A]">7. Limitation of Liability</h2>
+              <h2 className="mb-3 text-[18px] font-semibold text-[#1A1A1A]">6. Limitation of Liability</h2>
               <div className="space-y-3">
                 <p>
                   OxyGold shall not be liable for any indirect, incidental, or consequential damages arising from the use of our products or services. Our liability is limited to the purchase price of the product.
@@ -119,18 +105,18 @@ const TermsConditions: React.FC = () => {
             </section>
 
             <section>
-              <h2 className="mb-3 text-[18px] font-semibold text-[#1A1A1A]">8. Governing Law</h2>
+              <h2 className="mb-3 text-[18px] font-semibold text-[#1A1A1A]">7. Governing Law</h2>
               <p>
                 These terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of courts in Hyderabad, Telangana.
               </p>
             </section>
 
             <section>
-              <h2 className="mb-4 text-[18px] font-semibold text-[#1A1A1A]">9. Privacy and Data Protection</h2>
+              <h2 className="mb-4 text-[18px] font-semibold text-[#1A1A1A]">8. Privacy and Data Protection</h2>
 
               <div className="space-y-5">
                 <div>
-                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">9.1 Processing of Personal Data</h3>
+                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">8.1 Processing of Personal Data</h3>
                   <div className="space-y-3">
                     <p>
                       OxyGold may collect and process personal data provided by users in connection with accessing the website, creating an account where applicable, placing orders, making payments, requesting delivery, returns or exchanges, contacting customer support, and using other services provided through the platform.
@@ -145,7 +131,7 @@ const TermsConditions: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">9.2 Notice and Consent</h3>
+                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">8.2 Notice and Consent</h3>
                   <div className="space-y-3">
                     <p>
                       Where processing is based on consent, OxyGold will provide an applicable notice describing the personal data to be processed and the specified purpose for such processing.
@@ -160,7 +146,7 @@ const TermsConditions: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">9.3 Withdrawal of Consent</h3>
+                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">8.3 Withdrawal of Consent</h3>
                   <div className="space-y-3">
                     <p>
                       Where personal data is processed on the basis of consent, the Data Principal may withdraw consent through the available mechanism provided by OxyGold.
@@ -175,7 +161,7 @@ const TermsConditions: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">9.4 Data Principal Rights</h3>
+                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">8.4 Data Principal Rights</h3>
                   <p className="mb-3">
                     Subject to applicable law and the conditions prescribed thereunder, a Data Principal may exercise applicable rights in relation to their personal data, including:
                   </p>
@@ -191,7 +177,7 @@ const TermsConditions: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">9.5 Children&apos;s Personal Data</h3>
+                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">8.5 Children&apos;s Personal Data</h3>
                   <div className="space-y-3">
                     <p>
                       OxyGold will comply with the additional requirements applicable to the processing of personal data of children under the DPDP Act.
@@ -206,7 +192,7 @@ const TermsConditions: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">9.6 Disclosure and Service Providers</h3>
+                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">8.6 Disclosure and Service Providers</h3>
                   <div className="space-y-3">
                     <p>
                       Personal data may be disclosed to authorized service providers, including payment processors, delivery and logistics providers, technology providers, customer support providers, fraud-prevention providers, and other persons or entities where such disclosure is necessary for providing the requested services or is permitted or required by applicable law.
@@ -221,7 +207,7 @@ const TermsConditions: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">9.7 Security of Personal Data</h3>
+                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">8.7 Security of Personal Data</h3>
                   <div className="space-y-3">
                     <p>
                       OxyGold will implement reasonable technical and organisational measures to protect personal data against unauthorized processing, access, disclosure, alteration, loss, or other applicable security risks, having regard to the nature of the personal data and the risks associated with its processing.
@@ -233,7 +219,7 @@ const TermsConditions: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">9.8 Retention and Deletion</h3>
+                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">8.8 Retention and Deletion</h3>
                   <div className="space-y-3">
                     <p>
                       Personal data will be retained only for as long as necessary for the specified purpose for which it was processed and for any additional period required or permitted under applicable law.
@@ -245,14 +231,14 @@ const TermsConditions: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">9.9 Personal Data Breach</h3>
+                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">8.9 Personal Data Breach</h3>
                   <p>
                     In the event of a personal data breach, OxyGold will take measures required under applicable law, including applicable requirements relating to notification of the Data Protection Board and affected Data Principals, where applicable.
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">9.10 Changes Requiring Consent</h3>
+                  <h3 className="mb-2 text-[15px] font-semibold text-[#1A1A1A]">8.10 Changes Requiring Consent</h3>
                   <div className="space-y-3">
                     <p>OxyGold may update these Terms and Conditions from time to time.</p>
                     <p>
@@ -267,7 +253,7 @@ const TermsConditions: React.FC = () => {
             </section>
 
             <section>
-              <h2 className="mb-3 text-[18px] font-semibold text-[#1A1A1A]">10. Contact Information</h2>
+              <h2 className="mb-3 text-[18px] font-semibold text-[#1A1A1A]">9. Contact Information</h2>
               <div className="mt-3 rounded-lg border border-[#E8E0D5] bg-[#F5F2EE] p-4">
                 <p className="font-semibold text-[#1A1A1A]">OXYIDEAS PARTNERS LLP</p>
                 <p>Email: support@oxygold.ai</p>

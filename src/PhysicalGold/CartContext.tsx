@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { PhysicalGoldProduct, ProductVariant, firstProductImageUrl, resolveS3ImageUrl } from "./physicalGoldData";
-import { AddItemToCart, decrementCartItems, fetchCustomerCartInfo, removeCartItem, fetchProductImageURLs } from "./physicalGoldService";
+import { AddItemToCart, decrementCartItems, fetchCustomerCartInfo, removeCartItem, fetchGoldSilverRateBreakdown ,fetchProductImageURLs } from "./physicalGoldService";
 
 export class ProfileIncompleteError extends Error {
     readonly isProfileIncomplete = true;
@@ -156,6 +156,62 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshCart();
     }, [refreshCart]);
 
+    const calculateOptimisticTotals = useCallback((items: CartItem[], currentDeliveryFee: number = 0) => {
+        let itemsCount = 0;
+        let subtotal = 0;
+        let totalWeight = 0;
+        let silverGstAmount = 0;
+        let goldGstAmount = 0;
+
+        items.forEach((item) => {
+            const qty = item.quantity;
+            const price = Number(item.variant?.price) || 0;
+            const weight = Number(item.variant?.weight) || 0;
+            const isSilver =
+                /silver/i.test(item.product?.productName || "") ||
+                /silver/i.test(item.variant?.purity || "");
+
+            itemsCount += qty;
+            subtotal += price * qty;
+            totalWeight += weight * qty;
+
+            const gst = (price * qty) * 0.03;
+            if (isSilver) {
+                silverGstAmount += gst;
+            } else {
+                goldGstAmount += gst;
+            }
+        });
+
+        const gstCharges = Math.round((silverGstAmount + goldGstAmount) * 100) / 100;
+        // Silver GST waiver discount:
+        const discountAmount = Math.round(silverGstAmount * 100) / 100;
+        const makingCharges = 0;
+        const payableAmount = Math.round((subtotal + gstCharges + makingCharges + currentDeliveryFee - discountAmount) * 100) / 100;
+
+        return {
+            totalItems: itemsCount,
+            cartSubtotal: subtotal,
+            totalGstCharges: gstCharges,
+            totalMakingCharges: makingCharges,
+            totalPayableAmount: payableAmount,
+            totalCartItemWeight: totalWeight,
+            totalDiscountAmount: discountAmount,
+        };
+    }, []);
+
+    const applyOptimisticCart = useCallback((newItems: CartItem[]) => {
+        setCartItems(newItems);
+        const totals = calculateOptimisticTotals(newItems, deliveryFee);
+        setTotalItems(totals.totalItems);
+        setCartSubtotal(totals.cartSubtotal);
+        setTotalGstCharges(totals.totalGstCharges);
+        setTotalMakingCharges(totals.totalMakingCharges);
+        setTotalPayableAmount(totals.totalPayableAmount);
+        setTotalCartItemWeight(totals.totalCartItemWeight);
+        setTotalDiscountAmount(totals.totalDiscountAmount);
+    }, [calculateOptimisticTotals, deliveryFee]);
+
     const addToCart = useCallback(async (product: PhysicalGoldProduct, variant: ProductVariant) => {
         const userId = GET_USER_ID();
 
@@ -165,15 +221,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
-        // Optimistic UI update
-        setCartItems((prev) => {
-            const existing = prev.find((i) => i.variant.id === variant.id);
-            if (existing)
-                return prev.map((i) =>
-                    i.variant.id === variant.id ? { ...i, quantity: i.quantity + 1 } : i
-                );
-            return [...prev, { product, variant, quantity: 1 }];
-        });
+        const existing = cartItems.find((i) => i.variant.id === variant.id);
+        const newItems = existing
+            ? cartItems.map((i) =>
+                i.variant.id === variant.id ? { ...i, quantity: i.quantity + 1 } : i
+            )
+            : [...cartItems, { product, variant, quantity: 1 }];
+
+        applyOptimisticCart(newItems);
 
         try {
             const response = await AddItemToCart({
@@ -183,36 +238,27 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 productVariantId: parseInt(variant.id)
             });
             setCartNotification({ message: response?.message || response?.data?.message || "Item added to cart successfully.", type: "success" });
-            refreshCart();
+            await refreshCart();
         } catch (err) {
-            // Revert optimistic update
-            setCartItems((prev) => {
-                const existing = prev.find((i) => i.variant.id === variant.id);
-                if (existing && existing.quantity > 1)
-                    return prev.map((i) =>
-                        i.variant.id === variant.id ? { ...i, quantity: i.quantity - 1 } : i
-                    );
-                return prev.filter((i) => i.variant.id !== variant.id);
-            });
+            await refreshCart();
             const message = err instanceof Error ? err.message : "Failed to add item to cart.";
             const isProfileError = /complete your profile/i.test(message);
             setCartNotification({ message, type: "error" });
             throw isProfileError ? new ProfileIncompleteError(message) : err;
         }
-    }, [refreshCart]);
+    }, [cartItems, applyOptimisticCart, refreshCart]);
 
     const incrementQuantity = useCallback(async (variantId: string) => {
         const userId = GET_USER_ID();
         const item = cartItems.find(i => i.variant.id === variantId);
         if (!item) return;
 
-        setCartItems((prev) =>
-            prev.map((item) =>
-                item.variant.id === variantId
-                    ? { ...item, quantity: item.quantity + 1 }
-                    : item
-            )
+        const newItems = cartItems.map((ci) =>
+            ci.variant.id === variantId
+                ? { ...ci, quantity: ci.quantity + 1 }
+                : ci
         );
+        applyOptimisticCart(newItems);
 
         if (userId) {
             try {
@@ -227,12 +273,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     productVariantId: parseInt(variantId)
                 });
                 setCartNotification({ message: response?.message || response?.data?.message || "Cart item updated successfully.", type: "success" });
-                refreshCart();
+                await refreshCart();
             } catch (err) {
                 console.error("Failed to increment on server:", err);
+                await refreshCart();
             }
         }
-    }, [cartItems, refreshCart]);
+    }, [cartItems, applyOptimisticCart, refreshCart]);
 
     const decrementQuantity = useCallback(async (variantId: string, cartId: number | undefined) => {
         const userId = GET_USER_ID();
@@ -241,56 +288,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const isLastItem = item.quantity === 1;
 
-        // Optimistic UI update
-        setCartItems((prev) =>
-            prev
-                .map((i) =>
-                    i.variant.id === variantId
-                        ? { ...i, quantity: i.quantity - 1 }
-                        : i
-                )
-                .filter((i) => i.quantity > 0)
-        );
+        const newItems = cartItems
+            .map((ci) =>
+                ci.variant.id === variantId
+                    ? { ...ci, quantity: ci.quantity - 1 }
+                    : ci
+            )
+            .filter((ci) => ci.quantity > 0);
 
-        // Also update totals optimistically when removing last item
-        if (isLastItem) {
-            setTotalItems((prev) => Math.max(0, prev - 1));
-        }
+        applyOptimisticCart(newItems);
 
-        if (userId) {
-            try {
-                const response = await decrementCartItems({
-                    userId: userId,
-                    id: cartId,
-                    productId: parseInt(item.product.id),
-                    productVariantId: parseInt(variantId),
-                    quantity: 1
-                });
-                setCartNotification({ message: response?.message || response?.data?.message || "Cart item updated successfully.", type: "success" });
-            } catch (err) {
-                console.error("Failed to decrement on server:", err);
-            } finally {
-                // Only refresh if it wasn't the last item
-                // If it was the last item, the 404 is expected — don't re-sync
-                if (!isLastItem) {
-                    refreshCart();
-                }
-            }
-        }
-    }, [cartItems, refreshCart]);
-
-    const removeFromCart = useCallback(async (variantId: string) => {
-        const userId = GET_USER_ID();
-        const item = cartItems.find(i => i.variant.id === variantId);
-        if (!item || !item.cartId) return;
-
-        const isLastItem = cartItems.length === 1;
-
-        // Optimistic UI update
-        setCartItems((prev) => prev.filter((i) => i.variant.id !== variantId));
-
-        // If it's the last item, clear all totals optimistically
-        if (isLastItem) {
+        if (newItems.length === 0) {
             setTotalItems(0);
             setCartSubtotal(0);
             setTotalGstCharges(0);
@@ -306,18 +314,60 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (userId) {
             try {
-                await removeCartItem(item.cartId, userId);
+                const response = await decrementCartItems({
+                    userId: userId,
+                    id: cartId || item.cartId,
+                    productId: parseInt(item.product.id),
+                    productVariantId: parseInt(variantId),
+                    quantity: 1
+                });
+                setCartNotification({ message: response?.message || response?.data?.message || "Cart item updated successfully.", type: "success" });
             } catch (err) {
-                console.error("Failed to remove item from cart:", err);
+                console.error("Failed to decrement on server:", err);
             } finally {
-                // Only refresh if it wasn't the last item
-                // If it was the last item, skip re-sync to avoid unnecessary API call
                 if (!isLastItem) {
-                    refreshCart();
+                    await refreshCart();
                 }
             }
         }
-    }, [cartItems, refreshCart]);
+    }, [cartItems, applyOptimisticCart, refreshCart]);
+
+    const removeFromCart = useCallback(async (variantId: string) => {
+        const userId = GET_USER_ID();
+        const item = cartItems.find(i => i.variant.id === variantId);
+        if (!item) return;
+
+        const newItems = cartItems.filter((i) => i.variant.id !== variantId);
+        applyOptimisticCart(newItems);
+
+        if (newItems.length === 0) {
+            setTotalItems(0);
+            setCartSubtotal(0);
+            setTotalGstCharges(0);
+            setTotalMakingCharges(0);
+            setTotalPayableAmount(0);
+            setTotalCartItemWeight(0);
+            setDeliveryFee(0);
+            setDeliveryDistanceKm(null);
+            setRatePerKm(null);
+            setTotalDiscountAmount(0);
+            setTotalDiscountPercentage(0);
+        }
+
+        if (userId && (item.cartId || item.variant?.id)) {
+            try {
+                if (item.cartId) {
+                    await removeCartItem(item.cartId, userId);
+                }
+            } catch (err) {
+                console.error("Failed to remove item from cart:", err);
+            } finally {
+                if (newItems.length > 0) {
+                    await refreshCart();
+                }
+            }
+        }
+    }, [cartItems, applyOptimisticCart, refreshCart]);
 
     const clearCart = useCallback(() => {
         setCartItems([]);

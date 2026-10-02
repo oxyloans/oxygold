@@ -18,6 +18,7 @@ import {
   Sparkles,
   CheckCircle2,
   Gem,
+  PartyPopper,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -203,6 +204,7 @@ const ProductDetailsPage: React.FC = () => {
 
   useEffect(() => {
     if (!id) return;
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     const loadProduct = async () => {
       try {
         setLoading(true);
@@ -1466,7 +1468,8 @@ const ProductDetailsPage: React.FC = () => {
                           <tr className="border-t border-[#F0EBE1] bg-emerald-50/60 text-emerald-700">
                             <td className="whitespace-nowrap px-3 py-3 font-semibold flex items-center gap-1.5">
                               <Tag size={13} className="inline-block" />
-                              Discount{priceBreakdown.discountPercentage > 0 ? ` (${priceBreakdown.discountPercentage}%)` : ""}
+                              Discount
+                            {/* {priceBreakdown.discountPercentage > 0 ? ` (${priceBreakdown.discountPercentage}%)` : ""} */}
                             </td>
                             <td className="whitespace-nowrap px-3 py-3 text-center">−</td>
                             <td className="whitespace-nowrap px-3 py-3 text-center">−</td>
@@ -1499,9 +1502,12 @@ const ProductDetailsPage: React.FC = () => {
                   <CompactProductCard
                     key={p.id}
                     product={p}
-                    onClick={() => navigate(`/physical-gold/product/${p.id}`, {
-                      state: { categoryId, categoryName, subCategoryId, subCategoryName: finalSubCategoryName }
-                    })}
+                    onClick={() => {
+                      navigate(`/physical-gold/product/${p.id}`, {
+                        state: { categoryId, categoryName, subCategoryId, subCategoryName: finalSubCategoryName }
+                      });
+                      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+                    }}
                   />
                 ))}
               </div>
@@ -1517,9 +1523,12 @@ const ProductDetailsPage: React.FC = () => {
                   <CompactProductCard
                     key={p.id}
                     product={p}
-                    onClick={() => navigate(`/physical-gold/product/${p.id}`, {
-                      state: { categoryId, categoryName, subCategoryId, subCategoryName: finalSubCategoryName }
-                    })}
+                    onClick={() => {
+                      navigate(`/physical-gold/product/${p.id}`, {
+                        state: { categoryId, categoryName, subCategoryId, subCategoryName: finalSubCategoryName }
+                      });
+                      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+                    }}
                   />
                 ))}
               </div>
@@ -1535,9 +1544,12 @@ const ProductDetailsPage: React.FC = () => {
                   <CompactProductCard
                     key={p.id}
                     product={p}
-                    onClick={() => navigate(`/physical-gold/product/${p.id}`, {
-                      state: { categoryId, categoryName, subCategoryId, subCategoryName: finalSubCategoryName }
-                    })}
+                    onClick={() => {
+                      navigate(`/physical-gold/product/${p.id}`, {
+                        state: { categoryId, categoryName, subCategoryId, subCategoryName: finalSubCategoryName }
+                      });
+                      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+                    }}
                   />
                 ))}
               </div>
@@ -1550,7 +1562,7 @@ const ProductDetailsPage: React.FC = () => {
 
       {showDiscountModal && hasValidMrp && apiDiscountAmount > 0 && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 cursor-pointer"
           role="dialog"
           aria-modal="true"
           aria-labelledby="discount-title"
@@ -1559,29 +1571,17 @@ const ProductDetailsPage: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.92, y: 24 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className={`relative w-full max-w-sm overflow-hidden rounded-[28px] bg-gradient-to-b p-6 sm:p-7 text-center shadow-2xl ring-1 cursor-default ${
-              isSilverProduct
-                ? "from-slate-50 via-white to-slate-50 ring-slate-200/60"
-                : "from-amber-50 via-white to-amber-50 ring-amber-200/60"
-            }`}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="relative w-full max-w-sm overflow-hidden rounded-[32px] bg-white p-6 sm:p-7 text-center shadow-2xl ring-1 ring-black/5 cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* ambient glow */}
-            <motion.div
-              animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.5, 0.3] }}
-              transition={{ duration: 4, repeat: Infinity }}
-              className={`pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full blur-3xl ${
-                isSilverProduct ? "bg-slate-200/60" : "bg-amber-200/50"
-              }`}
-            />
-            <motion.span
-              animate={{ y: [0, -6, 0], rotate: [0, 12, 0] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className={`pointer-events-none absolute left-7 top-6 ${isSilverProduct ? "text-slate-400" : "text-amber-300"}`}
-            >
+            {/* Corner decorative icons */}
+            <span className="pointer-events-none absolute left-6 top-6 text-purple-300">
               <Sparkles size={18} />
-            </motion.span>
+            </span>
+            <span className="pointer-events-none absolute right-12 top-7 text-amber-300 text-xs">
+              ✨
+            </span>
 
             <button
               type="button"
@@ -1589,93 +1589,87 @@ const ProductDetailsPage: React.FC = () => {
                 e.stopPropagation();
                 setShowDiscountModal(false);
               }}
-              className="absolute right-4 top-4 z-20 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/80 text-[#8A8A8A] shadow-xs ring-1 ring-black/5 hover:bg-[#F5F2EE] hover:text-[#1A1A1A] transition-colors"
+              className="absolute right-4 top-4 z-20 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
               aria-label="Close"
             >
               <X size={16} />
             </button>
 
-            <div className="relative z-10">
-              {/* Icon */}
-              <div className={`mx-auto mb-3.5 flex h-13 w-13 items-center justify-center rounded-2xl shadow-lg ${
-                isSilverProduct
-                  ? "bg-gradient-to-br from-slate-500 to-slate-700 text-white shadow-slate-200"
-                  : "bg-gradient-to-br from-[#C29B27] to-[#9B7416] text-white shadow-amber-200"
-              }`}>
-                <Tag size={24} />
+            <div className="relative z-10 pt-1">
+              {/* Party Popper Celebration Icon */}
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#7C3AED] to-[#8B5CF6] text-white shadow-lg shadow-purple-300/50">
+                <PartyPopper size={26} />
               </div>
 
-              {/* Top Badge */}
-              <span className={`mb-2.5 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold ${
-                isSilverProduct
-                  ? "border-slate-200 bg-slate-50 text-slate-700"
-                  : "border-amber-200 bg-amber-50 text-amber-700"
-              }`}>
-                <CheckCircle2 size={12} className="text-emerald-600" /> 100% GST Paid by OxyGold.ai
-              </span>
-
+              {/* Header Title */}
               <h2
                 id="discount-title"
-                className={`text-xl font-black ${isSilverProduct ? "text-slate-800" : "text-[#8B6914]"}`}
+                className="text-xl font-extrabold text-[#7C3AED] flex items-center justify-center gap-1.5"
               >
-                Congratulations! 🎉
+                GST & Making Charges on Us 🎉
               </h2>
-              <p className="mt-1 text-[15px] font-bold text-[#1A1A1A]">
-                We are paying the GST amount on your behalf!
-              </p>
-              <p className="mt-2 text-[12px] leading-relaxed text-[#5A5A5A]">
-                For your {metalName.toLowerCase()} purchase, <strong className="text-[#1A1A1A]">OxyGold.ai</strong> covers the complete government GST so you don't have to pay extra. The entire tax amount is waived as an instant discount!
-              </p>
 
-              {/* GST Breakdown Box */}
-              <div className="my-4 rounded-xl border border-[#EFE7DC] bg-[#FAF8F5] p-3.5 text-left text-[12px] space-y-2">
-                <div className="flex justify-between items-center text-[#5A5A5A]">
-                  <span>Government GST ({priceBreakdown?.gstPercentage || 3}%)</span>
-                  <span className="font-semibold text-[#1A1A1A]">
-                    ₹{(priceBreakdown?.gstAmount ?? apiDiscountAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+              {/* Mint Green Banner */}
+              <div className="mt-3.5 mb-4 rounded-2xl border border-emerald-100 bg-[#E8F8F0] p-3 text-center">
+                <p className="text-[13px] font-bold text-emerald-900 flex items-center justify-center gap-1">
+                  <span>✨</span> Exclusive for <span className="underline decoration-emerald-600 underline-offset-2">{isSilverProduct ? "Silver Purchases" : `${metalName} Purchases`}</span>
+                </p>
+                <p className="mt-0.5 text-[11px] font-medium text-emerald-700">
+                  Zero Making Charges + 100% GST Covered by OXYGOLD.AI!
+                </p>
+              </div>
+
+              {/* Price Breakdown Box */}
+              <div className="my-4 rounded-2xl border border-dashed border-gray-200 bg-white p-3.5 text-left text-[13px] space-y-2.5 shadow-2xs">
+                <div className="flex justify-between items-center text-gray-700">
+                  <span className="font-medium text-gray-600">GST ({priceBreakdown?.gstPercentage || 3}%)</span>
+                  <span className="font-bold text-gray-900">
+                    ₹{(priceBreakdown?.gstAmount ?? apiDiscountAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-emerald-700 font-semibold">
-                  <span className="flex items-center gap-1">
-                    <Tag size={11} /> OxyGold.ai GST Waiver:
-                  </span>
-                  <span>
-                    -₹{apiDiscountAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                <div className="flex justify-between items-center text-gray-700">
+                  <span className="font-medium text-gray-600">Making Charges</span>
+                  <span className="font-bold text-gray-900">
+                    ₹{Number(priceBreakdown?.makingAmount || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                   </span>
                 </div>
-                <div className="border-t border-[#E8E0D5] pt-2 flex justify-between items-center">
-                  <span className="font-bold text-[#1A1A1A]">Your Net Tax Contribution</span>
-                  <span className="font-extrabold text-emerald-700 text-[12px]">
-                    ₹0.00 <span className="font-medium text-[10px] text-emerald-600">(Zero Extra Tax)</span>
+                <div className="flex justify-between items-center text-emerald-600 font-bold pt-1">
+                  <span className="flex items-center gap-1.5 text-gray-900">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
+                    OXYGOLD.AI GST Waiver:
+                  </span>
+                  <span className="text-emerald-600">
+                    -₹{apiDiscountAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="rounded-xl bg-[#E8F8F0] px-3 py-2 flex justify-between items-center text-[12px] mt-2">
+                  <span className="font-semibold text-emerald-900">Your Net Extra Charges</span>
+                  <span className="font-bold text-emerald-700">
+                    ₹0.00 (Zero Extra Tax)
                   </span>
                 </div>
               </div>
 
               {/* Highlight Badges */}
-              <div className="mb-5 flex justify-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-                  <CheckCircle2 size={11} /> 100% Tax Covered
+              <div className="mb-5 flex justify-center gap-2.5">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-100 bg-purple-50 px-3 py-1.5 text-[11px] font-bold text-purple-700">
+                  <Gem size={13} className="text-purple-600" /> Valid Only on {metalName}
                 </span>
-                <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold ${
-                  isSilverProduct ? "border-slate-200 bg-slate-100 text-slate-700" : "border-amber-200 bg-amber-100 text-amber-800"
-                }`}>
-                  <Sparkles size={11} /> Pure {metalName} Offer
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-[#E8F8F0] px-3 py-1.5 text-[11px] font-bold text-emerald-700">
+                  <CheckCircle2 size={13} className="text-emerald-600" /> 100% Tax Covered
                 </span>
               </div>
 
+              {/* Main Button */}
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowDiscountModal(false);
                 }}
-                className={`w-full cursor-pointer rounded-full py-2.5 text-[13px] font-bold text-white shadow-lg transition hover:opacity-95 active:scale-[0.99] ${
-                  isSilverProduct
-                    ? "bg-gradient-to-r from-slate-600 to-slate-800 shadow-slate-200"
-                    : "bg-gradient-to-r from-[#C29B27] to-[#9B7416] shadow-amber-200"
-                }`}
+                className="w-full cursor-pointer rounded-2xl py-3.5 text-[14px] font-bold text-white bg-gradient-to-r from-[#7C3AED] to-[#6366F1] hover:from-[#6D28D9] hover:to-[#4F46E5] shadow-lg shadow-purple-300/40 transition active:scale-[0.99]"
               >
-                Awesome, Got it
+                Awesome, Got It!
               </button>
             </div>
           </motion.div>
