@@ -331,7 +331,7 @@ const ProductDetailsPage: React.FC = () => {
     let cancelled = false;
     setPriceBreakdownLoading(true);
     setPriceBreakdownError(null);
-    fetchGoldSilverRateBreakdown(selectedVariant.id)
+    fetchGoldSilverRateBreakdown(selectedVariant.id, quantity || 1)
       .then((breakdown) => {
         if (!cancelled) setPriceBreakdown(breakdown);
       })
@@ -345,7 +345,7 @@ const ProductDetailsPage: React.FC = () => {
         if (!cancelled) setPriceBreakdownLoading(false);
       });
     return () => { cancelled = true; };
-  }, [selectedVariant?.id]);
+  }, [selectedVariant?.id, quantity]);
 
   useEffect(() => {
     if (!product || !priceBreakdown || !selectedVariant) return;
@@ -914,7 +914,10 @@ const ProductDetailsPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => priceBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                onClick={() => {
+                  setShowDiscountModal(true);
+                  priceBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
                 className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[#C29B27]/35 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-[#9B7416] transition-colors hover:bg-amber-100 cursor-pointer"
               >
                 View Price Breakdown ↓
@@ -1585,7 +1588,7 @@ const ProductDetailsPage: React.FC = () => {
                       <tfoot className={isSilverProduct ? "bg-slate-50" : "bg-amber-50"}>
                         <tr>
                           <td className="whitespace-nowrap px-3 py-3 text-base font-bold text-[#1A1A1A]" colSpan={3}>Grand Total</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-center text-base font-bold text-[#1A1A1A]">₹{(priceBreakdown.finalAmount ?? priceBreakdown.totalAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-center text-base font-bold text-[#1A1A1A]">₹{Number((priceBreakdown?.finalAmount && priceBreakdown.finalAmount > 0) ? priceBreakdown.finalAmount : ((priceBreakdown?.totalAmount || 0) - (priceBreakdown?.discountAmount || 0))).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                       </tfoot>
                     </table>
@@ -1724,36 +1727,55 @@ const ProductDetailsPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Price Breakdown Box */}
-              <div className="my-4 rounded-2xl border border-dashed border-stone-200 bg-[#FDFAF4] p-3.5 text-left text-[13px] space-y-2.5 shadow-2xs">
-                <div className="flex justify-between items-center text-stone-700">
-                  <span className="font-medium text-stone-600">GST ({priceBreakdown?.gstPercentage || 3}%)</span>
-                  <span className="font-bold text-stone-900">
-                    ₹{(priceBreakdown?.gstAmount ?? apiDiscountAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-stone-700">
-                  <span className="font-medium text-stone-600">Making Charges</span>
-                  <span className="font-bold text-stone-900">
-                    ₹{Number(priceBreakdown?.makingAmount || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-emerald-600 font-bold pt-1">
-                  <span className="flex items-center gap-1.5 text-stone-900">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
-                    OXYGOLD.AI GST Waiver:
-                  </span>
-                  <span className="text-emerald-600">
-                    -₹{apiDiscountAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="rounded-xl bg-[#E8F8F0] px-3 py-2 flex justify-between items-center text-[12px] mt-2">
-                  <span className="font-semibold text-emerald-900">Your Net Extra Charges</span>
-                  <span className="font-bold text-emerald-700">
-                    ₹0.00 (Zero Extra Tax)
-                  </span>
-                </div>
-              </div>
+              {/* Price Breakdown Box Matching Image 1 */}
+              {(() => {
+                const basePriceVal = Number(priceBreakdown?.variantPrice || 0);
+                const gstVal = Number(priceBreakdown?.gstAmount || 0);
+                const totalVal = Number(priceBreakdown?.totalAmount || (basePriceVal + gstVal));
+                const discountVal = Number(priceBreakdown?.discountAmount || apiDiscountAmount || 0);
+                const finalVal = Number(
+                  (priceBreakdown?.finalAmount && priceBreakdown.finalAmount > 0)
+                    ? priceBreakdown.finalAmount
+                    : (totalVal - discountVal)
+                ) || basePriceVal;
+
+                return (
+                  <div className="my-4 rounded-2xl border border-dashed border-stone-200 bg-[#FDFAF4] p-3.5 text-left text-[13px] space-y-2 shadow-2xs">
+                    <div className="flex justify-between items-center text-stone-700">
+                      <span className="font-medium text-stone-600">Base Price:</span>
+                      <span className="font-bold text-stone-900">
+                        ₹{basePriceVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-stone-700">
+                      <span className="font-medium text-stone-600">GST ({priceBreakdown?.gstPercentage ?? 3}%):</span>
+                      <span className="font-bold text-stone-900">
+                        ₹{gstVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-stone-900 font-bold border-t border-dashed border-stone-200 pt-2">
+                      <span>Total Amount:</span>
+                      <span>
+                        ₹{totalVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    {discountVal > 0 && (
+                      <div className="flex justify-between items-center rounded-xl bg-[#E8F8F0] border border-emerald-200 px-3 py-2 text-[12px] font-bold text-emerald-700">
+                        <span>GST Waiver Discount:</span>
+                        <span>
+                          -₹{discountVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center text-[#8B6914] font-extrabold text-[15px] pt-1.5 border-t border-stone-200">
+                      <span>Final Amount:</span>
+                      <span>
+                        ₹{finalVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Highlight Badges */}
               <div className="mb-5 flex justify-center gap-2.5">

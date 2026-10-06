@@ -66,6 +66,10 @@ const DeliveryBoyDashboard = lazy(() => import('./physical-gold-deliveryboy/page
 const DeliveryBoyOrders = lazy(() => import('./physical-gold-deliveryboy/pages/DeliveryBoyOrders'));
 const DeliveryBoyRoute = lazy(() => import('./physical-gold-deliveryboy/components/DeliveryBoyRoute'));
 const DeliveryBoyLayout = lazy(() => import('./physical-gold-deliveryboy/components/DeliveryBoyLayout'));
+const PartnerAdminLogin = lazy(() => import('./physical-gold-partneradmin/pages/PartnerAdminLogin'));
+const PartnerAdminLayout = lazy(() => import('./physical-gold-partneradmin/components/PartnerAdminLayout'));
+const PartnerAdminProtectedRoute = lazy(() => import('./physical-gold-partneradmin/components/PartnerAdminProtectedRoute'));
+const PartnerAdminProductsPage = lazy(() => import('./physical-gold-partneradmin/pages/PartnerAdminProductsPage'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const APITest = lazy(() => import('./pages/APITest'));
@@ -143,6 +147,7 @@ function AppContent() {
     location.pathname.startsWith("/physical-gold") ||
     location.pathname.startsWith("/admin") ||
     location.pathname.startsWith("/partner") ||
+    location.pathname.startsWith("/partner-admin") ||
     location.pathname.startsWith("/delivery-boy") ||
     location.pathname.startsWith("/voiceAssistant");
   const handleDataPass = (data: any) => {
@@ -251,6 +256,15 @@ function AppContent() {
               </Route>
             </Route>
             <Route path="/delivery-boy" element={<Navigate to="/delivery-boy/dashboard" replace />} />
+
+            {/* Partner Admin module */}
+            <Route path="/partner-admin/login" element={<PartnerAdminLogin />} />
+            <Route element={<PartnerAdminProtectedRoute><PartnerAdminLayout /></PartnerAdminProtectedRoute>}>
+              <Route path="/partner-admin" element={<Navigate to="/partner-admin/products" replace />} />
+              <Route path="/partner-admin/products" element={<PartnerAdminProductsPage />} />
+              <Route path="/partner-admin/dashboard" element={<Navigate to="/partner-admin/products" replace />} />
+            </Route>
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

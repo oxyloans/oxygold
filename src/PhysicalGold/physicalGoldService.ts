@@ -1134,15 +1134,17 @@ export interface GoldSilverRateBreakdown {
 
 
 export const fetchGoldSilverRateBreakdown = async (
-  variantId: string,
+  variantId: string | number,
+  quantity: number = 1
 ): Promise<GoldSilverRateBreakdown> => {
+  const qtyParam = Math.max(1, Number(quantity) || 1);
   const response = await fetch(
-    `${API_BASE_URL}/oxygold-api/admin/categories/variants/${encodeURIComponent(variantId)}/price-breakup`,
+    `${API_BASE_URL}/oxygold-api/admin/categories/variants/${encodeURIComponent(variantId)}/price-breakup?quantity=${qtyParam}`,
     {
       headers: {
         "X-API-KEY": PUBLIC_API_KEY,
       },
-    },
+    }
   );
   const payload = await response.json().catch(() => null);
   if (!response.ok)

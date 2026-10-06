@@ -149,7 +149,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     setLoadingOffer(true);
     setOfferError(null);
     try {
-      const data = await fetchGoldSilverRateBreakdown(idStr);
+      const data = await fetchGoldSilverRateBreakdown(idStr, 1);
       setOffersCache(prev => ({ ...prev, [idStr]: data }));
     } catch (err: any) {
       setOfferError(err.message || "Failed to load price breakup");

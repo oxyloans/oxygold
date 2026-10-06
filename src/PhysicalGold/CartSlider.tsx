@@ -233,7 +233,7 @@ const CartPage: React.FC = () => {
                 const breakdowns = await Promise.all(
                     cartItems.map(async (item) => {
                         try {
-                            const res = await fetchGoldSilverRateBreakdown(item.variant.id);
+                            const res = await fetchGoldSilverRateBreakdown(item.variant.id, item.quantity || 1);
                             return ((res as any)?.data ?? (res as any)?.body ?? res) as GoldSilverRateBreakdown;
                         } catch (err) {
                             console.error(`[CartSlider] Failed breakdown for variant ${item.variant.id}:`, err);
@@ -648,36 +648,55 @@ const CartPage: React.FC = () => {
                                 </p>
                             </div>
 
-                            {/* Price Breakdown Box */}
-                            <div className="my-4 rounded-2xl border border-dashed border-stone-200 bg-[#FDFAF4] p-3.5 text-left text-[13px] space-y-2.5 shadow-2xs">
-                                <div className="flex justify-between items-center text-stone-700">
-                                    <span className="font-medium text-stone-600">GST ({rateBreakdown.gstPercentage ?? 3}%)</span>
-                                    <span className="font-bold text-stone-900">
-                                        ₹{Number(rateBreakdown.gstAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center text-stone-700">
-                                    <span className="font-medium text-stone-600">Making Charges</span>
-                                    <span className="font-bold text-stone-900">
-                                        ₹{Number(rateBreakdown.makingAmount || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center text-emerald-600 font-bold pt-1">
-                                    <span className="flex items-center gap-1.5 text-stone-900">
-                                        <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
-                                        Oxygold.in GST Waiver:
-                                    </span>
-                                    <span className="text-emerald-600">
-                                        -₹{Number(rateBreakdown.discountAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
-                                </div>
-                                <div className="rounded-xl bg-[#E8F8F0] px-3 py-2 flex justify-between items-center text-[12px] mt-2">
-                                    <span className="font-semibold text-emerald-900">Your Net Extra Charges</span>
-                                    <span className="font-bold text-emerald-700">
-                                        ₹0.00 (Zero Extra Tax)
-                                    </span>
-                                </div>
-                            </div>
+                            {/* Price Breakdown Box Matching Image 1 */}
+                            {(() => {
+                                const basePriceVal = Number(rateBreakdown?.variantPrice || 0);
+                                const gstVal = Number(rateBreakdown?.gstAmount || 0);
+                                const totalVal = Number(rateBreakdown?.totalAmount || (basePriceVal + gstVal));
+                                const discountVal = Number(rateBreakdown?.discountAmount || 0);
+                                const finalVal = Number(
+                                    (rateBreakdown?.finalAmount && rateBreakdown.finalAmount > 0)
+                                        ? rateBreakdown.finalAmount
+                                        : (totalVal - discountVal)
+                                ) || basePriceVal;
+
+                                return (
+                                    <div className="my-4 rounded-2xl border border-dashed border-stone-200 bg-[#FDFAF4] p-3.5 text-left text-[13px] space-y-2 shadow-2xs">
+                                        <div className="flex justify-between items-center text-stone-700">
+                                            <span className="font-medium text-stone-600">Base Price:</span>
+                                            <span className="font-bold text-stone-900">
+                                                ₹{basePriceVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-stone-700">
+                                            <span className="font-medium text-stone-600">GST ({rateBreakdown?.gstPercentage ?? 3}%):</span>
+                                            <span className="font-bold text-stone-900">
+                                                ₹{gstVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-stone-900 font-bold border-t border-dashed border-stone-200 pt-2">
+                                            <span>Total Amount:</span>
+                                            <span>
+                                                ₹{totalVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        {discountVal > 0 && (
+                                            <div className="flex justify-between items-center rounded-xl bg-[#E8F8F0] border border-emerald-200 px-3 py-2 text-[12px] font-bold text-emerald-700">
+                                                <span>GST Waiver Discount:</span>
+                                                <span>
+                                                    -₹{discountVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between items-center text-[#8B6914] font-extrabold text-[15px] pt-1.5 border-t border-stone-200">
+                                            <span>Final Amount:</span>
+                                            <span>
+                                                ₹{finalVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Highlight Badges */}
                             <div className="mb-5 flex justify-center gap-2.5">
@@ -751,7 +770,7 @@ const CartPage: React.FC = () => {
                                         return (
                                             <div
                                                 key={variant.id}
-                                                className="flex items-center gap-4 p-4 rounded-xl border border-[#E8E0D5] bg-white hover:border-[#C9B87A] transition group"
+                                                className="flex flex-row items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-xl border border-[#E8E0D5] bg-white hover:border-[#C9B87A] transition group overflow-hidden"
                                             >
                                                 {/* Image */}
                                                 <button
@@ -768,50 +787,48 @@ const CartPage: React.FC = () => {
                                                 </button>
 
                                                 {/* Info */}
-                                                <div className="flex-1 min-w-0">
+                                                <div className="flex-1 min-w-0 w-full">
                                                     <div className="flex items-start justify-between gap-2">
                                                         <button
                                                             type="button"
                                                             onClick={() => product.id && navigate(`/physical-gold/product/${product.id}`)}
-                                                            className="text-left cursor-pointer group/title"
+                                                            className="text-left cursor-pointer group/title min-w-0 flex-1"
                                                         >
-                                                            <h3 className="text-[14px] font-semibold text-[#1A1A1A] leading-snug group-hover/title:text-[#8B6914] transition-colors">
+                                                            <h3 className="text-[13px] sm:text-[14px] font-semibold text-[#1A1A1A] leading-snug group-hover/title:text-[#8B6914] transition-colors line-clamp-2">
                                                                 {product.productName}
                                                             </h3>
                                                         </button>
                                                         <button
                                                             onClick={() => requestRemove(variant.id)}
-                                                            className="shrink-0 p-1 text-[#D1C7BB] hover:text-rose-500 transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                                                            className="shrink-0 p-1 text-[#D1C7BB] hover:text-rose-500 transition opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
                                                             title="Remove item"
                                                         >
-                                                            <Trash2 size={14} />
+                                                            <Trash2 size={15} />
                                                         </button>
                                                     </div>
                                                     <p className="text-[11px] text-[#8A8A8A] mt-0.5">
-                                                        {variant.purity} {" "}
-                                                        {variant.weight}g
-                                                        {/* {variant.size || "Standard"} */}
+                                                        {variant.purity} {variant.weight}g
                                                     </p>
-                                                    <div className="flex items-center justify-between mt-3 gap-2">
+                                                    <div className="flex flex-wrap items-center justify-between mt-2.5 gap-2 w-full">
                                                         <QuantitySelector
                                                             quantity={quantity}
                                                             onIncrease={() => handleIncrement(variant.id)}
                                                             onDecrease={() => handleDecrement(variant.id, cartId)}
                                                             disabled={s.incrementingId === variant.id || s.decrementingId === variant.id}
                                                         />
-                                                        <div className="text-right">
-                                                            <div className="flex items-center gap-1.5 justify-end">
+                                                        <div className="text-right shrink-0 min-w-0">
+                                                            <div className="flex items-center gap-1.5 justify-end flex-wrap">
                                                                 {mrpTotal > lineTotal && (
-                                                                    <span className="text-[12px] text-gray-400 line-through font-medium">
+                                                                    <span className="text-[11px] sm:text-[12px] text-gray-400 line-through font-medium">
                                                                         ₹{mrpTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                                                                     </span>
                                                                 )}
-                                                                <span className="text-[15px] font-bold text-[#8B6914]">
+                                                                <span className="text-[14px] sm:text-[15px] font-bold text-[#8B6914]">
                                                                     ₹{lineTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                                                                 </span>
                                                             </div>
                                                             {savedTotal > 0 && (
-                                                                <p className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-block mt-0.5">
+                                                                <p className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-block mt-0.5 whitespace-nowrap">
                                                                     You Save ₹{savedTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                                                                 </p>
                                                             )}
