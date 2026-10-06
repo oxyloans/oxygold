@@ -21,7 +21,7 @@ import CategoryGrid from "./components/CategoryGrid";
 import LoadingSpinner from "./components/LoadingSpinner";
 
 import Pagination from "./components/Pagination";
-import { Category, SubCategory, PhysicalGoldProduct, ProductVariant, resolveS3ImageUrl } from "./physicalGoldData";
+import { Category, SubCategory, PhysicalGoldProduct, ProductVariant, resolveS3ImageUrl, isDiscountTimeActive } from "./physicalGoldData";
 import {
   fetchProductVariants,
   fetchSubCategories,
@@ -273,11 +273,15 @@ const CompactProductCard: React.FC<{
   const targetProd = cartProduct || product;
   const baseDiscountType = targetProd?.basePriceDiscountType || product?.basePriceDiscountType;
   const baseDiscountValue = Number(targetProd?.basePriceDiscountValue ?? product?.basePriceDiscountValue ?? 0);
+  const baseDiscountStart = selected?.basePriceDiscountStart ?? targetProd?.basePriceDiscountStart ?? product?.basePriceDiscountStart;
+  const baseDiscountEnd = selected?.basePriceDiscountEnd ?? targetProd?.basePriceDiscountEnd ?? product?.basePriceDiscountEnd;
+
+  const isPromoActive = isDiscountTimeActive(baseDiscountStart, baseDiscountEnd);
 
   const mrpNum = (selected as any)?.mrp ?? null;
   const originalPriceNum = selected ? selected.price : (targetProd?.price ?? product.price ?? null);
 
-  let calculatedDiscountedPrice: number | null = selected?.discountedPrice != null
+  let rawDiscountedPrice: number | null = selected?.discountedPrice != null
     ? selected.discountedPrice
     : targetProd?.discountedPrice != null
     ? targetProd.discountedPrice
@@ -287,22 +291,37 @@ const CompactProductCard: React.FC<{
 
   if (baseDiscountType && baseDiscountValue > 0 && originalPriceNum != null) {
     if (baseDiscountType === "FIXED") {
-      calculatedDiscountedPrice = originalPriceNum - baseDiscountValue;
+      rawDiscountedPrice = originalPriceNum - baseDiscountValue;
     } else if (baseDiscountType === "PERCENTAGE") {
-      calculatedDiscountedPrice = originalPriceNum - (originalPriceNum * baseDiscountValue) / 100;
+      rawDiscountedPrice = originalPriceNum - (originalPriceNum * baseDiscountValue) / 100;
     }
   }
 
-  // Determine if Base Price Discount is active (non-zero, non-null, non-undefined)
+  const calculatedDiscountedPrice = isPromoActive ? rawDiscountedPrice : null;
+
+  // Determine if Base Price Discount is active
+  const hasDiscountedPrice = isPromoActive && calculatedDiscountedPrice != null && originalPriceNum != null && calculatedDiscountedPrice < originalPriceNum;
   const hasBaseDiscount = Boolean(
-    baseDiscountType &&
-    (baseDiscountType === "FIXED" || baseDiscountType === "PERCENTAGE") &&
-    baseDiscountValue > 0 &&
-    originalPriceNum != null
+    isPromoActive &&
+    (hasDiscountedPrice ||
+      (baseDiscountType &&
+        (baseDiscountType === "FIXED" || baseDiscountType === "PERCENTAGE") &&
+        baseDiscountValue > 0 &&
+        originalPriceNum != null))
   );
 
   let discountTagLabel = "";
-  if (hasBaseDiscount) {
+  if (hasBaseDiscount && hasDiscountedPrice && calculatedDiscountedPrice != null && originalPriceNum != null) {
+    const diff = Math.round(originalPriceNum - calculatedDiscountedPrice);
+    if (baseDiscountType === "PERCENTAGE" && baseDiscountValue > 0) {
+      discountTagLabel = `${baseDiscountValue}% OFF`;
+    } else if (baseDiscountType === "FIXED" && baseDiscountValue > 0) {
+      discountTagLabel = `₹${baseDiscountValue} OFF`;
+    } else {
+      const pct = Math.round((diff / originalPriceNum) * 100);
+      discountTagLabel = pct > 0 ? `${pct}% OFF` : `₹${diff} OFF`;
+    }
+  } else if (hasBaseDiscount) {
     if (baseDiscountType === "FIXED") {
       discountTagLabel = `₹${baseDiscountValue} OFF`;
     } else if (baseDiscountType === "PERCENTAGE") {
@@ -315,10 +334,10 @@ const CompactProductCard: React.FC<{
   const mrpDiscountPct = hasMrpDiscount ? Math.round(((mrpNum - originalPriceNum) / mrpNum) * 100) : 0;
 
   // Main displayed price:
-  const mainPriceValue = hasBaseDiscount && calculatedDiscountedPrice != null ? calculatedDiscountedPrice : originalPriceNum;
+  const mainPriceValue = calculatedDiscountedPrice != null && (hasBaseDiscount || hasDiscountedPrice) ? calculatedDiscountedPrice : originalPriceNum;
 
   // Top left badge text:
-  const topLeftBadgeText = hasBaseDiscount ? discountTagLabel : (hasMrpDiscount && mrpDiscountPct > 0 ? `${mrpDiscountPct}% OFF` : null);
+  const topLeftBadgeText = (hasBaseDiscount || hasDiscountedPrice) ? discountTagLabel : (hasMrpDiscount && mrpDiscountPct > 0 ? `${mrpDiscountPct}% OFF` : null);
 
   const activeOffer = selectedId ? offersCache[selectedId] : null;
   const hasOfferDiscount = activeOffer != null && (
@@ -351,9 +370,9 @@ const CompactProductCard: React.FC<{
           </span>
         )}
 
-        {/* Category - Top Right */}
+        {/* Category - Top Right - Hidden on mobile */}
         {product.categoryName && (
-          <span className="absolute right-2 top-2 z-10 max-w-[55%] truncate rounded-md bg-black/60 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white shadow-sm backdrop-blur-sm">
+          <span className="absolute right-2 top-2 z-10 hidden sm:inline-block max-w-[55%] truncate rounded-md bg-black/60 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white shadow-sm backdrop-blur-sm">
             {product.categoryName}
           </span>
         )}
@@ -368,8 +387,8 @@ const CompactProductCard: React.FC<{
         </div>
 
         {/* Price & View Offer row */}
-        <div className="flex items-center justify-between gap-1 w-full min-w-0">
-          <div className="flex items-baseline gap-1 shrink-0 min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-1 w-full min-w-0">
+          <div className="flex flex-wrap items-baseline gap-1 min-w-0">
             <span className="text-[13px] sm:text-[15px] font-bold text-[#C29B27] whitespace-nowrap">
               {mainPriceValue != null ? `₹${mainPriceValue.toLocaleString("en-IN")}` : displayPrice(product.priceRange)}
             </span>
@@ -382,7 +401,7 @@ const CompactProductCard: React.FC<{
           </div>
 
           {/* Offer & Discount Badges Row - Right End */}
-          <div className="ml-auto flex items-center gap-1 shrink-0 whitespace-nowrap">
+          <div className="flex flex-wrap items-center gap-1 sm:ml-auto">
             {hasBaseDiscount && discountTagLabel && (
               <span className="inline-flex h-5 items-center justify-center gap-0.5 rounded-md bg-emerald-50 px-1.5 text-[9px] sm:text-[10px] font-bold leading-none text-emerald-700 border border-emerald-200 whitespace-nowrap shadow-2xs">
                 <Tag size={9} className="text-emerald-600 shrink-0" />

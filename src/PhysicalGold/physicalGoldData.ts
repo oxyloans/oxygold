@@ -97,7 +97,25 @@ export interface ProductVariant {
   stockQuantity: number;
   weight: number;
   discountActive?: boolean | null;
+  basePriceDiscountType?: "FIXED" | "PERCENTAGE" | string | null;
+  basePriceDiscountValue?: number | null;
+  basePriceDiscountStart?: string | null;
+  basePriceDiscountEnd?: string | null;
 }
+
+export const isDiscountTimeActive = (start?: string | null, end?: string | null): boolean => {
+  if (!start && !end) return true;
+  const now = new Date().getTime();
+  if (start) {
+    const startTime = new Date(start).getTime();
+    if (!isNaN(startTime) && now < startTime) return false;
+  }
+  if (end) {
+    const endTime = new Date(end).getTime();
+    if (!isNaN(endTime) && now > endTime) return false;
+  }
+  return true;
+};
 
 export interface PhysicalGoldProduct {
   id: string;

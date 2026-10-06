@@ -509,7 +509,7 @@ export const fetchProductVariants = async (
   const variants = variantsData.listVariantResponse.map((item: any) => ({
     id: item.id.toString(),
     price: item.price,
-    discountedPrice: item.discountedPrice ?? item.price,
+    discountedPrice: item.discountedPrice,
     mrp: item.mrp,
     imageUrl:
       resolveS3ImageUrl(item.imageUrl) ||
@@ -522,6 +522,10 @@ export const fetchProductVariants = async (
     stockQuantity: item.stockQuantity,
     weight: item.weight,
     discountActive: item.discountActive,
+    basePriceDiscountType: item.basePriceDiscountType,
+    basePriceDiscountValue: item.basePriceDiscountValue,
+    basePriceDiscountStart: item.basePriceDiscountStart,
+    basePriceDiscountEnd: item.basePriceDiscountEnd,
   }));  
 
   const productData = result.data.productResponse;

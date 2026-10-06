@@ -26,7 +26,7 @@ import LoadingSpinner from "./components/LoadingSpinner";
 import AIModelPreviewModal from "./components/AIModelPreviewModal";
 import VirtualTryOnModal from "./components/VirtualTryOnModal";
 
-import { PhysicalGoldProduct, ProductVariant, resolveS3ImageUrl } from "./physicalGoldData";
+import { PhysicalGoldProduct, ProductVariant, resolveS3ImageUrl, isDiscountTimeActive } from "./physicalGoldData";
 import { fetchProductVariants, fetchProducts, generateModelImage, generateVirtualTryOn, fetchProductRecommendations, fetchProductRatings, fetchGoldSilverRateBreakdown, GoldSilverRateBreakdown } from "./physicalGoldService";
 import { useCart, ProfileIncompleteError } from "./CartContext";
 import { useWishlist } from "./WishlistContext";
@@ -684,32 +684,49 @@ const ProductDetailsPage: React.FC = () => {
     .filter(Boolean)
     .some((name) => /silver/i.test(String(name)));
   const metalName = isSilverProduct ? "Silver" : "Gold";
-  const baseDiscountType = product.basePriceDiscountType;
-  const baseDiscountValue = Number(product.basePriceDiscountValue || 0);
+  const baseDiscountType = selectedVariant.basePriceDiscountType || product.basePriceDiscountType;
+  const baseDiscountValue = Number(selectedVariant.basePriceDiscountValue ?? product.basePriceDiscountValue ?? 0);
+  const baseDiscountStart = selectedVariant.basePriceDiscountStart ?? product.basePriceDiscountStart;
+  const baseDiscountEnd = selectedVariant.basePriceDiscountEnd ?? product.basePriceDiscountEnd;
+
+  const isPromoActive = isDiscountTimeActive(baseDiscountStart, baseDiscountEnd);
 
   const itemPrice = Number(selectedVariant.price) || 0;
-  const discountedItemPrice = selectedVariant.discountedPrice != null
+  const rawDiscountedPrice = selectedVariant.discountedPrice != null
     ? Number(selectedVariant.discountedPrice)
     : product.discountedPrice != null
     ? Number(product.discountedPrice)
     : itemPrice;
 
+  const discountedItemPrice = isPromoActive && rawDiscountedPrice > 0 && rawDiscountedPrice < itemPrice
+    ? rawDiscountedPrice
+    : itemPrice;
+
   const hasBaseDiscount = Boolean(
-    baseDiscountType &&
-    (baseDiscountType === "FIXED" || baseDiscountType === "PERCENTAGE") &&
-    baseDiscountValue > 0 &&
-    discountedItemPrice < itemPrice
+    isPromoActive &&
+    ((discountedItemPrice > 0 && discountedItemPrice < itemPrice) ||
+      (baseDiscountType &&
+        (baseDiscountType === "FIXED" || baseDiscountType === "PERCENTAGE") &&
+        baseDiscountValue > 0))
   );
 
   let discountTagLabel = "";
-  if (hasBaseDiscount) {
+  if (hasBaseDiscount && discountedItemPrice > 0 && discountedItemPrice < itemPrice) {
+    const diff = Math.round(itemPrice - discountedItemPrice);
+    if (baseDiscountType === "PERCENTAGE" && baseDiscountValue > 0) {
+      discountTagLabel = `${baseDiscountValue}% OFF`;
+    } else if (baseDiscountType === "FIXED" && baseDiscountValue > 0) {
+      discountTagLabel = `₹${baseDiscountValue} OFF`;
+    } else {
+      const pct = Math.round((diff / itemPrice) * 100);
+      discountTagLabel = pct > 0 ? `${pct}% OFF` : `₹${diff} OFF`;
+    }
+  } else if (hasBaseDiscount) {
     if (baseDiscountType === "FIXED") {
       discountTagLabel = `₹${baseDiscountValue} OFF`;
     } else if (baseDiscountType === "PERCENTAGE") {
       discountTagLabel = `${baseDiscountValue}% OFF`;
     }
-  } else if (discountedItemPrice < itemPrice && baseDiscountValue > 0) {
-    discountTagLabel = `₹${Math.round(itemPrice - discountedItemPrice)} OFF`;
   }
 
   const effectiveMainPrice = hasBaseDiscount ? discountedItemPrice : itemPrice;

@@ -16,7 +16,8 @@ import { firstProductImageUrl, resolveS3ImageUrl, resolveProductImageSet } from 
 const formatDateTimeForInput = (dateStr?: string) => {
     if (!dateStr) return '';
     if (dateStr.includes('T')) {
-        return dateStr.slice(0, 16);
+        const sliced = dateStr.slice(0, 19);
+        return sliced.length === 16 ? sliced + ':00' : sliced;
     }
     return dateStr;
 };
@@ -661,6 +662,7 @@ const CatalogUpload: React.FC = () => {
                                                 style={{ height: '38px', borderRadius: '0.5rem' }}
                                                 label="Promotion Start"
                                                 type="datetime-local"
+                                                step="1"
                                                 value={formData.basePriceDiscountStart || ''}
                                                 onChange={e => setFormData({ ...formData, basePriceDiscountStart: e.target.value })}
                                             />
@@ -669,6 +671,7 @@ const CatalogUpload: React.FC = () => {
                                                 style={{ height: '38px', borderRadius: '0.5rem' }}
                                                 label="Promotion End"
                                                 type="datetime-local"
+                                                step="1"
                                                 value={formData.basePriceDiscountEnd || ''}
                                                 onChange={e => setFormData({ ...formData, basePriceDiscountEnd: e.target.value })}
                                             />
