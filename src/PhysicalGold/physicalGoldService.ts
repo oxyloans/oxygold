@@ -467,11 +467,18 @@ export const fetchProducts = async (
       imageUrl:
         resolveS3ImageUrl(item.imageUrl) || firstProductImageUrl(item) || "",
       priceRange: item.priceRange || "Price on request",
+      discountedPriceRange: item.discountedPriceRange,
       description: item.description || "",
       subCategoryId: item.categoryId
         ? item.categoryId.toString()
         : subCategoryId,
       status: item.status || "ACTIVE",
+      basePriceDiscountType: item.basePriceDiscountType,
+      basePriceDiscountValue: item.basePriceDiscountValue,
+      basePriceDiscountStart: item.basePriceDiscountStart,
+      basePriceDiscountEnd: item.basePriceDiscountEnd,
+      discountedPrice: item.discountedPrice,
+      price: item.price,
     }));
   return mappedData;
 };
@@ -502,6 +509,7 @@ export const fetchProductVariants = async (
   const variants = variantsData.listVariantResponse.map((item: any) => ({
     id: item.id.toString(),
     price: item.price,
+    discountedPrice: item.discountedPrice ?? item.price,
     mrp: item.mrp,
     imageUrl:
       resolveS3ImageUrl(item.imageUrl) ||
@@ -513,6 +521,7 @@ export const fetchProductVariants = async (
     status: item.status,
     stockQuantity: item.stockQuantity,
     weight: item.weight,
+    discountActive: item.discountActive,
   }));  
 
   const productData = result.data.productResponse;
@@ -527,13 +536,20 @@ export const fetchProductVariants = async (
             firstProductImageUrl(productImages),
           imageSet: productImages || undefined,
           priceRange: productData.priceRange || "Price on request",
+          discountedPriceRange: productData.discountedPriceRange,
           description: productData.description,
-          subCategoryId: productData.categoryId.toString(),
+          subCategoryId: productData.categoryId ? productData.categoryId.toString() : "",
           categoryName: productData.categoryName,
           subCategoryName: productData.subCategoryName,
           status: productData.status,
           gstPercentage: productData.gstPercentage,
           makingPercentage: productData.makingPercentage,
+          basePriceDiscountType: productData.basePriceDiscountType,
+          basePriceDiscountValue: productData.basePriceDiscountValue,
+          basePriceDiscountStart: productData.basePriceDiscountStart,
+          basePriceDiscountEnd: productData.basePriceDiscountEnd,
+          discountedPrice: productData.discountedPrice,
+          price: productData.price,
         }
       : (null as any),
   };

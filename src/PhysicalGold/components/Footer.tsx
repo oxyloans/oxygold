@@ -1,6 +1,7 @@
 import React from "react";
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Logo from "../../assets/oxygoldlogo-wk.png";
 import "../styles.css";
 
 const Footer: React.FC = () => {
@@ -8,13 +9,18 @@ const Footer: React.FC = () => {
 
   return (
     <footer style={{ backgroundColor: "hsl(20, 30%, 10%)", color: "hsl(30, 15%, 70%)" }}>
-      <div className="container mx-auto px-8 md:px-12 lg:px-16 sm:px-4 py-12">
+      <div className="max-w-7xl mx-auto px-4 md:px-4 lg:px-4 sm:px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* Brand */}
           <div>
-            <h3 className="font-heading text-2xl font-bold mb-4 text-gradient-gold">
-              OXYGOLD
-            </h3>
+            <div className="mb-4">
+              <img
+                src={Logo}
+                alt="OXYGOLD"
+                className="h-14 md:h-16 w-auto object-contain cursor-pointer"
+                onClick={() => navigate("/physical-gold")}
+              />
+            </div>
             <p className="text-sm leading-relaxed" style={{ color: "hsl(30, 15%, 70%)" }}>
               Your trusted destination for authentic 22K hallmarked gold jewellery.
               Crafted with precision, delivered with care.
@@ -102,9 +108,9 @@ const Footer: React.FC = () => {
             <button onClick={() => navigate("/physical-gold/cookie-policy")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>
               Cookie Policy
             </button>
-            <button onClick={() => navigate("/physical-gold/cancellation-policy")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>
+            {/* <button onClick={() => navigate("/physical-gold/cancellation-policy")} className="transition-colors hover:text-[#C29B27] cursor-pointer" style={{ color: "hsl(30, 15%, 70%)" }}>
               Cancellation Policy
-            </button>
+            </button> */}
           </div>
         </div>
       </div>

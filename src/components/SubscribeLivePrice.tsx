@@ -137,7 +137,7 @@ const SubscribeLivePrice = ({ iconOnly = false }: { iconOnly?: boolean }) => {
         }}
       >
         <Bell size={18} className="bell-icon" />
-        {!iconOnly && <span className="subscribe-btn-text-full">Subscribe Live Price</span>}
+        {!iconOnly && <span className="subscribe-btn-text-full">Subscribe Live Prices</span>}
       </button>
 
       {isOpen && createPortal(

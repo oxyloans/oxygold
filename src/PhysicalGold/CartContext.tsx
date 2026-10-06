@@ -101,6 +101,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             variant: {
                                 id: item.productVariantId.toString(),
                                 price: item.price,
+                                mrp: Number(item.mrp ?? item.price) || 0,
+                                savedAmount: Number(item.savedAmount ?? (item.mrp && item.mrp > item.price ? item.mrp - item.price : 0)) || 0,
                                 purity: item.purity,
                                 size: item.size,
                                 weight: item.weight,

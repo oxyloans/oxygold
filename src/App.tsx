@@ -5,7 +5,7 @@ import { GoldPriceProvider } from './context/GoldPriceContext';
 import { PurchaseProvider } from './context/PurchaseContext';
 import { CartProvider } from './PhysicalGold/CartContext';
 import { WishlistProvider } from './PhysicalGold/WishlistContext';
-import oxygoldLogo from './assets/oxygoldlogo.png';
+import oxygoldLogo from './assets/oxygoldlogo-wk.png';
 
 // Eagerly loaded (critical path)
 import Header from './components/Header';

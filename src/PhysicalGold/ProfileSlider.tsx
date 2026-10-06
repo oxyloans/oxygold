@@ -281,7 +281,12 @@ const ProfilePage: React.FC = () => {
         profileErrors: {},
         addresses: [],
         isAddressLoading: false,
-        isAddingAddress: false,
+        isAddingAddress: initialTab === "address" && (
+            searchParams.get("add") === "true" ||
+            searchParams.get("action") === "add" ||
+            searchParams.get("new") === "true" ||
+            searchParams.get("open") === "true"
+        ),
         editingAddress: null,
         addrForm: {
             flatNo: "", landMark: "", address: "", pinCode: "",
@@ -331,10 +336,19 @@ const ProfilePage: React.FC = () => {
 
     useEffect(() => {
         const tab = searchParams.get("tab") as Tab;
-        if (tab && tab !== s.activeTab) {
+        const shouldAddAddress = (tab === "address" || (!tab && s.activeTab === "address")) && (
+            searchParams.get("add") === "true" ||
+            searchParams.get("action") === "add" ||
+            searchParams.get("new") === "true" ||
+            searchParams.get("open") === "true"
+        );
+
+        if (shouldAddAddress) {
+            patch({ activeTab: "address", isAddingAddress: true });
+        } else if (tab && tab !== s.activeTab) {
             patch({ activeTab: tab, isAddingAddress: false, isEditingProfile: tab === "info" && !s.profileForm.firstName.trim() });
         }
-    }, [searchParams, patch, s.activeTab]);
+    }, [searchParams, patch, s.activeTab, s.profileForm.firstName]);
 
     useEffect(() => {
         if (user) {

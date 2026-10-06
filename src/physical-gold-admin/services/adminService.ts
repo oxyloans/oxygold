@@ -286,6 +286,22 @@ export const updateCategory = async (data: any) => {
 
 // --- Products API ---
 
+export interface CreateProductPayload {
+  name: string;
+  description?: string;
+  productType?: string;
+  gstPercentage?: number;
+  makingPercentage?: number;
+  discountPercentage?: number;
+  status?: string;
+  categoryId?: number | string;
+  basePriceDiscountType?: "PERCENTAGE" | "FIXED";
+  basePriceDiscountValue?: number;
+  basePriceDiscountStart?: string;
+  basePriceDiscountEnd?: string;
+  [key: string]: any;
+}
+
 export const getAllProducts = async (categoryId: number | string) => {
   const response = await adminAuthenticatedFetch(
     `${BASE_URL}/products/getAllProduct?categoryId=${categoryId}`,
@@ -294,7 +310,7 @@ export const getAllProducts = async (categoryId: number | string) => {
   return response.json();
 };
 
-export const createProduct = async (data: any) => {
+export const createProduct = async (data: CreateProductPayload | any) => {
   const response = await adminAuthenticatedFetch(
     `${BASE_URL}/products/createProduct`,
     {
@@ -309,7 +325,7 @@ export const createProduct = async (data: any) => {
   return response.json();
 };
 
-export const updateProduct = async (productId: number | string, data: any) => {
+export const updateProduct = async (productId: number | string, data: CreateProductPayload | any) => {
   const response = await adminAuthenticatedFetch(
     `${BASE_URL}/products/updateProduct/${productId}`,
     {

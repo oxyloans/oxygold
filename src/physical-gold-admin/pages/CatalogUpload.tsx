@@ -13,6 +13,22 @@ import Select from "../components/ui/Select";
 import * as adminService from '../services/adminService';
 import Toast from '../../PhysicalGold/components/Toast';
 import { firstProductImageUrl, resolveS3ImageUrl, resolveProductImageSet } from '../../PhysicalGold/physicalGoldData';
+const formatDateTimeForInput = (dateStr?: string) => {
+    if (!dateStr) return '';
+    if (dateStr.includes('T')) {
+        return dateStr.slice(0, 16);
+    }
+    return dateStr;
+};
+
+const formatDateTimeForPayload = (dateStr?: string) => {
+    if (!dateStr) return null;
+    if (dateStr.length === 16) {
+        return dateStr + ':00';
+    }
+    return dateStr;
+};
+
 const CatalogUpload: React.FC = () => {
     // Hierarchical Navigation State
     const [level, setLevel] = useState(0); // 0: Main Cat, 1: Sub Cat, 2: Products, 3: Variants
@@ -132,11 +148,6 @@ const CatalogUpload: React.FC = () => {
                 if (level === 2) params.productId = currentItem.id;
                 else params.categoryId = currentItem.id;
             } else {
-                // For new items, we might need to handle this differently if API requires ID 
-                // But user says categeryId and productId are query params.
-                // If they are new, they don't have IDs yet. 
-                // Usually we upload after creation or use a temporary container.
-                // However, the user request shows params: categoryId and productId.
                 if (level === 2 && currentParent) params.categoryId = currentParent.id;
                 else if (level === 1 && currentParent) params.categoryId = currentParent.id;
             }
@@ -172,7 +183,11 @@ const CatalogUpload: React.FC = () => {
             setFormData({
                 name: '', description: '', imageId: 0,
                 productType: '', gstPercentage: 0, makingPercentage: 0, discountPercentage: 0,
-                status: 'ACTIVE'
+                status: 'ACTIVE',
+                basePriceDiscountType: 'PERCENTAGE',
+                basePriceDiscountValue: 0,
+                basePriceDiscountStart: '',
+                basePriceDiscountEnd: ''
             });
         } else {
             setModalType('variant');
@@ -198,7 +213,11 @@ const CatalogUpload: React.FC = () => {
                 productType: item.productType || '', gstPercentage: item.gstPercentage ?? 0,
                 makingPercentage: item.makingPercentage ?? 0,
                 discountPercentage: item.discountPercentage ?? 0,
-                status: item.status || 'ACTIVE'
+                status: item.status || 'ACTIVE',
+                basePriceDiscountType: item.basePriceDiscountType || 'PERCENTAGE',
+                basePriceDiscountValue: item.basePriceDiscountValue ?? 0,
+                basePriceDiscountStart: formatDateTimeForInput(item.basePriceDiscountStart),
+                basePriceDiscountEnd: formatDateTimeForInput(item.basePriceDiscountEnd)
             });
         } else {
             setModalType('variant');
@@ -223,7 +242,14 @@ const CatalogUpload: React.FC = () => {
                     successMessage = "Category created successfully";
                 }
             } else if (modalType === 'product') {
-                const payload = { ...formData, categoryId: currentParent!.id };
+                const payload = {
+                    ...formData,
+                    categoryId: currentParent!.id,
+                    basePriceDiscountType: formData.basePriceDiscountType || 'PERCENTAGE',
+                    basePriceDiscountValue: Number(formData.basePriceDiscountValue || 0),
+                    basePriceDiscountStart: formatDateTimeForPayload(formData.basePriceDiscountStart),
+                    basePriceDiscountEnd: formatDateTimeForPayload(formData.basePriceDiscountEnd)
+                };
                 if (isEditing) {
                     await adminService.updateProduct(currentItem.id, payload);
                     successMessage = "Product updated successfully";
@@ -312,6 +338,21 @@ const CatalogUpload: React.FC = () => {
                 common.push({ header: 'GST', key: 'gstPercentage', width: '60px', render: (v: any) => `${v ?? 0}%` });
                 common.push({ header: 'Making', key: 'makingPercentage', width: '70px', render: (v: any) => `${v ?? 0}%` });
                 common.push({ header: 'Discount', key: 'discountPercentage', width: '70px', render: (v: any) => `${v ?? 0}%` });
+                common.push({
+                    header: 'Base Discount Price',
+                    key: 'basePriceDiscountValue',
+                    width: '120px',
+                    render: (_: any, item: any) => {
+                        if (!item.basePriceDiscountValue) return <span className="text-slate-400 text-xs">-</span>;
+                        const valStr = item.basePriceDiscountType === 'FIXED' ? `₹${item.basePriceDiscountValue}` : `${item.basePriceDiscountValue}%`;
+                        return (
+                            <div className="text-xs">
+                                <span className="font-semibold text-emerald-600">{valStr}</span>
+                                <span className="text-[10px] text-slate-400 block">{item.basePriceDiscountType || 'PERCENTAGE'}</span>
+                            </div>
+                        );
+                    }
+                });
                 common.push({
                     header: 'Status',
                     key: 'status',
@@ -583,6 +624,55 @@ const CatalogUpload: React.FC = () => {
                                             value={formData.discountPercentage ?? 0}
                                             onChange={e => setFormData({ ...formData, discountPercentage: Number(e.target.value) })}
                                         />
+                                    </div>
+                                    {/* Base Price Discount Section */}
+                                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                                            Base Price Discount
+                                        </label>
+
+                                        {/* Row 1: Discount Type & Discount Value */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                                            <Select
+                                                label="Discount Type"
+                                                options={[
+                                                    { label: 'Percentage (%)', value: 'PERCENTAGE' },
+                                                    { label: 'Fixed Amount (₹)', value: 'FIXED' },
+                                                ]}
+                                                value={formData.basePriceDiscountType || 'PERCENTAGE'}
+                                                onChange={val => setFormData({ ...formData, basePriceDiscountType: val as string })}
+                                            />
+                                            <Input
+                                                className="!mb-0"
+                                                style={{ height: '38px', borderRadius: '0.5rem' }}
+                                                label={`Discount Value (${formData.basePriceDiscountType === 'FIXED' ? '₹' : '%'})`}
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={formData.basePriceDiscountValue ?? 0}
+                                                onChange={e => setFormData({ ...formData, basePriceDiscountValue: Number(e.target.value) })}
+                                            />
+                                        </div>
+
+                                        {/* Row 2: Promotion Start & Promotion End */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                                            <Input
+                                                className="!mb-0"
+                                                style={{ height: '38px', borderRadius: '0.5rem' }}
+                                                label="Promotion Start"
+                                                type="datetime-local"
+                                                value={formData.basePriceDiscountStart || ''}
+                                                onChange={e => setFormData({ ...formData, basePriceDiscountStart: e.target.value })}
+                                            />
+                                            <Input
+                                                className="!mb-0"
+                                                style={{ height: '38px', borderRadius: '0.5rem' }}
+                                                label="Promotion End"
+                                                type="datetime-local"
+                                                value={formData.basePriceDiscountEnd || ''}
+                                                onChange={e => setFormData({ ...formData, basePriceDiscountEnd: e.target.value })}
+                                            />
+                                        </div>
                                     </div>
                                     {/* Status Field */}
                                     <div className="space-y-1">

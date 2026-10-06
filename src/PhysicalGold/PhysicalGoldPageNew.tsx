@@ -13,6 +13,7 @@ import {
   X, 
   Zap 
 } from "lucide-react";
+import { FaBagShopping } from "react-icons/fa6";
 import { useCart, isPhysicalGoldUserLoggedIn, ProfileIncompleteError } from "./CartContext";
 import FilterSidebar from "./components/FilterSidebar";
 import CategoryGrid from "./components/CategoryGrid";
@@ -268,11 +269,57 @@ const CompactProductCard: React.FC<{
     return () => { cancelled = true; };
   }, [product.id]);
 
-  // MRP comes from the variant
+  // Base Price Discount & MRP logic
+  const targetProd = cartProduct || product;
+  const baseDiscountType = targetProd?.basePriceDiscountType || product?.basePriceDiscountType;
+  const baseDiscountValue = Number(targetProd?.basePriceDiscountValue ?? product?.basePriceDiscountValue ?? 0);
+
   const mrpNum = (selected as any)?.mrp ?? null;
-  const priceNum = selected?.price ?? null;
-  const hasDiscount = mrpNum != null && priceNum != null && mrpNum > priceNum;
-  const discountPct = hasDiscount ? Math.round(((mrpNum - priceNum) / mrpNum) * 100) : 0;
+  const originalPriceNum = selected ? selected.price : (targetProd?.price ?? product.price ?? null);
+
+  let calculatedDiscountedPrice: number | null = selected?.discountedPrice != null
+    ? selected.discountedPrice
+    : targetProd?.discountedPrice != null
+    ? targetProd.discountedPrice
+    : product.discountedPrice != null
+    ? product.discountedPrice
+    : null;
+
+  if (baseDiscountType && baseDiscountValue > 0 && originalPriceNum != null) {
+    if (baseDiscountType === "FIXED") {
+      calculatedDiscountedPrice = originalPriceNum - baseDiscountValue;
+    } else if (baseDiscountType === "PERCENTAGE") {
+      calculatedDiscountedPrice = originalPriceNum - (originalPriceNum * baseDiscountValue) / 100;
+    }
+  }
+
+  // Determine if Base Price Discount is active (non-zero, non-null, non-undefined)
+  const hasBaseDiscount = Boolean(
+    baseDiscountType &&
+    (baseDiscountType === "FIXED" || baseDiscountType === "PERCENTAGE") &&
+    baseDiscountValue > 0 &&
+    originalPriceNum != null
+  );
+
+  let discountTagLabel = "";
+  if (hasBaseDiscount) {
+    if (baseDiscountType === "FIXED") {
+      discountTagLabel = `₹${baseDiscountValue} OFF`;
+    } else if (baseDiscountType === "PERCENTAGE") {
+      discountTagLabel = `${baseDiscountValue}% OFF`;
+    }
+  }
+
+  // MRP discount calculation (fallback if base discount is not active)
+  const hasMrpDiscount = !hasBaseDiscount && mrpNum != null && originalPriceNum != null && mrpNum > originalPriceNum;
+  const mrpDiscountPct = hasMrpDiscount ? Math.round(((mrpNum - originalPriceNum) / mrpNum) * 100) : 0;
+
+  // Main displayed price:
+  const mainPriceValue = hasBaseDiscount && calculatedDiscountedPrice != null ? calculatedDiscountedPrice : originalPriceNum;
+
+  // Top left badge text:
+  const topLeftBadgeText = hasBaseDiscount ? discountTagLabel : (hasMrpDiscount && mrpDiscountPct > 0 ? `${mrpDiscountPct}% OFF` : null);
+
   const activeOffer = selectedId ? offersCache[selectedId] : null;
   const hasOfferDiscount = activeOffer != null && (
     Number(activeOffer.discountPercentage || 0) > 0 ||
@@ -297,9 +344,10 @@ const CompactProductCard: React.FC<{
         </div>
 
         {/* Discount - Top Left */}
-        {hasDiscount && discountPct > 0 && (
-          <span className="absolute left-2 top-2 z-10 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-            {discountPct}% OFF
+        {topLeftBadgeText && (
+          <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+            <Tag size={9} />
+            {topLeftBadgeText}
           </span>
         )}
 
@@ -320,46 +368,58 @@ const CompactProductCard: React.FC<{
         </div>
 
         {/* Price & View Offer row */}
-        <div className="flex items-center justify-between gap-1 flex-wrap">
-          <div className="flex flex-wrap items-baseline gap-1.5">
-            <span className="text-[15px] font-bold text-[#C29B27]">
-              {selected ? `₹${selected.price.toLocaleString("en-IN")}` : displayPrice(product.priceRange)}
+        <div className="flex items-center justify-between gap-1 w-full min-w-0">
+          <div className="flex items-baseline gap-1 shrink-0 min-w-0">
+            <span className="text-[13px] sm:text-[15px] font-bold text-[#C29B27] whitespace-nowrap">
+              {mainPriceValue != null ? `₹${mainPriceValue.toLocaleString("en-IN")}` : displayPrice(product.priceRange)}
             </span>
-            {hasDiscount && (
-              <span className="text-[11px] text-[#8A8A8A] line-through">₹{mrpNum.toLocaleString("en-IN")}</span>
+            {hasBaseDiscount && originalPriceNum != null && (
+              <span className="text-[10px] sm:text-[11px] text-[#8A8A8A] line-through whitespace-nowrap">₹{originalPriceNum.toLocaleString("en-IN")}</span>
+            )}
+            {!hasBaseDiscount && hasMrpDiscount && mrpNum != null && (
+              <span className="text-[10px] sm:text-[11px] text-[#8A8A8A] line-through whitespace-nowrap">₹{mrpNum.toLocaleString("en-IN")}</span>
             )}
           </div>
 
-          {/* View Offer Hover Container - Only displayed if discount exists */}
-          {hasOfferDiscount && (
-            <div
-              className="relative inline-block"
-              onMouseEnter={() => {
-                handleFetchOffer(selected?.id ? String(selected.id) : undefined);
-                setShowOfferPopover(true);
-              }}
-              onMouseLeave={() => {
-                setShowOfferPopover(false);
-              }}
-            >
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowOfferPopover(prev => !prev);
-                  if (!showOfferPopover) {
-                    handleFetchOffer(selected?.id ? String(selected.id) : undefined, e);
-                  }
+          {/* Offer & Discount Badges Row - Right End */}
+          <div className="ml-auto flex items-center gap-1 shrink-0 whitespace-nowrap">
+            {hasBaseDiscount && discountTagLabel && (
+              <span className="inline-flex h-5 items-center justify-center gap-0.5 rounded-md bg-emerald-50 px-1.5 text-[9px] sm:text-[10px] font-bold leading-none text-emerald-700 border border-emerald-200 whitespace-nowrap shadow-2xs">
+                <Tag size={9} className="text-emerald-600 shrink-0" />
+                <span>{discountTagLabel}</span>
+              </span>
+            )}
+
+            {/* View Offer Hover Container */}
+            {hasOfferDiscount && (
+              <div
+                className="relative inline-flex items-center h-5"
+                onMouseEnter={() => {
+                  handleFetchOffer(selected?.id ? String(selected.id) : undefined);
+                  setShowOfferPopover(true);
                 }}
-                className="cursor-pointer inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors shadow-2xs"
-                title="Hover to view Price Breakup & GST Offer"
+                onMouseLeave={() => {
+                  setShowOfferPopover(false);
+                }}
               >
-                {/* <Sparkles size={10} className="text-emerald-600 animate-pulse" /> */}
-                <span>View Offer</span>
-                <Tag size={9} className="text-emerald-600" />
-              </button>
-            </div>
-          )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowOfferPopover(prev => !prev);
+                    if (!showOfferPopover) {
+                      handleFetchOffer(selected?.id ? String(selected.id) : undefined, e);
+                    }
+                  }}
+                  className="cursor-pointer inline-flex h-5 items-center justify-center gap-0.5 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 text-[9px] sm:text-[10px] font-semibold leading-none text-emerald-700 hover:bg-emerald-100 transition-colors shadow-2xs whitespace-nowrap"
+                  title="Hover to view Price Breakup & GST Offer"
+                >
+                  <span>View Offer</span>
+                  <Tag size={9} className="text-emerald-600 shrink-0" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {selected && (
@@ -464,7 +524,7 @@ const CompactProductCard: React.FC<{
                   <Loader2 size={13} className="animate-spin" />
                 ) : (
                   <>
-                    <Zap size={13} className="shrink-0 fill-white" />
+                    <FaBagShopping className="text-md" />
                     <span>Buy Now</span>
                   </>
                 )}
@@ -473,10 +533,10 @@ const CompactProductCard: React.FC<{
           )}
 
           <div 
-            className="h-6 text-[11px] font-medium text-[#8A8A8A] group-hover:text-[#C29B27] transition-colors flex items-center justify-center gap-1"
+            className="h-7 text-[13px] font-medium text-[#8A8A8A] group-hover:text-[#C29B27] transition-colors flex items-center justify-center gap-2"
           >
             <span>View Details</span>
-            <ChevronRight size={12} className="transition-transform duration-200 group-hover:translate-x-0.5" />
+            <ChevronRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5" />
           </div>
         </div>
 
@@ -804,11 +864,23 @@ const PhysicalGoldPageNew: React.FC = () => {
             const images = await fetchProductImageURLs(String(p.id));
             imageCandidates = Array.from(new Set([...imageCandidates, ...collectImageURLs(images)]));
           } catch { /* Existing image URLs remain usable if this request fails. */ }
-          return {...p, id: String(p.id), productName: p.name || p.productName || "Product",
+          return {
+            ...p,
+            id: String(p.id),
+            productName: p.name || p.productName || "Product",
             priceRange: p.priceRange || (typeof p.price === "number" ? `₹${p.price.toLocaleString("en-IN")}` : "Price on request"),
+            discountedPriceRange: p.discountedPriceRange,
             subCategoryId: String(p.categoryId || selectedSubCategoryId),
             categoryName: p.categoryName || categories.find(c => c.id === String(p.categoryId || selectedCategoryId))?.name || "",
-            imageUrl: imageCandidates[0] || "", imageCandidates};
+            imageUrl: imageCandidates[0] || "",
+            imageCandidates,
+            basePriceDiscountType: p.basePriceDiscountType,
+            basePriceDiscountValue: p.basePriceDiscountValue,
+            basePriceDiscountStart: p.basePriceDiscountStart,
+            basePriceDiscountEnd: p.basePriceDiscountEnd,
+            discountedPrice: p.discountedPrice,
+            price: p.price,
+          };
         }));
         if (cancelled) return;
         setProducts(enriched);

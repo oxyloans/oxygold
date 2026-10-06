@@ -605,10 +605,10 @@ const CartPage: React.FC = () => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Corner decorative icons */}
-                        <span className="pointer-events-none absolute left-6 top-6 text-purple-300">
+                        <span className="pointer-events-none absolute left-6 top-6 text-[#C29B27]">
                             <Sparkles size={18} />
                         </span>
-                        <span className="pointer-events-none absolute right-12 top-7 text-amber-300 text-xs">
+                        <span className="pointer-events-none absolute right-12 top-7 text-amber-400 text-xs">
                             ✨
                         </span>
 
@@ -626,14 +626,14 @@ const CartPage: React.FC = () => {
 
                         <div className="relative z-10 pt-1">
                             {/* Party Popper Celebration Icon */}
-                            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#7C3AED] to-[#8B5CF6] text-white shadow-lg shadow-purple-300/50">
+                            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#C29B27] to-[#8B6914] text-white shadow-lg shadow-amber-300/50">
                                 <PartyPopper size={26} />
                             </div>
 
                             {/* Header Title */}
                             <h2
                                 id="cart-discount-title"
-                                className="text-xl font-extrabold text-[#7C3AED] flex items-center justify-center gap-1.5"
+                                className="text-xl font-extrabold text-[#8B6914] flex items-center justify-center gap-1.5"
                             >
                                 GST & Making Charges on Us 🎉
                             </h2>
@@ -649,21 +649,21 @@ const CartPage: React.FC = () => {
                             </div>
 
                             {/* Price Breakdown Box */}
-                            <div className="my-4 rounded-2xl border border-dashed border-gray-200 bg-white p-3.5 text-left text-[13px] space-y-2.5 shadow-2xs">
-                                <div className="flex justify-between items-center text-gray-700">
-                                    <span className="font-medium text-gray-600">GST ({rateBreakdown.gstPercentage ?? 3}%)</span>
-                                    <span className="font-bold text-gray-900">
+                            <div className="my-4 rounded-2xl border border-dashed border-stone-200 bg-[#FDFAF4] p-3.5 text-left text-[13px] space-y-2.5 shadow-2xs">
+                                <div className="flex justify-between items-center text-stone-700">
+                                    <span className="font-medium text-stone-600">GST ({rateBreakdown.gstPercentage ?? 3}%)</span>
+                                    <span className="font-bold text-stone-900">
                                         ₹{Number(rateBreakdown.gstAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
                                 </div>
-                                <div className="flex justify-between items-center text-gray-700">
-                                    <span className="font-medium text-gray-600">Making Charges</span>
-                                    <span className="font-bold text-gray-900">
+                                <div className="flex justify-between items-center text-stone-700">
+                                    <span className="font-medium text-stone-600">Making Charges</span>
+                                    <span className="font-bold text-stone-900">
                                         ₹{Number(rateBreakdown.makingAmount || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center text-emerald-600 font-bold pt-1">
-                                    <span className="flex items-center gap-1.5 text-gray-900">
+                                    <span className="flex items-center gap-1.5 text-stone-900">
                                         <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
                                         Oxygold.in GST Waiver:
                                     </span>
@@ -681,8 +681,8 @@ const CartPage: React.FC = () => {
 
                             {/* Highlight Badges */}
                             <div className="mb-5 flex justify-center gap-2.5">
-                                <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-100 bg-purple-50 px-3 py-1.5 text-[11px] font-bold text-purple-700">
-                                    <Gem size={13} className="text-purple-600" /> Valid Only on Silver
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-bold text-[#8B6914]">
+                                    <Gem size={13} className="text-[#C29B27]" /> Valid Only on Silver
                                 </span>
                                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-[#E8F8F0] px-3 py-1.5 text-[11px] font-bold text-emerald-700">
                                     <CheckCircle2 size={13} className="text-emerald-600" /> 100% Tax Covered
@@ -696,7 +696,7 @@ const CartPage: React.FC = () => {
                                     e.stopPropagation();
                                     setShowDiscountModal(false);
                                 }}
-                                className="w-full cursor-pointer rounded-2xl py-3.5 text-[14px] font-bold text-white bg-gradient-to-r from-[#7C3AED] to-[#6366F1] hover:from-[#6D28D9] hover:to-[#4F46E5] shadow-lg shadow-purple-300/40 transition active:scale-[0.99]"
+                                className="w-full cursor-pointer rounded-2xl py-3.5 text-[14px] font-bold text-white bg-gradient-to-r from-[#C29B27] to-[#8B6914] hover:from-[#B08B20] hover:to-[#78590E] shadow-lg shadow-amber-300/40 transition active:scale-[0.99]"
                             >
                                 Awesome, Got It!
                             </button>
@@ -743,6 +743,11 @@ const CartPage: React.FC = () => {
                                 <div className="space-y-3 max-h-[380px] sm:max-h-[420px] overflow-y-auto pr-1.5 overscroll-contain scroll-smooth [scrollbar-width:thin] [scrollbar-color:#D1C7BB_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[#F5F2EE] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D1C7BB] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#8B6914]">
                                     {cartItems.map(({ cartId, product, variant, quantity }) => {
                                         const lineTotal = variant.price * quantity;
+                                        const unitMrp = variant.mrp && variant.mrp > variant.price ? variant.mrp : 0;
+                                        const mrpTotal = unitMrp * quantity;
+                                        const unitSaved = variant.savedAmount || (unitMrp > variant.price ? unitMrp - variant.price : 0);
+                                        const savedTotal = unitSaved * quantity;
+
                                         return (
                                             <div
                                                 key={variant.id}
@@ -787,16 +792,30 @@ const CartPage: React.FC = () => {
                                                         {variant.weight}g
                                                         {/* {variant.size || "Standard"} */}
                                                     </p>
-                                                    <div className="flex items-center justify-between mt-3">
+                                                    <div className="flex items-center justify-between mt-3 gap-2">
                                                         <QuantitySelector
                                                             quantity={quantity}
                                                             onIncrease={() => handleIncrement(variant.id)}
                                                             onDecrease={() => handleDecrement(variant.id, cartId)}
                                                             disabled={s.incrementingId === variant.id || s.decrementingId === variant.id}
                                                         />
-                                                        <span className="text-[15px] font-semibold text-[#8B6914]">
-                                                            ₹{lineTotal.toLocaleString("en-IN")}
-                                                        </span>
+                                                        <div className="text-right">
+                                                            <div className="flex items-center gap-1.5 justify-end">
+                                                                {mrpTotal > lineTotal && (
+                                                                    <span className="text-[12px] text-gray-400 line-through font-medium">
+                                                                        ₹{mrpTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                                                                    </span>
+                                                                )}
+                                                                <span className="text-[15px] font-bold text-[#8B6914]">
+                                                                    ₹{lineTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                                                                </span>
+                                                            </div>
+                                                            {savedTotal > 0 && (
+                                                                <p className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-block mt-0.5">
+                                                                    You Save ₹{savedTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                                                                </p>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -831,30 +850,45 @@ const CartPage: React.FC = () => {
                                         </button>
                                     </div>
                                     <div className="space-y-2 max-h-[17rem] overflow-y-auto pr-1.5 overscroll-contain scroll-smooth [scrollbar-width:thin] [scrollbar-color:#D1C7BB_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[#F5F2EE] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D1C7BB] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#8B6914]">
-                                        {s.addresses.map((addr) => {
-                                            const missingLocation = !addr.latitude || !addr.longitude;
-                                            return (
+                                        {s.addresses.length === 0 ? (
+                                            <div className="text-center py-6 border border-dashed border-[#E8E0D5] rounded-xl bg-[#FAF8F5] p-4">
+                                                <MapPin size={24} className="mx-auto text-[#D1C7BB] mb-2" />
+                                                <p className="text-[13px] font-semibold text-[#1A1A1A]">No Saved Address</p>
+                                                <p className="text-[11px] text-[#8A8A8A] mt-0.5 mb-3">Please add a delivery address to complete your order.</p>
                                                 <button
-                                                    key={addr.id}
-                                                    onClick={() => selectAddress(addr.id)}
-                                                    className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${s.selectedAddressId === addr.id ? "border-[#8B6914] bg-[#F5EDD6]/30" : "border-[#E8E0D5] hover:border-[#C9B87A]"}`}
+                                                    type="button"
+                                                    onClick={() => navigate("/physical-gold/profile?tab=address&add=true")}
+                                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition cursor-pointer"
                                                 >
-                                                    <div className="flex items-start gap-3">
-                                                        <MapPin size={14} className={`mt-0.5 shrink-0 ${s.selectedAddressId === addr.id ? "text-[#8B6914]" : "text-[#D1C7BB]"}`} />
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-[11px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-0.5">{addr.type}</p>
-                                                            <p className="text-[13px] font-medium text-[#1A1A1A]">{addr.address}</p>
-                                                            <p className="text-[11px] text-[#8A8A8A]">{addr.landMark}, {addr.flatNo}</p>
-                                                            {missingLocation && (
-                                                                <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
-                                                                    <AlertTriangle size={10} /> Location not captured — <button onClick={() => navigate("/physical-gold/profile?tab=address")} className="underline font-semibold">edit the address</button>
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
+                                                    <Plus size={14} /> Add New Address
                                                 </button>
-                                            );
-                                        })}
+                                            </div>
+                                        ) : (
+                                            s.addresses.map((addr) => {
+                                                const missingLocation = !addr.latitude || !addr.longitude;
+                                                return (
+                                                    <button
+                                                        key={addr.id}
+                                                        onClick={() => selectAddress(addr.id)}
+                                                        className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${s.selectedAddressId === addr.id ? "border-[#8B6914] bg-[#F5EDD6]/30" : "border-[#E8E0D5] hover:border-[#C9B87A]"}`}
+                                                    >
+                                                        <div className="flex items-start gap-3">
+                                                            <MapPin size={14} className={`mt-0.5 shrink-0 ${s.selectedAddressId === addr.id ? "text-[#8B6914]" : "text-[#D1C7BB]"}`} />
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-[11px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-0.5">{addr.type}</p>
+                                                                <p className="text-[13px] font-medium text-[#1A1A1A]">{addr.address}</p>
+                                                                <p className="text-[11px] text-[#8A8A8A]">{addr.landMark}, {addr.flatNo}</p>
+                                                                {missingLocation && (
+                                                                    <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
+                                                                        <AlertTriangle size={10} /> Location not captured — <button onClick={() => navigate("/physical-gold/profile?tab=address")} className="underline font-semibold">edit the address</button>
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })
+                                        )}
                                     </div>
                                 </div>
 
@@ -993,6 +1027,18 @@ const CartPage: React.FC = () => {
                                     <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                                 </button>
                             ) : (() => {
+                                if (s.addresses.length === 0) {
+                                    return (
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate("/physical-gold/profile?tab=address&add=true")}
+                                            className="w-full py-2.5 rounded-lg bg-[#8B6914] text-white text-[13px] font-medium hover:bg-[#7A5C10] transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
+                                        >
+                                            <Plus size={15} />
+                                            Add New Address
+                                        </button>
+                                    );
+                                }
                                 const selectedAddr = s.addresses.find(a => a.id === s.selectedAddressId);
                                 const missingLocation = selectedAddr && (!selectedAddr.latitude || !selectedAddr.longitude);
                                 const locationMessage = s.cartError || (missingLocation ? "This address is missing location coordinates. Please edit the address and capture your current location to proceed." : "");
@@ -1017,7 +1063,7 @@ const CartPage: React.FC = () => {
                                         <button
                                             disabled={!s.selectedAddressId || s.loadingCheckout || !!missingLocation}
                                             onClick={handleCheckoutClick}
-                                            className="w-full py-2.5 rounded-lg bg-[#8B6914] text-white text-[13px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-50 flex items-center justify-center"
+                                            className="w-full py-2.5 rounded-lg bg-[#8B6914] text-white text-[13px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-50 flex items-center justify-center cursor-pointer"
                                         >
                                             {s.loadingCheckout
                                                 ? <Loader2 size={15} className="animate-spin" />

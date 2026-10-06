@@ -9,40 +9,45 @@ const WishlistPage: React.FC = () => {
   const { wishlist } = useWishlist();
 
   return (
-    <div className="min-h-screen bg-[#F5F2EE]">
-      <main className="pt-40 pb-16 max-w-5xl mx-auto px-4 sm:px-6">
+    <div className="min-h-screen bg-white text-stone-900">
+      <main className="pt-28 pb-16 max-w-7xl mx-auto px-4 sm:px-6 md:pt-32 lg:pt-36">
 
-        {/* Back */}
+        {/* Back button */}
         <button
           onClick={() => navigate("/physical-gold")}
-          className="mb-4 inline-flex items-center gap-1.5 text-[14px] font-medium text-[#8A8A8A] hover:text-[#8B6914] transition"
+          className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#8A8A8A] hover:text-[#8B6914] transition"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to Store
+          <ArrowLeft className="h-4 w-4" /> Back to Store
         </button>
 
         {/* Page Title */}
-        <h1 className="text-[20px] font-semibold text-[#1A1A1A] mb-2">
-          My Wishlist ({wishlist.length})
-        </h1>
+        <div className="mb-6 flex items-baseline justify-between border-b border-[#E8E2D8] pb-3">
+          <h1 className="text-2xl font-bold tracking-tight text-[#1A1A1A]">
+            My Wishlist
+          </h1>
+          <span className="text-sm font-semibold text-[#8B6914] bg-amber-50 border border-amber-200/60 rounded-full px-3 py-0.5">
+            {wishlist.length} {wishlist.length === 1 ? "item" : "items"}
+          </span>
+        </div>
 
         {wishlist.length === 0 ? (
-          <div className="bg-white border border-[#E8E0D5] rounded-xl p-12 text-center">
-            <div className="h-14 w-14 rounded-full bg-[#F5F2EE] border border-[#E8E0D5] flex items-center justify-center mx-auto mb-4">
-              <Heart className="h-6 w-6 text-[#D1C7BB]" strokeWidth={1.5} />
+          <div className="rounded-2xl border border-dashed border-[#E8E2D8] bg-[#FDFAF4] p-12 text-center">
+            <div className="h-16 w-16 rounded-full bg-white border border-[#E8E0D5] flex items-center justify-center mx-auto mb-4 shadow-sm">
+              <Heart className="h-7 w-7 text-[#D1C7BB]" strokeWidth={1.5} />
             </div>
-            <h2 className="text-[15px] font-semibold text-[#1A1A1A] mb-1.5">Your wishlist is empty</h2>
-            <p className="text-[12px] text-[#8A8A8A] mb-5 max-w-xs mx-auto leading-relaxed">
-              Browse our collection and save your favourite pieces here.
+            <h2 className="text-[17px] font-bold text-[#1A1A1A] mb-1.5">Your wishlist is empty</h2>
+            <p className="text-[13px] text-[#8A8A8A] mb-6 max-w-xs mx-auto leading-relaxed">
+              Explore our physical gold & silver collection and save your favourite pieces here.
             </p>
             <button
               onClick={() => navigate("/physical-gold")}
-              className="px-5 py-2.5 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#C29B27] to-[#8B6914] text-white text-[13px] font-semibold hover:from-[#B08B20] hover:to-[#78590E] transition shadow-sm hover:shadow-md"
             >
               Discover Collection
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 auto-rows-fr gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {wishlist.map((product) => (
               <ProductCard
                 key={product.id}

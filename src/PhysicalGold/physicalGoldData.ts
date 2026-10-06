@@ -86,7 +86,9 @@ export interface SubCategory {
 export interface ProductVariant {
   id: string;
   price: number;
+  discountedPrice?: number;
   mrp?: number;
+  savedAmount?: number;
   imageUrl?: string;
   purity: string;
   size: string;
@@ -94,6 +96,7 @@ export interface ProductVariant {
   status: string;
   stockQuantity: number;
   weight: number;
+  discountActive?: boolean | null;
 }
 
 export interface PhysicalGoldProduct {
@@ -101,6 +104,7 @@ export interface PhysicalGoldProduct {
   productName: string;
   imageUrl?: string;
   priceRange: string;
+  discountedPriceRange?: string;
   description: string;
   subCategoryId: string;
   status: string;
@@ -113,6 +117,12 @@ export interface PhysicalGoldProduct {
   subCategoryName?: string;
   weight?: number | string;
   purity?: string;
+  basePriceDiscountType?: "FIXED" | "PERCENTAGE" | string | null;
+  basePriceDiscountValue?: number | null;
+  basePriceDiscountStart?: string | null;
+  basePriceDiscountEnd?: string | null;
+  discountedPrice?: number | null;
+  price?: number;
 }
 export interface OrderItem {
   id?: number;

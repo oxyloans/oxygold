@@ -1,5 +1,5 @@
 import React from "react";
-import Logo from "../assets/oxygoldlogo.png";
+import Logo from "../assets/oxygoldlogo-wk.png";
 import {
   EnvironmentOutlined,
   PhoneOutlined,
@@ -38,14 +38,14 @@ export default function OxyGoldFooter({
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
       
-      <div className="max-w-7xl mx-auto px-6 relative z-10">
+      <div className="max-w-7xl mx-auto sm:px-4 px-2  relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           {/* Column 1: Logo + About */}
           <div className="space-y-5">
-            <img 
+            <img  
               src={Logo} 
               alt="OxyGold Logo" 
-              className="w-58 h-auto rounded-lg shadow-lg hover:scale-105 transition-transform duration-300" 
+                className="h-14 md:h-16 w-auto object-contain cursor-pointer"
             />
             <p className="text-gray-300/90 text-base leading-relaxed max-w-md">
               {aboutText}
