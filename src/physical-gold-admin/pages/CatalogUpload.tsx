@@ -194,7 +194,7 @@ const CatalogUpload: React.FC = () => {
             setModalType('variant');
             setFormData({
                 sku: '', size: '', purity: '',
-                weight: 0, mrp: 0, stockQuantity: 0
+                weight: 0, mrp: 0
             });
         }
         setIsModalOpen(true);
@@ -391,7 +391,19 @@ const CatalogUpload: React.FC = () => {
             common.push({ header: 'Size', key: 'size', width: '80px' });
             common.push({ header: 'Weight', key: 'weight', width: '80px', render: (v: any) => `${v}g` });
             common.push({ header: 'Price', key: 'price', width: '100px', render: (v: any) => `₹${Number(v).toLocaleString()}` });
-            common.push({ header: 'Stock', key: 'stockQuantity', width: '80px' });
+            common.push({
+                header: 'Stock',
+                key: 'stockQuantity',
+                width: '90px',
+                render: (_: any, item: any) => {
+                    const qty = item.stockQuantity ?? item.stock ?? item.quantity ?? item.availableQuantity ?? 0;
+                    return (
+                        <span className={`font-semibold text-xs ${qty > 0 ? 'text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded' : 'text-rose-600 bg-rose-50 px-2 py-0.5 rounded'}`}>
+                            {qty}
+                        </span>
+                    );
+                }
+            });
             common.push({
                 header: 'Status',
                 key: 'status',
@@ -441,14 +453,14 @@ const CatalogUpload: React.FC = () => {
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setCurrentItem(item);
-                                    setFormData({ stockQuantity: item.stockQuantity });
+                                    setFormData({ stockQuantity: item.stockQuantity ?? item.stock ?? item.quantity ?? item.availableQuantity ?? 0 });
                                     setModalType('quantity');
                                     setIsModalOpen(true);
                                 }}
                                 className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-emerald-600 transition-all"
-                                title="Update Stock"
+                                title="Update Stock Quantity"
                             >
-                                <Plus size={14} />
+                                <Package size={14} />
                             </button>
                         </>
                     )}
@@ -772,9 +784,6 @@ const CatalogUpload: React.FC = () => {
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Input label="Weight (g)" type="number" value={formData.weight || 0} onChange={e => setFormData({ ...formData, weight: Number(e.target.value) })} />
-                                <Input label="Stock" type="number" value={formData.stockQuantity || 0} onChange={e => setFormData({ ...formData, stockQuantity: Number(e.target.value) })} />
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Input label="MRP (₹)" type="number" value={formData.mrp || 0} onChange={e => setFormData({ ...formData, mrp: Number(e.target.value) })} />
                             </div>
                         </div>

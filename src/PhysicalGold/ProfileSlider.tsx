@@ -667,6 +667,11 @@ const ProfilePage: React.FC = () => {
                 addrForm: { flatNo: "", landMark: "", address: "", pinCode: "", state: "", type: "Home", latitude: "", longitude: "", typeDropdownOpen: false },
                 toast: { message: editingAddress ? "Address updated successfully" : "Address added successfully", type: "success" },
             });
+            if (returnTo === "cart") {
+                setTimeout(() => navigate("/physical-gold/cart"), 800);
+            } else if (returnTo && returnTo.startsWith("/")) {
+                setTimeout(() => navigate(returnTo), 800);
+            }
         } catch (err) {
             console.error("Failed to save address:", err);
             const message = getApiErrorMessage(err, "Failed to save address. Please try again.");
@@ -1227,11 +1232,15 @@ const ProfilePage: React.FC = () => {
                 {/* Back */}
                 <button
                     type="button"
-                    onClick={() => navigate("/physical-gold")}
+                    onClick={() => {
+                        if (returnTo === "cart") navigate("/physical-gold/cart");
+                        else if (returnTo && returnTo.startsWith("/")) navigate(returnTo);
+                        else navigate("/physical-gold");
+                    }}
                     className="mb-2 mt-2 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#8A8A8A] hover:text-[#8B6914] transition"
                 >
                     <ArrowLeft className="h-3.5 w-3.5" />
-                    Back to Shopping
+                    {returnTo === "cart" || (returnTo && returnTo.includes("/cart")) ? "Back to Cart" : "Back to Shopping"}
                 </button>
 
                 {/* Profile Header Card */}
@@ -1861,220 +1870,224 @@ const ProfilePage: React.FC = () => {
                                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition ml-auto"
                                                         >
                                                             {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                                            {isExp ? "Hide Details" : (isOrderSuccessful ? "Track Order" : "Order Details")}
+                                                            {isExp ? "Hide Details" : (["ASSIGNED", "ACCEPTED", "PICKED_UP", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED", "IN_TRANSIT"].includes(order.orderStatus?.toUpperCase() || "") || order.trackingNumber || tracking ? "Track Order" : "View Details")}
                                                         </button>
                                                     </div>
                                                 )}
 
                                                 {/* Expanded Details */}
                                                 {isExp && !isPaymentFailed && (
-                                                    <div className="border-t border-[#F0EBE1] bg-[#FAFAF8] px-5 py-4 space-y-3">
-                                                        <div className="flex items-center justify-between mb-2">
+                                                    <div className="border-t border-[#F0EBE1] bg-[#FAFAF8] px-5 py-4 space-y-4">
+                                                        {/* Header */}
+                                                        <div className="flex items-center justify-between">
                                                             <p className="text-[11px] font-semibold text-[#8A8A8A] uppercase tracking-wider">
-                                                                Items · {order.totalItems} piece{order.totalItems > 1 ? "s" : ""}
+                                                                Order Items ({order.totalItems} piece{order.totalItems > 1 ? "s" : ""})
                                                             </p>
-                                                            <p className="text-[11px] text-[#8A8A8A]">{formatDate(order.paymentExpiry)}</p>
+                                                            <p className="text-[11px] text-[#8A8A8A]">{formatDate(order.createdAt || order.paymentExpiry)}</p>
                                                         </div>
 
-                                                        {isTrackingLoading ? (
-                                                            <div className="flex items-center gap-2 rounded-xl border border-[#E8E0D5] bg-white px-4 py-3 text-[12px] text-[#8A8A8A]">
-                                                                <Loader2 className="h-4 w-4 animate-spin text-[#8B6914]" /> Loading delivery updates...
-                                                            </div>
-                                                        ) : tracking ? (
-                                                            <section className="rounded-xl border border-[#E8E0D5] bg-white overflow-hidden" aria-label="Delivery tracking">
-                                                                {/* Status Banner */}
-                                                                <div className="bg-gradient-to-r from-[#1A1200] to-[#2C2000] px-4 py-3 flex items-center justify-between gap-3">
-                                                                    <div className="flex items-center gap-2.5 min-w-0">
-                                                                        <div className="h-8 w-8 rounded-lg bg-[#8B6914]/30 flex items-center justify-center shrink-0">
-                                                                            <Truck className="h-4 w-4 text-[#C9A84C]" />
-                                                                        </div>
-                                                                        <div className="min-w-0">
-                                                                            <p className="text-[12px] font-semibold text-white truncate">{tracking.statusLabel || "In Transit"}</p>
-                                                                            <p className="text-[10px] text-[#8A7A50] mt-0.5 truncate">{tracking.statusDescription || "Your order is on its way"}</p>
+                                                        {/* Purchased Items List */}
+                                                        <div className="space-y-3">
+                                                            {order.items?.map((item: any, i: number) => {
+                                                                const existingReview = reviews.find((r) => r.productId === item.productId);
+                                                                return (
+                                                                    <div key={i} className="bg-white border border-[#E8E0D5] rounded-xl px-4 py-3.5 shadow-sm">
+                                                                        <div className="flex items-start gap-3">
+                                                                            <div className="h-9 w-9 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
+                                                                                <Package className="h-4 w-4" />
+                                                                            </div>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex items-start justify-between gap-2">
+                                                                                    <p className="text-[13px] font-semibold text-[#1A1A1A] leading-snug">
+                                                                                        {item.productName || `Product #${item.productId}`}
+                                                                                    </p>
+                                                                                    <p className="text-[13px] font-semibold text-[#1A1A1A] shrink-0">{DISPLAY_INR(item.subtotal)}</p>
+                                                                                </div>
+                                                                                {item.variant && (
+                                                                                    <p className="text-[11px] text-[#8B6914] font-medium mt-0.5">{item.variant}</p>
+                                                                                )}
+                                                                                <p className="text-[11px] text-[#8A8A8A] mt-0.5">
+                                                                                    Qty: {item.quantity} · {DISPLAY_INR(item.price)} per pc
+                                                                                </p>
+                                                                                <div className="mt-2 space-y-1.5">
+                                                                                    {existingReview && (
+                                                                                        <div className="flex items-center justify-between gap-2">
+                                                                                            <div className="flex items-center gap-0.5">
+                                                                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                                                                    <Star key={star} className="h-3 w-3"
+                                                                                                        fill={star <= existingReview.rating ? "#F5B301" : "none"}
+                                                                                                        stroke={star <= existingReview.rating ? "#F5B301" : "#D1C7BB"}
+                                                                                                    />
+                                                                                                ))}
+                                                                                                <span className="ml-1 text-[11px] text-[#8A8A8A] font-medium">{REVIEW_RATING_LABELS[existingReview.rating]}</span>
+                                                                                            </div>
+                                                                                            {order.orderStatus?.toUpperCase() === "DELIVERED" && (
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    onClick={() => openProductReview(item)}
+                                                                                                    className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B6914] hover:text-[#5f470d] shrink-0 cursor-pointer"
+                                                                                                >
+                                                                                                    <Star className="h-3 w-3 shrink-0" fill="#F5B301" stroke="#8B6914" />
+                                                                                                    Edit rating
+                                                                                                </button>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {order.orderStatus?.toUpperCase() === "DELIVERED" && (
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => openProductReview(item)}
+                                                                                            className={`inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B6914] hover:text-[#5f470d] cursor-pointer ${existingReview ? "sm:hidden" : ""}`}
+                                                                                        >
+                                                                                            <Star className="h-3 w-3 shrink-0" fill={existingReview ? "#F5B301" : "none"} stroke="#8B6914" />
+                                                                                            {existingReview ? "Edit rating" : "Rate product"}
+                                                                                        </button>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
-                                                                    <span className="shrink-0 rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400 whitespace-nowrap">
-                                                                        {tracking.statusLabel || tracking.status || "Active"}
+                                                                );
+                                                            })}
+                                                        </div>
+
+                                                        {/* Delivery Address & Order Summary */}
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                            {/* Delivery Address */}
+                                                            {(order.address || order.flatNo || tracking?.deliveryAddress) && (
+                                                                <div className="bg-white border border-[#E8E0D5] rounded-xl p-3.5 flex items-start gap-2.5 shadow-sm">
+                                                                    <MapPin className="h-4 w-4 text-[#8B6914] shrink-0 mt-0.5" />
+                                                                    <div className="min-w-0 text-[11px]">
+                                                                        <p className="font-semibold text-[#1A1A1A] text-[12px] mb-0.5">Delivery Address</p>
+                                                                        <p className="text-[#555] leading-relaxed">
+                                                                            {tracking?.deliveryAddress || [order.flatNo, order.address, order.landMark, order.state, order.pinCode].filter(Boolean).join(", ")}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Payment Summary */}
+                                                            <div className={`bg-white border border-[#E8E0D5] rounded-xl p-3.5 space-y-2 shadow-sm text-[11px] ${(order.address || order.flatNo || tracking?.deliveryAddress) ? "" : "md:col-span-2"}`}>
+                                                                <p className="font-semibold text-[#1A1A1A] text-[12px] mb-1">Payment Summary</p>
+                                                                <div className="flex justify-between text-[#8A8A8A]">
+                                                                    <span>Subtotal ({order.totalItems} item{order.totalItems > 1 ? "s" : ""})</span>
+                                                                    <span className="font-medium text-[#1A1A1A]">{DISPLAY_INR(order.items?.reduce((sum, item) => sum + (item.subtotal || item.price * item.quantity), 0) || order.totalAmount)}</span>
+                                                                </div>
+                                                                {typeof order.totalDiscountAmount === 'number' && order.totalDiscountAmount > 0 && (
+                                                                    <div className="flex justify-between text-emerald-600 font-medium">
+                                                                        <span>Discount</span>
+                                                                        <span>-{DISPLAY_INR(order.totalDiscountAmount)}</span>
+                                                                    </div>
+                                                                )}
+                                                                {order.deliveryFee !== null && order.deliveryFee !== undefined && (
+                                                                    <div className="flex justify-between text-[#8A8A8A]">
+                                                                        <span>Delivery Fee</span>
+                                                                        <span className="font-medium text-[#1A1A1A]">{order.deliveryFee > 0 ? DISPLAY_INR(order.deliveryFee) : "FREE"}</span>
+                                                                    </div>
+                                                                )}
+                                                                <div className="flex justify-between text-[#1A1A1A] font-bold pt-2 border-t border-[#F0EBE1] text-[12px]">
+                                                                    <span>Total Paid</span>
+                                                                    <span className="text-[#8B6914] text-[13px]">{DISPLAY_INR(order.totalAmount)}</span>
+                                                                </div>
+                                                                <div className="pt-1 flex items-center justify-between text-[11px] text-[#6D6D6D]">
+                                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                                        <CreditCard className="h-3.5 w-3.5 text-[#8B6914] shrink-0" />
+                                                                        <span className="truncate">{displayPaymentMode}{order.txnId ? ` (${order.txnId})` : ""}</span>
+                                                                    </div>
+                                                                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold ${getStatusColor(order.paymentStatus)}`}>
+                                                                        {order.paymentStatus}
                                                                     </span>
                                                                 </div>
-
-                                                                <div className="p-4 space-y-3">
-                                                                    {/* Meta info */}
-                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                                        {tracking.trackingNumber && (
-                                                                            <div className="flex items-center gap-2 bg-[#F5F2EE] rounded-lg px-3 py-2">
-                                                                                <span className="text-[10px] text-[#8A8A8A] shrink-0">Tracking ID</span>
-                                                                                <span className="text-[11px] font-semibold text-[#1A1A1A] truncate ml-auto">{tracking.trackingNumber}</span>
-                                                                            </div>
-                                                                        )}
-                                                                        {tracking.deliveryBoy && (
-                                                                            <div className="flex items-center gap-2 bg-[#F5F2EE] rounded-lg px-3 py-2">
-                                                                                <span className="text-[10px] text-[#8A8A8A] shrink-0">Partner</span>
-                                                                                <span className="text-[11px] font-semibold text-[#1A1A1A] truncate ml-auto">
-                                                                                    {`${tracking.deliveryBoy.firstName || ""} ${tracking.deliveryBoy.lastName || ""}`.trim() || "Assigned"}
-                                                                                    {tracking.deliveryBoy.vehicleNumber ? ` · ${tracking.deliveryBoy.vehicleNumber}` : ""}
-                                                                                </span>
-                                                                            </div>
-                                                                        )}
-                                                                        {tracking.deliveryAddress && (
-                                                                            <div className="flex items-start gap-2 bg-[#F5F2EE] rounded-lg px-3 py-2 sm:col-span-2">
-                                                                                <MapPin className="h-3 w-3 text-[#8B6914] shrink-0 mt-0.5" />
-                                                                                <span className="text-[11px] text-[#1A1A1A] leading-4">{tracking.deliveryAddress}</span>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-
-                                                                    {/* Timeline */}
-                                                                    {tracking.timeline?.length ? (
-                                                                        <div>
-                                                                            <p className="text-[10px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-2">Delivery Timeline</p>
-                                                                            <ol className="space-y-0">
-                                                                                {tracking.timeline.map((event: any, index: number) => {
-                                                                                    const isFirst = index === 0;
-                                                                                    const isLast = index === tracking.timeline!.length - 1;
-                                                                                    return (
-                                                                                        <li key={`${event.status}-${event.timestamp}`} className="relative flex gap-3">
-                                                                                            <div className="flex flex-col items-center">
-                                                                                                <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 z-10 mt-0.5 ${isFirst ? "bg-emerald-500" : "bg-[#E8E0D5]"}`}>
-                                                                                                    {isFirst
-                                                                                                        ? <CheckCircle2 className="h-3.5 w-3.5 text-white" />
-                                                                                                        : <span className="h-2 w-2 rounded-full bg-[#BEB5AA]" />}
-                                                                                                </div>
-                                                                                                {!isLast && <span className="w-px flex-1 bg-[#E8E0D5] my-1" />}
-                                                                                            </div>
-                                                                                            <div className={`pb-3 min-w-0 ${isLast ? "pb-0" : ""}`}>
-                                                                                                <p className={`text-[12px] font-semibold ${isFirst ? "text-[#1A1A1A]" : "text-[#8A8A8A]"}`}>{event.statusLabel}</p>
-                                                                                                {event.description && <p className="text-[11px] text-[#8A8A8A] mt-0.5 leading-4">{event.description}</p>}
-                                                                                                <p className="text-[10px] text-[#BEB5AA] mt-0.5">{formatDate(event.timestamp)}</p>
-                                                                                            </div>
-                                                                                        </li>
-                                                                                    );
-                                                                                })}
-                                                                            </ol>
-                                                                        </div>
-                                                                    ) : null}
-                                                                </div>
-                                                            </section>
-                                                        ) : trackingUnavailable ? (
-                                                            <div className="rounded-xl border border-[#E8E0D5] bg-[#FAFAF8] px-4 py-4 flex items-center gap-3">
-                                                                <div className="h-8 w-8 rounded-lg bg-[#F5EDD6] flex items-center justify-center shrink-0">
-                                                                    <Truck className="h-4 w-4 text-[#8B6914]" />
-                                                                </div>
-                                                                <p className="text-[12px] text-[#6D6D6D] leading-4">Tracking will appear here once your order is out for delivery.</p>
-                                                            </div>
-                                                        ) : null}
-
-                                                        {order.items?.map((item: any, i: number) => {
-                                                            const existingReview = reviews.find((r) => r.productId === item.productId);
-                                                            return (
-                                                                <div key={i} className="bg-white border border-[#E8E0D5] rounded-xl px-4 py-3.5">
-                                                                    <div className="flex items-start gap-3">
-                                                                        <div className="h-9 w-9 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
-                                                                            <Package className="h-4 w-4" />
-                                                                        </div>
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <div className="flex items-start justify-between gap-2">
-                                                                                <p className="text-[13px] font-semibold text-[#1A1A1A] leading-snug">
-                                                                                    {item.productName || `Product #${item.productId}`}
-                                                                                </p>
-                                                                                <p className="text-[13px] font-semibold text-[#1A1A1A] shrink-0">{DISPLAY_INR(item.subtotal)}</p>
-                                                                            </div>
-                                                                            {item.variant && (
-                                                                                <p className="text-[11px] text-[#8B6914] font-medium mt-0.5">{item.variant}</p>
-                                                                            )}
-                                                                            <p className="text-[11px] text-[#8A8A8A] mt-0.5">
-                                                                                Qty: {item.quantity} · {DISPLAY_INR(item.price)} per pc
-                                                                            </p>
-                                                                            <div className="mt-2 space-y-1.5">
-                                                                                {existingReview && (
-                                                                                    <div className="flex items-center justify-between gap-2">
-                                                                                        <div className="flex items-center gap-0.5">
-                                                                                            {[1, 2, 3, 4, 5].map((star) => (
-                                                                                                <Star key={star} className="h-3 w-3"
-                                                                                                    fill={star <= existingReview.rating ? "#F5B301" : "none"}
-                                                                                                    stroke={star <= existingReview.rating ? "#F5B301" : "#D1C7BB"}
-                                                                                                />
-                                                                                            ))}
-                                                                                            <span className="ml-1 text-[11px] text-[#8A8A8A] font-medium">{REVIEW_RATING_LABELS[existingReview.rating]}</span>
-                                                                                        </div>
-                                                                                        {order.orderStatus?.toUpperCase() === "DELIVERED" && (
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => openProductReview(item)}
-                                                                                                className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B6914] hover:text-[#5f470d] shrink-0"
-                                                                                            >
-                                                                                                <Star className="h-3 w-3 shrink-0" fill="#F5B301" stroke="#8B6914" />
-                                                                                                Edit rating
-                                                                                            </button>
-                                                                                        )}
-                                                                                    </div>
-                                                                                )}
-                                                                                {order.orderStatus?.toUpperCase() === "DELIVERED" && (
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => openProductReview(item)}
-                                                                                        className={`inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B6914] hover:text-[#5f470d] ${existingReview ? "sm:hidden" : ""}`}
-                                                                                    >
-                                                                                        <Star className="h-3 w-3 shrink-0" fill={existingReview ? "#F5B301" : "none"} stroke="#8B6914" />
-                                                                                        {existingReview ? "Edit rating" : "Rate product"}
-                                                                                    </button>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-
-                                                        {/* Delivery Address (if available and not in tracking) */}
-                                                        {(order.address || order.flatNo) && !tracking?.deliveryAddress && (
-                                                            <div className="flex items-start gap-2 bg-[#F5F2EE] rounded-lg px-3 py-2 text-[11px] text-[#1A1A1A]">
-                                                                <MapPin className="h-3.5 w-3.5 text-[#8B6914] shrink-0 mt-0.5" />
-                                                                <div className="leading-4">
-                                                                    <p className="font-semibold text-[#1A1A1A]">Delivery Address</p>
-                                                                    <p className="text-[#6D6D6D]">
-                                                                        {[order.flatNo, order.address, order.landMark, order.state, order.pinCode].filter(Boolean).join(", ")}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Order Summary Row */}
-                                                        <div className="bg-white border border-[#E8E0D5] rounded-lg p-3 space-y-1.5 text-[11px]">
-                                                            <div className="flex justify-between text-[#8A8A8A]">
-                                                                <span>Items ({order.totalItems} piece{order.totalItems > 1 ? "s" : ""})</span>
-                                                                <span>{DISPLAY_INR(order.items?.reduce((sum, item) => sum + (item.subtotal || item.price * item.quantity), 0) || order.totalAmount)}</span>
-                                                            </div>
-                                                            {typeof order.totalDiscountAmount === 'number' && order.totalDiscountAmount > 0 && (
-                                                                <div className="flex justify-between text-emerald-600 font-medium">
-                                                                    <span>Discount</span>
-                                                                    <span>-{DISPLAY_INR(order.totalDiscountAmount)}</span>
-                                                                </div>
-                                                            )}
-                                                            {order.deliveryFee !== null && order.deliveryFee !== undefined && (
-                                                                <div className="flex justify-between text-[#8A8A8A]">
-                                                                    <span>Delivery Fee</span>
-                                                                    <span>{order.deliveryFee > 0 ? DISPLAY_INR(order.deliveryFee) : "FREE"}</span>
-                                                                </div>
-                                                            )}
-                                                            <div className="flex justify-between text-[#1A1A1A] font-semibold pt-1.5 border-t border-[#F0EBE1] text-[12px]">
-                                                                <span>Total Amount</span>
-                                                                <span>{DISPLAY_INR(order.totalAmount)}</span>
                                                             </div>
                                                         </div>
 
-                                                        {/* Payment Info */}
-                                                        <div className="bg-[#1A1200] text-white rounded-lg px-3 py-3 mt-2 flex items-center justify-between gap-2">
-                                                            <div className="flex items-center gap-2 min-w-0">
-                                                                <CreditCard className="h-3.5 w-3.5 text-[#C9A84C] shrink-0" />
-                                                                <span className="text-[11px] font-medium truncate">
-                                                                    {displayPaymentMode}
-                                                                    {order.txnId ? ` · Txn: ${order.txnId}` : ""}
-                                                                </span>
-                                                            </div>
-                                                            <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(order.paymentStatus)}`}>
-                                                                {order.paymentStatus}
-                                                            </span>
+                                                        {/* Delivery Tracking Section */}
+                                                        <div className="pt-2 border-t border-[#E8E0D5]">
+                                                            <p className="text-[11px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-2">
+                                                                Order Delivery & Tracking
+                                                            </p>
+
+                                                            {isTrackingLoading ? (
+                                                                <div className="flex items-center gap-2 rounded-xl border border-[#E8E0D5] bg-white px-4 py-3 text-[12px] text-[#8A8A8A]">
+                                                                    <Loader2 className="h-4 w-4 animate-spin text-[#8B6914]" /> Loading delivery updates...
+                                                                </div>
+                                                            ) : tracking ? (
+                                                                <section className="rounded-xl border border-[#E8E0D5] bg-white overflow-hidden shadow-sm" aria-label="Delivery tracking">
+                                                                    {/* Status Banner */}
+                                                                    <div className="bg-gradient-to-r from-[#1A1200] to-[#2C2000] px-4 py-3 flex items-center justify-between gap-3">
+                                                                        <div className="flex items-center gap-2.5 min-w-0">
+                                                                            <div className="h-8 w-8 rounded-lg bg-[#8B6914]/30 flex items-center justify-center shrink-0">
+                                                                                <Truck className="h-4 w-4 text-[#C9A84C]" />
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <p className="text-[12px] font-semibold text-white truncate">{tracking.statusLabel || "In Transit"}</p>
+                                                                                <p className="text-[10px] text-[#8A7A50] mt-0.5 truncate">{tracking.statusDescription || "Your order is on its way"}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <span className="shrink-0 rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400 whitespace-nowrap">
+                                                                            {tracking.statusLabel || tracking.status || "Active"}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="p-4 space-y-3">
+                                                                        {/* Meta info */}
+                                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                            {tracking.trackingNumber && (
+                                                                                <div className="flex items-center gap-2 bg-[#F5F2EE] rounded-lg px-3 py-2">
+                                                                                    <span className="text-[10px] text-[#8A8A8A] shrink-0">Tracking ID</span>
+                                                                                    <span className="text-[11px] font-semibold text-[#1A1A1A] truncate ml-auto">{tracking.trackingNumber}</span>
+                                                                                </div>
+                                                                            )}
+                                                                            {tracking.deliveryBoy && (
+                                                                                <div className="flex items-center gap-2 bg-[#F5F2EE] rounded-lg px-3 py-2">
+                                                                                    <span className="text-[10px] text-[#8A8A8A] shrink-0">Partner</span>
+                                                                                    <span className="text-[11px] font-semibold text-[#1A1A1A] truncate ml-auto">
+                                                                                        {`${tracking.deliveryBoy.firstName || ""} ${tracking.deliveryBoy.lastName || ""}`.trim() || "Assigned"}
+                                                                                        {tracking.deliveryBoy.vehicleNumber ? ` · ${tracking.deliveryBoy.vehicleNumber}` : ""}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+
+                                                                        {/* Timeline */}
+                                                                        {tracking.timeline?.length ? (
+                                                                            <div>
+                                                                                <p className="text-[10px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-2 mt-1">Delivery Timeline</p>
+                                                                                <ol className="space-y-0">
+                                                                                    {tracking.timeline.map((event: any, index: number) => {
+                                                                                        const isFirst = index === 0;
+                                                                                        const isLast = index === tracking.timeline!.length - 1;
+                                                                                        return (
+                                                                                            <li key={`${event.status}-${event.timestamp}`} className="relative flex gap-3">
+                                                                                                <div className="flex flex-col items-center">
+                                                                                                    <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 z-10 mt-0.5 ${isFirst ? "bg-emerald-500" : "bg-[#E8E0D5]"}`}>
+                                                                                                        {isFirst
+                                                                                                            ? <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                                                                                                            : <span className="h-2 w-2 rounded-full bg-[#BEB5AA]" />}
+                                                                                                    </div>
+                                                                                                    {!isLast && <span className="w-px flex-1 bg-[#E8E0D5] my-1" />}
+                                                                                                </div>
+                                                                                                <div className={`pb-3 min-w-0 ${isLast ? "pb-0" : ""}`}>
+                                                                                                    <p className={`text-[12px] font-semibold ${isFirst ? "text-[#1A1A1A]" : "text-[#8A8A8A]"}`}>{event.statusLabel}</p>
+                                                                                                    {event.description && <p className="text-[11px] text-[#8A8A8A] mt-0.5 leading-4">{event.description}</p>}
+                                                                                                    <p className="text-[10px] text-[#BEB5AA] mt-0.5">{formatDate(event.timestamp)}</p>
+                                                                                                </div>
+                                                                                            </li>
+                                                                                        );
+                                                                                    })}
+                                                                                </ol>
+                                                                            </div>
+                                                                        ) : null}
+                                                                    </div>
+                                                                </section>
+                                                            ) : trackingUnavailable ? (
+                                                                <div className="rounded-xl border border-[#E8E0D5] bg-[#FAFAF8] px-4 py-4 flex items-center gap-3">
+                                                                    <div className="h-8 w-8 rounded-lg bg-[#F5EDD6] flex items-center justify-center shrink-0">
+                                                                        <Truck className="h-4 w-4 text-[#8B6914]" />
+                                                                    </div>
+                                                                    <p className="text-[12px] text-[#6D6D6D] leading-4">Tracking will appear here once your order is assigned and out for delivery.</p>
+                                                                </div>
+                                                            ) : null}
                                                         </div>
                                                     </div>
                                                 )}

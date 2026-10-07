@@ -393,12 +393,12 @@ export const getAllVariants = async (productId: number | string) => {
 };
 
 export const addVariant = async (productId: number | string, data: any) => {
-  const { sku, size, purity, weight, mrp, stockQuantity } = data;
+  const { sku, size, purity, weight, mrp } = data;
   const response = await adminAuthenticatedFetch(
     `${BASE_URL}/productvariants/addVariant/${productId}`,
     {
       method: "POST",
-      body: JSON.stringify({ sku, size, purity, weight, mrp, stockQuantity }),
+      body: JSON.stringify({ sku, size, purity, weight, mrp }),
     },
   );
   if (!response.ok) {

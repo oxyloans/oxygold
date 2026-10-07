@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import LoadingSpinner from "./components/LoadingSpinner";
+import Toast from "./components/Toast";
 
 import AIModelPreviewModal from "./components/AIModelPreviewModal";
 import VirtualTryOnModal from "./components/VirtualTryOnModal";
@@ -152,6 +153,8 @@ const ProductDetailsPage: React.FC = () => {
   const { isInWishlist, toggleWishlist } = useWishlist();
 
   const { categoryId, categoryName, subCategoryId, subCategoryName, fromWishlist } = (location.state as any) || {};
+
+  const [toast, setToast] = useState<{ message: string; type: "success" | "info" | "warning" | "error" } | null>(null);
 
   const [product, setProduct] = useState<PhysicalGoldProduct | null>(null);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
@@ -839,7 +842,17 @@ const ProductDetailsPage: React.FC = () => {
                 {/* Wishlist button — semi-rounded, white bg */}
                 <button
                   aria-label={liked ? "Remove from wishlist" : "Add to wishlist"}
-                  onClick={() => product && toggleWishlist(product)}
+                  onClick={async () => {
+                    if (product) {
+                      const res = await toggleWishlist(product, selectedVariant?.id);
+                      if (res && res.message) {
+                        setToast({
+                          message: res.message,
+                          type: res.success ? "success" : "info",
+                        });
+                      }
+                    }
+                  }}
                   className={`absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center bg-white border border-[#E8E2D8] shadow-sm transition-colors ${liked ? "text-[#C29B27]" : "text-[#8A8A8A] hover:text-[#C29B27]"
                     }`}
                 >
@@ -1577,13 +1590,12 @@ const ProductDetailsPage: React.FC = () => {
                           <td className="whitespace-nowrap px-3 py-3 text-center">{selectedVariant.weight}g</td>
                           <td className="whitespace-nowrap px-3 py-3 text-center font-semibold">₹{priceBreakdown.variantPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
                         </tr>
-                        {priceBreakdown.makingPercentage > 0 && (
-                          <tr className="border-t border-[#F0EBE1]">
-                            <td className="whitespace-nowrap px-3 py-3">Making charges ({priceBreakdown.makingPercentage}%)</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-center">−</td><td className="whitespace-nowrap px-3 py-3 text-center">−</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-center">₹{priceBreakdown.makingAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
-                          </tr>
-                        )}
+                        
+                        <tr className="border-t border-[#F0EBE1]">
+                          <td className="whitespace-nowrap px-3 py-3">Making charges ({priceBreakdown.makingPercentage}%)</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-center">−</td><td className="whitespace-nowrap px-3 py-3 text-center">−</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-center">₹{priceBreakdown.makingAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                        </tr>
                         <tr className="border-t border-[#F0EBE1]">
                           <td className="whitespace-nowrap px-3 py-3">GST ({priceBreakdown.gstPercentage}%)</td>
                           <td className="whitespace-nowrap px-3 py-3 text-center">−</td><td className="whitespace-nowrap px-3 py-3 text-center">−</td>
@@ -1749,6 +1761,7 @@ const ProductDetailsPage: React.FC = () => {
                 const basePriceVal = Number(priceBreakdown?.variantPrice || 0);
                 const gstVal = Number(priceBreakdown?.gstAmount || 0);
                 const totalVal = Number(priceBreakdown?.totalAmount || (basePriceVal + gstVal));
+                const makingAmount = Number(priceBreakdown?.makingAmount || 0);
                 const discountVal = Number(priceBreakdown?.discountAmount || apiDiscountAmount || 0);
                 const finalVal = Number(
                   (priceBreakdown?.finalAmount && priceBreakdown.finalAmount > 0)
@@ -1768,6 +1781,12 @@ const ProductDetailsPage: React.FC = () => {
                       <span className="font-medium text-stone-600">GST ({priceBreakdown?.gstPercentage ?? 3}%):</span>
                       <span className="font-bold text-stone-900">
                         ₹{gstVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-stone-700">
+                      <span className="font-medium text-stone-600">Making Charges:</span>
+                      <span className="font-bold text-stone-900">
+                        ₹{makingAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-stone-900 font-bold border-t border-dashed border-stone-200 pt-2">
@@ -1842,6 +1861,14 @@ const ProductDetailsPage: React.FC = () => {
         productImage={productImages[selectedImageIndex] || productImages[0]}
         userImage={userPhoto}
       />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

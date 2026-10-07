@@ -640,12 +640,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 </div>
 
                 {/* 3. Making Charges (if any) */}
-                {Number(activeOffer.makingAmount || 0) > 0 && (
+                
                   <div className="flex justify-between text-[#6B6B6B]">
-                    <span>Making Charges:</span>
+                    <span>Making Charges ({activeOffer.makingPercentage}%):</span>
                     <span className="font-medium text-[#1A1A1A]">₹{Number(activeOffer.makingAmount || 0).toFixed(2)}</span>
                   </div>
-                )}
+           
+
 
                 {/* 4. Total Amount */}
                 <div className="flex justify-between text-[#6B6B6B] border-t border-dashed border-[#E8E2D8] pt-1">

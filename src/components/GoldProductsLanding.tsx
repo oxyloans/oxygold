@@ -4,12 +4,16 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
+  Info,
+  Loader2,
   RefreshCw,
   Search,
   ShoppingBag,
+  Tag,
   X,
 } from "lucide-react";
 import { resolveS3ImageUrl } from "../PhysicalGold/physicalGoldData";
+import { fetchGoldSilverRateBreakdown, fetchProductVariants, GoldSilverRateBreakdown } from "../PhysicalGold/physicalGoldService";
 
 interface Product {
   id: number;
@@ -84,6 +88,33 @@ export default function GoldProductsLanding() {
 
   const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false);
   const [canScrollTabsRight, setCanScrollTabsRight] = useState(false);
+
+  // Price Breakup State
+  const [breakupCache, setBreakupCache] = useState<Record<number, GoldSilverRateBreakdown>>({});
+  const [loadingBreakupId, setLoadingBreakupId] = useState<number | null>(null);
+  const [hoveredProductId, setHoveredProductId] = useState<number | null>(null);
+
+  const fetchBreakupForProduct = useCallback(async (productId: number) => {
+    if (breakupCache[productId]) return;
+    setLoadingBreakupId(productId);
+    try {
+      const { variants } = await fetchProductVariants(productId);
+      const targetVariantId = variants?.[0]?.id || productId;
+      const data = await fetchGoldSilverRateBreakdown(targetVariantId);
+      if (data) {
+        setBreakupCache((prev) => ({ ...prev, [productId]: data }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch price breakup for product:", productId, err);
+    } finally {
+      setLoadingBreakupId(null);
+    }
+  }, [breakupCache]);
+
+  const handleMouseEnterBreakup = useCallback((productId: number) => {
+    setHoveredProductId(productId);
+    fetchBreakupForProduct(productId);
+  }, [fetchBreakupForProduct]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -493,14 +524,101 @@ export default function GoldProductsLanding() {
                         </p>
                       )}
 
-                      <p
-                        className={`font-black text-[#F5D36C] ${useFeaturedCards
-                            ? "mt-1.5 text-sm sm:mt-3 sm:text-xl"
-                            : "mt-1.5 text-sm sm:mt-2 sm:text-lg"
-                          }`}
-                      >
-                        {currency.format(product.price)}
-                      </p>
+                      <div className="relative mt-1.5 sm:mt-2.5 flex items-center justify-between gap-1 flex-wrap">
+                        <p
+                          className={`font-black text-[#F5D36C] ${useFeaturedCards
+                              ? "text-sm sm:text-xl"
+                              : "text-sm sm:text-lg"
+                            }`}
+                        >
+                          {currency.format(product.price)}
+                        </p>
+
+                        {/* Price Breakup Hover Trigger & Popover */}
+                        <div
+                          className="relative"
+                          onMouseEnter={() => handleMouseEnterBreakup(product.id)}
+                          onMouseLeave={() => setHoveredProductId(null)}
+                        >
+                          {/* <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (hoveredProductId === product.id) {
+                                setHoveredProductId(null);
+                              } else {
+                                handleMouseEnterBreakup(product.id);
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-[#F5D36C]/90 hover:text-[#F5D36C] bg-white/[0.08] hover:bg-white/[0.16] border border-[#D4AF37]/35 px-2 py-0.5 rounded-full transition cursor-pointer"
+                            title="View Offer"
+                          >
+                            <Info size={11} className="shrink-0 text-[#F5D36C]" />
+                            <span>View Offer</span>
+                          </button> */}
+
+                          {/* Hover / Click Popover Tooltip */}
+                          {hoveredProductId === product.id && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute bottom-full mb-2 right-0 w-64 z-50 rounded-xl border border-[#D4AF37]/50 bg-[#1A0B2E]/95 p-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl text-white transition-all duration-200"
+                            >
+                              <div className="flex items-center justify-between border-b border-white/15 pb-2 mb-2">
+                                <div className="flex items-center gap-1.5">
+                                  <Tag size={12} className="text-[#F5D36C]" />
+                                  <span className="text-[12px] font-bold text-[#F5D36C]">View Offer</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setHoveredProductId(null);
+                                  }}
+                                  className="cursor-pointer text-white/50 hover:text-white rounded-full p-0.5"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+
+                              {loadingBreakupId === product.id && !breakupCache[product.id] ? (
+                                <div className="flex flex-col items-center justify-center py-3 text-xs text-white/70 gap-1.5">
+                                  <Loader2 size={15} className="animate-spin text-[#F5D36C]" />
+                                  <span>Fetching breakup...</span>
+                                </div>
+                              ) : breakupCache[product.id] ? (
+                                <div className="space-y-1.5 text-[11px]">
+                                  <div className="flex justify-between text-white/75">
+                                    <span>Base Price:</span>
+                                    <span className="font-semibold text-white">₹{Number(breakupCache[product.id].variantPrice || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  </div>
+                                  <div className="flex justify-between text-white/75">
+                                    <span>Making ({breakupCache[product.id].makingPercentage || 0}%):</span>
+                                    <span className="font-semibold text-white">₹{Number(breakupCache[product.id].makingAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  </div>
+                                  <div className="flex justify-between text-white/75">
+                                    <span>GST ({breakupCache[product.id].gstPercentage || 0}%):</span>
+                                    <span className="font-semibold text-white">₹{Number(breakupCache[product.id].gstAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  </div>
+                                  {typeof breakupCache[product.id].discountAmount === 'number' && breakupCache[product.id].discountAmount > 0 && (
+                                    <div className="flex justify-between text-emerald-400">
+                                      <span>Discount ({breakupCache[product.id].discountPercentage}%):</span>
+                                      <span className="font-semibold">-₹{Number(breakupCache[product.id].discountAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between border-t border-white/20 pt-1.5 text-[12px] font-bold text-[#F5D36C]">
+                                    <span>Final Amount:</span>
+                                    <span>₹{Number(breakupCache[product.id].finalAmount || product.price).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="py-2 text-[11px] text-white/60 text-center">
+                                  Price details unavailable
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
                       <button
                         type="button"

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
     AlertTriangle,
     ChevronRight,
@@ -185,6 +185,7 @@ const SuccessModal: React.FC<SuccessModalProps> = (props) => {
 /* ────────────────────────────────────────────────────────── */
 const CartPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
 
     const {
         cartItems,
@@ -581,7 +582,7 @@ const CartPage: React.FC = () => {
             <ConfirmModal
                 isOpen={s.profileReminderOpen}
                 onClose={() => patch({ profileReminderOpen: false })}
-                onConfirm={() => { patch({ profileReminderOpen: false }); navigate("/physical-gold/profile"); }}
+                onConfirm={() => { patch({ profileReminderOpen: false }); navigate(`/physical-gold/profile?tab=info&returnTo=${encodeURIComponent(location.pathname + location.search)}`); }}
                 title="Complete Your Profile"
                 confirmLabel="Go to Profile"
                 confirmClassName="bg-[#8B6914] text-white hover:bg-[#7A5C10]"
@@ -653,6 +654,7 @@ const CartPage: React.FC = () => {
                                 const basePriceVal = Number(rateBreakdown?.variantPrice || 0);
                                 const gstVal = Number(rateBreakdown?.gstAmount || 0);
                                 const totalVal = Number(rateBreakdown?.totalAmount || (basePriceVal + gstVal));
+                                const makingVal = Number(rateBreakdown?.makingAmount || 0);
                                 const discountVal = Number(rateBreakdown?.discountAmount || 0);
                                 const finalVal = Number(
                                     (rateBreakdown?.finalAmount && rateBreakdown.finalAmount > 0)
@@ -672,6 +674,12 @@ const CartPage: React.FC = () => {
                                             <span className="font-medium text-stone-600">GST ({rateBreakdown?.gstPercentage ?? 3}%):</span>
                                             <span className="font-bold text-stone-900">
                                                 ₹{gstVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                          <div className="flex justify-between items-center text-stone-700">
+                                            <span className="font-medium text-stone-600">Making Charges:</span>
+                                            <span className="font-bold text-stone-900">
+                                                ₹{makingVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center text-stone-900 font-bold border-t border-dashed border-stone-200 pt-2">
@@ -860,7 +868,7 @@ const CartPage: React.FC = () => {
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-[14px] font-semibold text-[#1A1A1A]">Delivery Address</h3>
                                         <button
-                                            onClick={() => navigate("/physical-gold/profile?tab=address")}
+                                            onClick={() => navigate(`/physical-gold/profile?tab=address&returnTo=${encodeURIComponent(location.pathname + location.search)}`)}
                                             className="text-[11px] font-medium text-[#8B6914] hover:underline"
                                         >
                                             Manage Addresses
@@ -874,7 +882,7 @@ const CartPage: React.FC = () => {
                                                 <p className="text-[11px] text-[#8A8A8A] mt-0.5 mb-3">Please add a delivery address to complete your order.</p>
                                                 <button
                                                     type="button"
-                                                    onClick={() => navigate("/physical-gold/profile?tab=address&add=true")}
+                                                    onClick={() => navigate(`/physical-gold/profile?tab=address&add=true&returnTo=${encodeURIComponent(location.pathname + location.search)}`)}
                                                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition cursor-pointer"
                                                 >
                                                     <Plus size={14} /> Add New Address
@@ -897,7 +905,7 @@ const CartPage: React.FC = () => {
                                                                 <p className="text-[11px] text-[#8A8A8A]">{addr.landMark}, {addr.flatNo}</p>
                                                                 {missingLocation && (
                                                                     <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
-                                                                        <AlertTriangle size={10} /> Location not captured — <button onClick={() => navigate("/physical-gold/profile?tab=address")} className="underline font-semibold">edit the address</button>
+                                                                        <AlertTriangle size={10} /> Location not captured — <button onClick={() => navigate(`/physical-gold/profile?tab=address&returnTo=${encodeURIComponent(location.pathname + location.search)}`)} className="underline font-semibold">edit the address</button>
                                                                     </p>
                                                                 )}
                                                             </div>
@@ -912,22 +920,22 @@ const CartPage: React.FC = () => {
                                 {/* Payment Method */}
                                 <div className="bg-white border border-[#E8E0D5] rounded-xl p-5">
                                     <h3 className="text-[14px] font-semibold text-[#1A1A1A] mb-4">Payment Method</h3>
-                                    <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3">
-                                        {(["CASHFREE", "COD"] as const).map((mode) => (
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {(["CASHFREE"] as const).map((mode) => (
                                             <button
                                                 key={mode}
                                                 onClick={() => patch({ paymentMode: mode })}
                                                 className={`flex items-center gap-3 px-4 py-3.5 rounded-lg border transition-all text-left w-full ${s.paymentMode === mode ? "border-[#8B6914] bg-[#F5EDD6]/30" : "border-[#E8E0D5] hover:border-[#C9B87A]"}`}
                                             >
                                                 <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${s.paymentMode === mode ? "bg-[#8B6914] text-white" : "bg-[#F5F2EE] text-[#D1C7BB]"}`}>
-                                                    {mode === "COD" ? <Coins size={16} /> : <CreditCard size={16} />}
+                                                    <CreditCard size={16} />
                                                 </div>
                                                 <div className="min-w-0">
                                                     <p className={`text-[13px] font-semibold leading-tight ${s.paymentMode === mode ? "text-[#8B6914]" : "text-[#1A1A1A]"}`}>
-                                                        {mode === "COD" ? "Cash on Delivery" : "Online Payment"}
+                                                        Online Payment
                                                     </p>
                                                     <p className="text-[11px] text-[#8A8A8A] mt-0.5">
-                                                        {mode === "COD" ? "Pay when order arrives" : "UPI, Cards, Net Banking"}
+                                                        UPI, Cards, Net Banking
                                                     </p>
                                                 </div>
                                                 {s.paymentMode === mode && (
@@ -1048,7 +1056,7 @@ const CartPage: React.FC = () => {
                                     return (
                                         <button
                                             type="button"
-                                            onClick={() => navigate("/physical-gold/profile?tab=address&add=true")}
+                                            onClick={() => navigate(`/physical-gold/profile?tab=address&add=true&returnTo=${encodeURIComponent(location.pathname + location.search)}`)}
                                             className="w-full py-2.5 rounded-lg bg-[#8B6914] text-white text-[13px] font-medium hover:bg-[#7A5C10] transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
                                         >
                                             <Plus size={15} />
@@ -1068,7 +1076,7 @@ const CartPage: React.FC = () => {
                                                     {locationMessage.includes("edit the address") ? (
                                                         <>
                                                             {locationMessage.split("Please ")[0]}
-                                                            <button onClick={() => navigate("/physical-gold/profile?tab=address")} className="underline font-semibold">edit the address</button>
+                                                            <button onClick={() => navigate(`/physical-gold/profile?tab=address&returnTo=${encodeURIComponent(location.pathname + location.search)}`)} className="underline font-semibold">edit the address</button>
                                                             {locationMessage.includes("to proceed") ? " to proceed." : ""}
                                                         </>
                                                     ) : (

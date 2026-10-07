@@ -54,11 +54,11 @@ const FAQPage: React.FC = () => {
     {
       question: "Do you provide certificates with jewellery?",
       answer: "Yes, all our products come with BIS hallmark certificates and detailed invoices. For diamond jewellery, we also provide diamond certificates."
-    },
-    {
-      question: "Can I cancel my order?",
-      answer: "Orders can be cancelled before shipment for a full refund. Once shipped, cancellation is subject to our return policy. Customized orders cannot be cancelled."
     }
+    // {
+    //   question: "Can I cancel my order?",
+    //   answer: "Orders can be cancelled before shipment for a full refund. Once shipped, cancellation is subject to our return policy. Customized orders cannot be cancelled."
+    // }
   ];
 
   return (

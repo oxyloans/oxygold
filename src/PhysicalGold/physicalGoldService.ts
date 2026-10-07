@@ -1030,9 +1030,14 @@ export const addToWishlistService = async (payload: any) => {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  const data = await response.json();
-  if (!response.ok)
-    throw new Error(data?.message || "Failed to add to wishlist");
+  const data = await response.json().catch(() => null);
+  if (!response.ok || data?.success === false) {
+    return {
+      success: false,
+      message: data?.message || "Product Already Added to Wishlist",
+      data: data?.data || null,
+    };
+  }
   return data;
 };
 
@@ -1139,11 +1144,13 @@ export interface GoldSilverRateBreakdown {
 
 export const fetchGoldSilverRateBreakdown = async (
   variantId: string | number,
-  quantity: number = 1
+  quantity?: number
 ): Promise<GoldSilverRateBreakdown> => {
-  const qtyParam = Math.max(1, Number(quantity) || 1);
+  const url = quantity && quantity > 0
+    ? `${API_BASE_URL}/oxygold-api/admin/categories/variants/${encodeURIComponent(variantId)}/price-breakup?quantity=${quantity}`
+    : `${API_BASE_URL}/oxygold-api/admin/categories/variants/${encodeURIComponent(variantId)}/price-breakup`;
   const response = await fetch(
-    `${API_BASE_URL}/oxygold-api/admin/categories/variants/${encodeURIComponent(variantId)}/price-breakup?quantity=${qtyParam}`,
+    url,
     {
       headers: {
         "X-API-KEY": PUBLIC_API_KEY,
