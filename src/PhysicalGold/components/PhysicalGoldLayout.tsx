@@ -27,18 +27,14 @@ const PhysicalGoldLayout: React.FC = () => {
             setSelectedCategoryId(state.categoryId);
         } else if (state?.reset) {
             setSelectedCategoryId("__all__");
-        } else if (
-                   location.pathname === '/physical-gold/cart' || 
-                   location.pathname === '/physical-gold/wishlist' ||
-                   location.pathname === '/physical-gold/profile' ||
-                   location.pathname === '/physical-gold/checkout') {
-            setSelectedCategoryId(undefined);
         } else if (location.pathname === '/physical-gold' || location.pathname === '/physical-gold/') {
             setSelectedCategoryId("__all__");
         } else {
             const match = location.pathname.match(/\/physical-gold\/category\/([^/]+)/);
             if (match && match[1]) {
                 setSelectedCategoryId(decodeURIComponent(match[1]));
+            } else {
+                setSelectedCategoryId(undefined);
             }
         }
     }, [location.state, location.pathname]);

@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
     AlertTriangle,
     ChevronRight,
     ChevronDown,
+    ChevronUp,
     CreditCard,
     Loader2,
     MapPin,
@@ -20,6 +21,11 @@ import {
     Plus,
     PartyPopper,
     Gem,
+    Pencil,
+    Clock,
+    Calendar,
+    Layers,
+    ShoppingCart,
 } from "lucide-react";
 
 import { motion } from "framer-motion";
@@ -74,8 +80,9 @@ interface PageState {
 }
 
 /* ────────────────────────────────────────────────────────── */
-/*  Helper                                                    */
+/*  Helper Functions                                          */
 /* ────────────────────────────────────────────────────────── */
+
 const formatINR = (v: number) =>
     new Intl.NumberFormat("en-IN", {
         style: "currency",
@@ -181,10 +188,66 @@ const SuccessModal: React.FC<SuccessModalProps> = (props) => {
 };
 
 /* ────────────────────────────────────────────────────────── */
+/*  Coupon Countdown Timer Component                          */
+/* ────────────────────────────────────────────────────────── */
+const CouponCountdown: React.FC<{ endDateTime?: string }> = ({ endDateTime }) => {
+    const [timeLeft, setTimeLeft] = useState<string>("");
+
+    useEffect(() => {
+        if (!endDateTime) return;
+
+        const updateTimer = () => {
+            let parseableStr = endDateTime;
+            if (
+                endDateTime.includes("T") &&
+                !endDateTime.endsWith("Z") &&
+                !endDateTime.includes("+") &&
+                !endDateTime.slice(10).includes("-")
+            ) {
+                parseableStr = endDateTime + "Z";
+            }
+            const target = new Date(parseableStr).getTime();
+            const now = new Date().getTime();
+            const diff = target - now;
+
+            if (isNaN(target) || diff <= 0) {
+                setTimeLeft("Expired");
+                return;
+            }
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            if (days > 0) {
+                setTimeLeft(`${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`);
+            } else {
+                setTimeLeft(`${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`);
+            }
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [endDateTime]);
+
+    if (!timeLeft || timeLeft === "Expired") return null;
+
+    return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200/80 text-[11px] font-extrabold shrink-0">
+            <Clock size={11} className="text-rose-500" />
+            Ends in {timeLeft}
+        </span>
+    );
+};
+
+/* ────────────────────────────────────────────────────────── */
 /*  CartPage                                                  */
 /* ────────────────────────────────────────────────────────── */
 const CartPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
 
     const {
         cartItems,
@@ -200,11 +263,70 @@ const CartPage: React.FC = () => {
         totalPayableAmount,
         deliveryFee,
         deliveryDistanceKm,
-    
         ratePerKm,
         totalDiscountAmount,
         totalDiscountPercentage,
+        cartNotification,
+        dismissCartNotification,
+        appliedCoupon,
+        availableCoupons,
+        isCouponsLoading,
+        couponDiscountAmount,
+        loadAvailableCoupons,
+        applyCoupon,
+        removeAppliedCoupon,
     } = useCart();
+
+    const [couponInput, setCouponInput] = useState("");
+    const [couponError, setCouponError] = useState("");
+    const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+    const [showAvailableList, setShowAvailableList] = useState(true);
+    const [expandedCouponId, setExpandedCouponId] = useState<number | string | null>(null);
+    const [showAllCartItems, setShowAllCartItems] = useState(false);
+    const [showAllSummaryItems, setShowAllSummaryItems] = useState(false);
+    const [showAllAddresses, setShowAllAddresses] = useState(false);
+    const [isCouponsModalOpen, setIsCouponsModalOpen] = useState(false);
+
+    useEffect(() => {
+        loadAvailableCoupons();
+    }, [loadAvailableCoupons]);
+
+    useEffect(() => {
+        if (appliedCoupon?.couponCode) {
+            setCouponInput(appliedCoupon.couponCode);
+        }
+    }, [appliedCoupon]);
+
+    const handleApplyCoupon = async (code: string) => {
+        if (!code || !code.trim()) return;
+        setIsApplyingCoupon(true);
+        setCouponError("");
+        dismissCartNotification();
+        try {
+            await applyCoupon(code);
+            setCouponInput(code.trim().toUpperCase());
+        } catch (err: any) {
+            setCouponError(err.message || "Failed to apply coupon.");
+        } finally {
+            setIsApplyingCoupon(false);
+        }
+    };
+
+    const handleApplyCouponInModal = async (code: string) => {
+        if (!code || !code.trim()) return;
+        setIsApplyingCoupon(true);
+        setCouponError("");
+        dismissCartNotification();
+        try {
+            await applyCoupon(code);
+            setCouponInput(code.trim().toUpperCase());
+            setIsCouponsModalOpen(false);
+        } catch (err: any) {
+            setCouponError(err.message || "Failed to apply coupon.");
+        } finally {
+            setIsApplyingCoupon(false);
+        }
+    };
 
     const priceBreakdownRef = useRef<HTMLDivElement | null>(null);
     const [rateBreakdown, setRateBreakdown] = useState<GoldSilverRateBreakdown | null>(null);
@@ -233,7 +355,7 @@ const CartPage: React.FC = () => {
                 const breakdowns = await Promise.all(
                     cartItems.map(async (item) => {
                         try {
-                            const res = await fetchGoldSilverRateBreakdown(item.variant.id);
+                            const res = await fetchGoldSilverRateBreakdown(item.variant.id, item.quantity || 1);
                             return ((res as any)?.data ?? (res as any)?.body ?? res) as GoldSilverRateBreakdown;
                         } catch (err) {
                             console.error(`[CartSlider] Failed breakdown for variant ${item.variant.id}:`, err);
@@ -446,6 +568,7 @@ const CartPage: React.FC = () => {
                 addressId: parseInt(s.selectedAddressId),
                 notes: "Physical Gold Order",
                 paymentMode: s.paymentMode,
+                ...(appliedCoupon?.couponCode && { couponCode: appliedCoupon.couponCode }),
                 ...(redirectionUrl && { returnUrl: redirectionUrl }),
             });
 
@@ -530,6 +653,34 @@ const CartPage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-[#F5F2EE] text-[#1A1A1A]">
+            {/* Cart & Coupon Notification Banner */}
+            {cartNotification && (
+                <div className="fixed top-24 right-4 z-50 max-w-sm w-full transition-all duration-300">
+                    <div
+                        className={`flex items-center justify-between gap-3 p-3.5 rounded-xl border shadow-xl text-xs font-bold ${
+                            cartNotification.type === "success"
+                                ? "bg-emerald-900 text-emerald-100 border-emerald-700 shadow-emerald-950/20"
+                                : "bg-rose-900 text-rose-100 border-rose-700 shadow-rose-950/20"
+                        }`}
+                    >
+                        <div className="flex items-center gap-2 min-w-0">
+                            {cartNotification.type === "success" ? (
+                                <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                            ) : (
+                                <AlertTriangle size={16} className="text-rose-400 shrink-0" />
+                            )}
+                            <span className="truncate">{cartNotification.message}</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={dismissCartNotification}
+                            className="text-slate-300 hover:text-white font-bold text-sm px-1 cursor-pointer shrink-0"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Modals */}
             <ConfirmModal
@@ -581,7 +732,7 @@ const CartPage: React.FC = () => {
             <ConfirmModal
                 isOpen={s.profileReminderOpen}
                 onClose={() => patch({ profileReminderOpen: false })}
-                onConfirm={() => { patch({ profileReminderOpen: false }); navigate("/physical-gold/profile"); }}
+                onConfirm={() => { patch({ profileReminderOpen: false }); navigate(`/physical-gold/profile?tab=info&returnTo=${encodeURIComponent(location.pathname + location.search)}`); }}
                 title="Complete Your Profile"
                 confirmLabel="Go to Profile"
                 confirmClassName="bg-[#8B6914] text-white hover:bg-[#7A5C10]"
@@ -605,10 +756,10 @@ const CartPage: React.FC = () => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Corner decorative icons */}
-                        <span className="pointer-events-none absolute left-6 top-6 text-purple-300">
+                        <span className="pointer-events-none absolute left-6 top-6 text-[#C29B27]">
                             <Sparkles size={18} />
                         </span>
-                        <span className="pointer-events-none absolute right-12 top-7 text-amber-300 text-xs">
+                        <span className="pointer-events-none absolute right-12 top-7 text-amber-400 text-xs">
                             ✨
                         </span>
 
@@ -626,14 +777,14 @@ const CartPage: React.FC = () => {
 
                         <div className="relative z-10 pt-1">
                             {/* Party Popper Celebration Icon */}
-                            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#7C3AED] to-[#8B5CF6] text-white shadow-lg shadow-purple-300/50">
+                            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#C29B27] to-[#8B6914] text-white shadow-lg shadow-amber-300/50">
                                 <PartyPopper size={26} />
                             </div>
 
                             {/* Header Title */}
                             <h2
                                 id="cart-discount-title"
-                                className="text-xl font-extrabold text-[#7C3AED] flex items-center justify-center gap-1.5"
+                                className="text-xl font-extrabold text-[#8B6914] flex items-center justify-center gap-1.5"
                             >
                                 GST & Making Charges on Us 🎉
                             </h2>
@@ -648,41 +799,67 @@ const CartPage: React.FC = () => {
                                 </p>
                             </div>
 
-                            {/* Price Breakdown Box */}
-                            <div className="my-4 rounded-2xl border border-dashed border-gray-200 bg-white p-3.5 text-left text-[13px] space-y-2.5 shadow-2xs">
-                                <div className="flex justify-between items-center text-gray-700">
-                                    <span className="font-medium text-gray-600">GST ({rateBreakdown.gstPercentage ?? 3}%)</span>
-                                    <span className="font-bold text-gray-900">
-                                        ₹{Number(rateBreakdown.gstAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center text-gray-700">
-                                    <span className="font-medium text-gray-600">Making Charges</span>
-                                    <span className="font-bold text-gray-900">
-                                        ₹{Number(rateBreakdown.makingAmount || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center text-emerald-600 font-bold pt-1">
-                                    <span className="flex items-center gap-1.5 text-gray-900">
-                                        <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
-                                        Oxygold.in GST Waiver:
-                                    </span>
-                                    <span className="text-emerald-600">
-                                        -₹{Number(rateBreakdown.discountAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
-                                </div>
-                                <div className="rounded-xl bg-[#E8F8F0] px-3 py-2 flex justify-between items-center text-[12px] mt-2">
-                                    <span className="font-semibold text-emerald-900">Your Net Extra Charges</span>
-                                    <span className="font-bold text-emerald-700">
-                                        ₹0.00 (Zero Extra Tax)
-                                    </span>
-                                </div>
-                            </div>
+                            {/* Price Breakdown Box Matching Image 1 */}
+                            {(() => {
+                                const basePriceVal = Number(rateBreakdown?.variantPrice || 0);
+                                const gstVal = Number(rateBreakdown?.gstAmount || 0);
+                                const totalVal = Number(rateBreakdown?.totalAmount || (basePriceVal + gstVal));
+                                const makingVal = Number(rateBreakdown?.makingAmount || 0);
+                                const discountVal = Number(rateBreakdown?.discountAmount || 0);
+                                const finalVal = Number(
+                                    (rateBreakdown?.finalAmount && rateBreakdown.finalAmount > 0)
+                                        ? rateBreakdown.finalAmount
+                                        : (totalVal - discountVal)
+                                ) || basePriceVal;
+
+                                return (
+                                    <div className="my-4 rounded-2xl border border-dashed border-stone-200 bg-[#FDFAF4] p-3.5 text-left text-[13px] space-y-2 shadow-2xs">
+                                        <div className="flex justify-between items-center text-stone-700">
+                                            <span className="font-medium text-stone-600">Base Price:</span>
+                                            <span className="font-bold text-stone-900">
+                                                ₹{basePriceVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-stone-700">
+                                            <span className="font-medium text-stone-600">GST ({rateBreakdown?.gstPercentage ?? 3}%):</span>
+                                            <span className="font-bold text-stone-900">
+                                                ₹{gstVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                          <div className="flex justify-between items-center text-stone-700">
+                                            <span className="font-medium text-stone-600">Making Charges:</span>
+                                            <span className="font-bold text-stone-900">
+                                                ₹{makingVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-stone-900 font-bold border-t border-dashed border-stone-200 pt-2">
+                                            <span>Total Amount:</span>
+                                            <span>
+                                                ₹{totalVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        {discountVal > 0 && (
+                                            <div className="flex justify-between items-center rounded-xl bg-[#E8F8F0] border border-emerald-200 px-3 py-2 text-[12px] font-bold text-emerald-700">
+                                                <span>GST Waiver Discount:</span>
+                                                <span>
+                                                    -₹{discountVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between items-center text-[#8B6914] font-extrabold text-[15px] pt-1.5 border-t border-stone-200">
+                                            <span>Final Amount:</span>
+                                            <span>
+                                                ₹{finalVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Highlight Badges */}
                             <div className="mb-5 flex justify-center gap-2.5">
-                                <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-100 bg-purple-50 px-3 py-1.5 text-[11px] font-bold text-purple-700">
-                                    <Gem size={13} className="text-purple-600" /> Valid Only on Silver
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-bold text-[#8B6914]">
+                                    <Gem size={13} className="text-[#C29B27]" /> Valid Only on Silver
                                 </span>
                                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-[#E8F8F0] px-3 py-1.5 text-[11px] font-bold text-emerald-700">
                                     <CheckCircle2 size={13} className="text-emerald-600" /> 100% Tax Covered
@@ -696,7 +873,7 @@ const CartPage: React.FC = () => {
                                     e.stopPropagation();
                                     setShowDiscountModal(false);
                                 }}
-                                className="w-full cursor-pointer rounded-2xl py-3.5 text-[14px] font-bold text-white bg-gradient-to-r from-[#7C3AED] to-[#6366F1] hover:from-[#6D28D9] hover:to-[#4F46E5] shadow-lg shadow-purple-300/40 transition active:scale-[0.99]"
+                                className="w-full cursor-pointer rounded-2xl py-3.5 text-[14px] font-bold text-white bg-gradient-to-r from-[#C29B27] to-[#8B6914] hover:from-[#B08B20] hover:to-[#78590E] shadow-lg shadow-amber-300/40 transition active:scale-[0.99]"
                             >
                                 Awesome, Got It!
                             </button>
@@ -705,7 +882,266 @@ const CartPage: React.FC = () => {
                 </div>
             )}
 
-            <main className="pt-24 md:pt-36 lg:pt-36 pb-16 max-w-5xl mx-auto px-4 sm:px-4">
+            {/* Coupons Listing Screen Modal */}
+            {isCouponsModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.96, y: 12 }}
+                        className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-[#E8E0D5]"
+                    >
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F0EBE1] bg-white">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-200/90 flex items-center justify-center text-[#8B6914] shadow-2xs">
+                                    <Tag size={20} />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-extrabold text-[#1A1A1A] leading-tight">
+                                        Apply Coupon
+                                    </h2>
+                                    <p className="text-xs font-medium text-stone-500">
+                                        Use a coupon code to get the best offer
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsCouponsModalOpen(false)}
+                                className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition cursor-pointer"
+                                title="Close"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Top Coupon Code Input Row */}
+                        <div className="p-5 bg-white border-b border-[#F0EBE1]">
+                            <div className="flex items-center gap-2 rounded-2xl border-2 border-amber-500/30 bg-[#F9F9FB] p-1.5 focus-within:border-[#8B6914] focus-within:bg-white transition shadow-2xs">
+                                <div className="pl-3 text-amber-700 shrink-0">
+                                    <Tag size={18} />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="Enter Coupon Code"
+                                    value={couponInput}
+                                    onChange={(e) => {
+                                        setCouponInput(e.target.value.toUpperCase());
+                                        setCouponError("");
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            if (appliedCoupon && couponInput === appliedCoupon.couponCode) {
+                                                removeAppliedCoupon();
+                                                setCouponInput("");
+                                            } else if (couponInput.trim()) {
+                                                handleApplyCouponInModal(couponInput);
+                                            }
+                                        }
+                                    }}
+                                    className="w-full bg-transparent px-2 text-sm font-mono font-bold uppercase tracking-wider text-[#1A1A1A] placeholder:font-sans placeholder:normal-case placeholder:text-stone-400 placeholder:font-normal focus:outline-none"
+                                />
+                                {appliedCoupon && couponInput === appliedCoupon.couponCode ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            removeAppliedCoupon();
+                                            setCouponInput("");
+                                            setCouponError("");
+                                        }}
+                                        className="shrink-0 px-6 py-2.5 rounded-xl bg-rose-600 text-white font-extrabold text-xs hover:bg-rose-700 transition cursor-pointer uppercase tracking-wider shadow-2xs"
+                                    >
+                                        REMOVE
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        disabled={!couponInput.trim() || isApplyingCoupon}
+                                        onClick={() => handleApplyCouponInModal(couponInput)}
+                                        className="shrink-0 px-7 py-2.5 rounded-xl bg-[#8B6914] hover:bg-[#775910] text-white font-extrabold text-xs transition disabled:opacity-40 cursor-pointer uppercase tracking-wider shadow-2xs"
+                                    >
+                                        {isApplyingCoupon ? <Loader2 size={16} className="animate-spin" /> : "Apply"}
+                                    </button>
+                                )}
+                            </div>
+                            {couponError && (
+                                <p className="text-xs font-semibold text-rose-600 flex items-center gap-1.5 mt-2.5 px-1">
+                                    <AlertTriangle size={14} /> {couponError}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Modal Body — Coupon Cards List */}
+                        <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-[#FAF9F6] [scrollbar-width:thin]">
+                            
+                            {/* Section Title */}
+                            <div className="flex items-center justify-between px-1">
+                                <h3 className="text-base font-bold text-[#1A1A1A]">
+                                    Available Coupons
+                                </h3>
+                                <span className="text-xs font-medium text-stone-500">
+                                    Choose the best offer for you
+                                </span>
+                            </div>
+
+                            {/* Coupons Cards Container */}
+                            <div className="space-y-4">
+                                {availableCoupons.map((coupon, idx) => {
+                                    const isApplied = appliedCoupon?.couponCode === coupon.code;
+                                    const isApplicable = cartSubtotal >= (coupon.minimumOrderAmount || 0);
+
+                                    const savedAmount = (() => {
+                                        if (coupon.discountType === "PERCENTAGE") {
+                                            const val = (cartSubtotal * (coupon.discountValue || 0)) / 100;
+                                            return coupon.maximumDiscountAmount && coupon.maximumDiscountAmount > 0
+                                                ? Math.min(val, coupon.maximumDiscountAmount)
+                                                : val;
+                                        }
+                                        return coupon.discountValue || 0;
+                                    })();
+
+                                    // Color theme per card index or type (emerald, rose, blue, amber)
+                                    const theme = idx % 3 === 0
+                                        ? { border: "border-emerald-200/90", bg: "bg-[#F3FBF7]", stubBorder: "border-emerald-400 text-emerald-800", text: "text-emerald-700" }
+                                        : idx % 3 === 1
+                                        ? { border: "border-rose-200/90", bg: "bg-[#FFF7F7]", stubBorder: "border-rose-300 text-rose-800", text: "text-rose-700" }
+                                        : { border: "border-blue-200/90", bg: "bg-[#F4F8FF]", stubBorder: "border-blue-300 text-blue-800", text: "text-blue-700" };
+
+                                    const formattedValidTill = coupon.endDateTime
+                                        ? new Date(
+                                            coupon.endDateTime.includes("T") && !coupon.endDateTime.endsWith("Z") && !coupon.endDateTime.includes("+")
+                                                ? coupon.endDateTime + "Z"
+                                                : coupon.endDateTime
+                                          ).toLocaleDateString("en-IN", {
+                                              day: "numeric",
+                                              month: "short",
+                                              year: "numeric",
+                                          })
+                                        : null;
+
+                                    const categoryLabel = coupon.categoryName || (coupon.applyTo === "CATEGORY" ? `Category #${coupon.categoryId}` : "All Products");
+
+                                    return (
+                                        <div
+                                            key={coupon.id}
+                                            className={`relative rounded-2xl border ${theme.border} ${theme.bg} p-4 sm:p-4.5 shadow-2xs transition-all hover:shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4`}
+                                        >
+                                            {/* Left Side: Dashed Coupon Stub + Details */}
+                                            <div className="flex items-start gap-3.5 flex-1 min-w-0 w-full sm:w-auto">
+                                                {/* Ticket Stub Badge */}
+                                                <div className={`shrink-0 px-3.5 py-3 rounded-xl border-2 border-dashed ${theme.stubBorder} bg-white font-mono font-black text-sm tracking-wide text-center flex items-center justify-center min-w-[95px] shadow-2xs`}>
+                                                    {coupon.code}
+                                                </div>
+
+                                                {/* Middle Coupon Details */}
+                                                <div className="flex-1 min-w-0 space-y-1.5">
+                                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                                        <h4 className="text-sm sm:text-base font-extrabold text-[#1A1A1A] truncate">
+                                                            {coupon.name || coupon.code}
+                                                        </h4>
+                                                        {/* Countdown timer badge */}
+                                                        {coupon.endDateTime && (
+                                                            <CouponCountdown endDateTime={coupon.endDateTime} />
+                                                        )}
+                                                    </div>
+
+                                                    {/* Offer description / saved amount line */}
+                                                    <p className={`text-xs sm:text-sm font-extrabold ${theme.text} leading-snug`}>
+                                                        {coupon.description
+                                                            ? coupon.description
+                                                            : coupon.discountType === "PERCENTAGE"
+                                                            ? `Get ${coupon.discountValue}% OFF${coupon.maximumDiscountAmount ? ` up to ₹${coupon.maximumDiscountAmount.toLocaleString("en-IN")}` : ""}`
+                                                            : `Save ₹${(coupon.discountValue || 0).toLocaleString("en-IN")} with this code`}
+                                                    </p>
+
+                                                    {/* Metadata Icons Grid */}
+                                                    <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-stone-500 font-medium">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <ShoppingCart size={13} className="text-stone-400 shrink-0" />
+                                                            <span>Min. purchase</span>
+                                                            <span className="font-bold text-stone-800">
+                                                                ₹{(coupon.minimumOrderAmount || 0).toLocaleString("en-IN")}
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Layers size={13} className="text-stone-400 shrink-0" />
+                                                            <span>Applicable on</span>
+                                                            <span className="font-bold text-stone-800">
+                                                                {categoryLabel}
+                                                            </span>
+                                                        </div>
+
+                                                        {formattedValidTill && (
+                                                            <div className="flex items-center gap-1.5">
+                                                                <Calendar size={13} className="text-stone-400 shrink-0" />
+                                                                <span>Valid till</span>
+                                                                <span className="font-bold text-stone-800">
+                                                                    {formattedValidTill}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Unlock notice if cart amount is below minimum purchase */}
+                                                    {!isApplicable && coupon.minimumOrderAmount && (
+                                                        <p className="text-[11px] font-bold text-rose-600 pt-0.5">
+                                                            Add items worth ₹{(coupon.minimumOrderAmount - cartSubtotal).toLocaleString("en-IN")} more to unlock
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Right Side: Apply / Applied Button */}
+                                            <div className="shrink-0 w-full sm:w-auto flex justify-end">
+                                                {isApplied ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            removeAppliedCoupon();
+                                                            setCouponInput("");
+                                                        }}
+                                                        className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer transition"
+                                                    >
+                                                        <CheckCircle2 size={14} /> Applied
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        disabled={!isApplicable || isApplyingCoupon}
+                                                        onClick={() => handleApplyCouponInModal(coupon.code)}
+                                                        className={`w-full sm:w-auto px-6 py-2.5 rounded-xl font-extrabold text-xs tracking-wider uppercase transition flex items-center justify-center cursor-pointer shadow-2xs ${
+                                                            !isApplicable
+                                                                ? "bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed"
+                                                                : "bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600"
+                                                        }`}
+                                                    >
+                                                        {isApplyingCoupon ? <Loader2 size={14} className="animate-spin" /> : "Apply"}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {availableCoupons.length === 0 && (
+                                    <div className="text-center py-12 px-4 bg-white rounded-2xl border border-stone-200">
+                                        <Tag size={36} className="mx-auto text-stone-300 mb-2" />
+                                        <p className="text-base font-bold text-[#1A1A1A]">No Coupons Available</p>
+                                        <p className="text-xs text-stone-500 mt-1">Check back later for exciting offers and discount codes!</p>
+                                    </div>
+                                )}
+                            </div>
+
+                           
+
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
+            <main className="pt-24 md:pt-36 lg:pt-36 pb-16 max-w-6xl mx-auto px-4 sm:px-6">
 
                 {/* Back to Store */}
                 <button
@@ -734,19 +1170,24 @@ const CartPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
 
                     {/* LEFT — Cart Items or Checkout */}
                     <div className="space-y-3">
                         {s.checkoutStep === "cart" ? (
                             <>
-                                <div className="space-y-3 max-h-[380px] sm:max-h-[420px] overflow-y-auto pr-1.5 overscroll-contain scroll-smooth [scrollbar-width:thin] [scrollbar-color:#D1C7BB_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[#F5F2EE] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D1C7BB] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#8B6914]">
-                                    {cartItems.map(({ cartId, product, variant, quantity }) => {
+                                <div className="space-y-3">
+                                    {(showAllCartItems ? cartItems : cartItems.slice(0, 3)).map(({ cartId, product, variant, quantity }) => {
                                         const lineTotal = variant.price * quantity;
+                                        const unitMrp = variant.mrp && variant.mrp > variant.price ? variant.mrp : 0;
+                                        const mrpTotal = unitMrp * quantity;
+                                        const unitSaved = variant.savedAmount || (unitMrp > variant.price ? unitMrp - variant.price : 0);
+                                        const savedTotal = unitSaved * quantity;
+
                                         return (
                                             <div
                                                 key={variant.id}
-                                                className="flex items-center gap-4 p-4 rounded-xl border border-[#E8E0D5] bg-white hover:border-[#C9B87A] transition group"
+                                                className="flex flex-row items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-xl border border-[#E8E0D5] bg-white hover:border-[#C9B87A] transition group overflow-hidden shadow-2xs"
                                             >
                                                 {/* Image */}
                                                 <button
@@ -763,46 +1204,71 @@ const CartPage: React.FC = () => {
                                                 </button>
 
                                                 {/* Info */}
-                                                <div className="flex-1 min-w-0">
+                                                <div className="flex-1 min-w-0 w-full">
                                                     <div className="flex items-start justify-between gap-2">
                                                         <button
                                                             type="button"
                                                             onClick={() => product.id && navigate(`/physical-gold/product/${product.id}`)}
-                                                            className="text-left cursor-pointer group/title"
+                                                            className="text-left cursor-pointer group/title min-w-0 flex-1"
                                                         >
-                                                            <h3 className="text-[14px] font-semibold text-[#1A1A1A] leading-snug group-hover/title:text-[#8B6914] transition-colors">
+                                                            <h3 className="text-[13px] sm:text-[14px] font-semibold text-[#1A1A1A] leading-snug group-hover/title:text-[#8B6914] transition-colors line-clamp-2">
                                                                 {product.productName}
                                                             </h3>
                                                         </button>
                                                         <button
                                                             onClick={() => requestRemove(variant.id)}
-                                                            className="shrink-0 p-1 text-[#D1C7BB] hover:text-rose-500 transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                                                            className="shrink-0 p-1 text-[#D1C7BB] hover:text-rose-500 transition opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
                                                             title="Remove item"
                                                         >
-                                                            <Trash2 size={14} />
+                                                            <Trash2 size={15} />
                                                         </button>
                                                     </div>
                                                     <p className="text-[11px] text-[#8A8A8A] mt-0.5">
-                                                        {variant.purity} {" "}
-                                                        {variant.weight}g
-                                                        {/* {variant.size || "Standard"} */}
+                                                        {variant.purity} {variant.weight}g
                                                     </p>
-                                                    <div className="flex items-center justify-between mt-3">
+                                                    <div className="flex flex-wrap items-center justify-between mt-2.5 gap-2 w-full">
                                                         <QuantitySelector
                                                             quantity={quantity}
                                                             onIncrease={() => handleIncrement(variant.id)}
                                                             onDecrease={() => handleDecrement(variant.id, cartId)}
                                                             disabled={s.incrementingId === variant.id || s.decrementingId === variant.id}
                                                         />
-                                                        <span className="text-[15px] font-semibold text-[#8B6914]">
-                                                            ₹{lineTotal.toLocaleString("en-IN")}
-                                                        </span>
+                                                        <div className="text-right shrink-0 min-w-0">
+                                                            <div className="flex items-center gap-1.5 justify-end flex-wrap">
+                                                                {mrpTotal > lineTotal && (
+                                                                    <span className="text-[11px] sm:text-[12px] text-gray-400 line-through font-medium">
+                                                                        ₹{mrpTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                                                                    </span>
+                                                                )}
+                                                                <span className="text-[14px] sm:text-[15px] font-bold text-[#8B6914]">
+                                                                    ₹{lineTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                                                                </span>
+                                                            </div>
+                                                            {savedTotal > 0 && (
+                                                                <p className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-block mt-0.5 whitespace-nowrap">
+                                                                    You Save ₹{savedTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                                                                </p>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         );
                                     })}
                                 </div>
+
+                                {cartItems.length > 3 && (
+                                    <div className="pt-1 text-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAllCartItems(!showAllCartItems)}
+                                            className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#E8E0D5] bg-white text-xs font-bold text-[#8B6914] hover:bg-[#F5EDD6]/40 hover:border-[#8B6914]/50 transition-all shadow-2xs"
+                                        >
+                                            <span>{showAllCartItems ? "Show Less" : `View More (${cartItems.length - 3} more ${cartItems.length - 3 === 1 ? 'item' : 'items'})`}</span>
+                                            {showAllCartItems ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                        </button>
+                                    </div>
+                                )}
 
                                 {cartItems.length > 0 && (
                                     <div className="pt-3 flex justify-center items-center">
@@ -820,63 +1286,150 @@ const CartPage: React.FC = () => {
                         ) : (
                             <div className="space-y-5">
                                 {/* Delivery Address */}
-                                <div className="bg-white border border-[#E8E0D5] rounded-xl p-5">
+                                <div className="bg-white border border-[#E8E0D5] rounded-xl p-5 shadow-2xs">
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-[14px] font-semibold text-[#1A1A1A]">Delivery Address</h3>
                                         <button
-                                            onClick={() => navigate("/physical-gold/profile?tab=address")}
-                                            className="text-[11px] font-medium text-[#8B6914] hover:underline"
+                                            type="button"
+                                            onClick={() => navigate(`/physical-gold/profile?tab=address&add=true&returnTo=${encodeURIComponent(location.pathname + location.search)}`)}
+                                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#8B6914] bg-[#F5EDD6]/60 border border-[#C9B87A]/50 px-2.5 py-1 rounded-lg hover:bg-[#F5EDD6] transition cursor-pointer"
                                         >
-                                            Manage Addresses
+                                            <Plus size={13} /> Add New Address
                                         </button>
                                     </div>
-                                    <div className="space-y-2 max-h-[17rem] overflow-y-auto pr-1.5 overscroll-contain scroll-smooth [scrollbar-width:thin] [scrollbar-color:#D1C7BB_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[#F5F2EE] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D1C7BB] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#8B6914]">
-                                        {s.addresses.map((addr) => {
-                                            const missingLocation = !addr.latitude || !addr.longitude;
-                                            return (
+                                    <div className="space-y-2 max-h-[19rem] overflow-y-auto pr-1.5 overscroll-contain scroll-smooth [scrollbar-width:thin] [scrollbar-color:#D1C7BB_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[#F5F2EE] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D1C7BB] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#8B6914]">
+                                        {s.addresses.length === 0 ? (
+                                            <div className="text-center py-6 border border-dashed border-[#E8E0D5] rounded-xl bg-[#FAF8F5] p-4">
+                                                <MapPin size={24} className="mx-auto text-[#D1C7BB] mb-2" />
+                                                <p className="text-[13px] font-semibold text-[#1A1A1A]">No Saved Address</p>
+                                                <p className="text-[11px] text-[#8A8A8A] mt-0.5 mb-3">Please add a delivery address to complete your order.</p>
                                                 <button
-                                                    key={addr.id}
-                                                    onClick={() => selectAddress(addr.id)}
-                                                    className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${s.selectedAddressId === addr.id ? "border-[#8B6914] bg-[#F5EDD6]/30" : "border-[#E8E0D5] hover:border-[#C9B87A]"}`}
+                                                    type="button"
+                                                    onClick={() => navigate(`/physical-gold/profile?tab=address&add=true&returnTo=${encodeURIComponent(location.pathname + location.search)}`)}
+                                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#8B6914] text-white text-[12px] font-medium hover:bg-[#7A5C10] transition cursor-pointer"
                                                 >
-                                                    <div className="flex items-start gap-3">
-                                                        <MapPin size={14} className={`mt-0.5 shrink-0 ${s.selectedAddressId === addr.id ? "text-[#8B6914]" : "text-[#D1C7BB]"}`} />
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-[11px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-0.5">{addr.type}</p>
-                                                            <p className="text-[13px] font-medium text-[#1A1A1A]">{addr.address}</p>
-                                                            <p className="text-[11px] text-[#8A8A8A]">{addr.landMark}, {addr.flatNo}</p>
-                                                            {missingLocation && (
-                                                                <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
-                                                                    <AlertTriangle size={10} /> Location not captured — <button onClick={() => navigate("/physical-gold/profile?tab=address")} className="underline font-semibold">edit the address</button>
-                                                                </p>
-                                                            )}
+                                                    <Plus size={14} /> Add New Address
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            (showAllAddresses ? s.addresses : s.addresses.slice(0, 3)).map((addr) => {
+                                                const missingLocation = !addr.latitude || !addr.longitude;
+                                                const isSelected = s.selectedAddressId === addr.id;
+                                                return (
+                                                    <div
+                                                        key={addr.id}
+                                                        onClick={() => selectAddress(addr.id)}
+                                                        className={`w-full text-left px-4 py-3 rounded-xl border transition-all cursor-pointer ${isSelected ? "border-[#8B6914] bg-[#F5EDD6]/30 shadow-2xs" : "border-[#E8E0D5] hover:border-[#C9B87A] bg-white"}`}
+                                                    >
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div className="flex items-start gap-3 min-w-0 flex-1">
+                                                                <MapPin size={14} className={`mt-0.5 shrink-0 ${isSelected ? "text-[#8B6914]" : "text-[#D1C7BB]"}`} />
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[11px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-0.5">{addr.type}</span>
+                                                                        {isSelected && (
+                                                                            <span className="text-[9px] font-bold uppercase text-[#8B6914] bg-[#F5EDD6] px-1.5 py-0.5 rounded border border-[#C9B87A]/50">Selected</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-[13px] font-medium text-[#1A1A1A]">{addr.address}</p>
+                                                                    <p className="text-[11px] text-[#8A8A8A]">{addr.landMark}, {addr.flatNo}</p>
+                                                                    {missingLocation && (
+                                                                        <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
+                                                                            <AlertTriangle size={10} /> Location missing — <button onClick={(e) => { e.stopPropagation(); navigate(`/physical-gold/profile?tab=address&editId=${addr.id}&returnTo=${encodeURIComponent(location.pathname + location.search)}`); }} className="underline font-semibold">edit address</button>
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    navigate(`/physical-gold/profile?tab=address&editId=${addr.id}&returnTo=${encodeURIComponent(location.pathname + location.search)}`);
+                                                                }}
+                                                                className="shrink-0 p-1.5 text-stone-400 hover:text-[#8B6914] hover:bg-[#F5EDD6]/50 rounded-lg transition cursor-pointer flex items-center gap-1 text-[11px] font-bold border border-transparent hover:border-[#C9B87A]/40"
+                                                                title="Edit this address"
+                                                            >
+                                                                <Pencil size={12} />
+                                                                <span>Edit</span>
+                                                            </button>
                                                         </div>
                                                     </div>
-                                                </button>
-                                            );
-                                        })}
+                                                );
+                                            })
+                                        )}
                                     </div>
+                                    {s.addresses.length > 3 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAllAddresses(!showAllAddresses)}
+                                            className="w-full mt-3 pt-1 text-center text-[11px] font-bold text-[#8B6914] hover:underline flex items-center justify-center gap-1 cursor-pointer"
+                                        >
+                                            <span>{showAllAddresses ? "Show Less" : `View All ${s.addresses.length} Addresses`}</span>
+                                            {showAllAddresses ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Order Items Review (Placed below Delivery Address during Checkout) */}
+                                <div className="bg-white border border-[#E8E0D5] rounded-xl p-5 shadow-2xs">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h3 className="text-[14px] font-semibold text-[#1A1A1A]">Order Items ({totalItems})</h3>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {(showAllSummaryItems ? cartItems : cartItems.slice(0, 3)).map(({ product, variant, quantity }) => (
+                                            <div
+                                                key={`checkout-item-${variant.id}`}
+                                                className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#F0EBE1] bg-[#FAF8F5]"
+                                            >
+                                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                    <div className="h-12 w-12 shrink-0 rounded-lg overflow-hidden bg-white border border-[#E8E0D5]">
+                                                        <img src={product.imageUrl} alt={product.productName} className="h-full w-full object-cover mix-blend-multiply" />
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-[13px] font-semibold text-[#1A1A1A] truncate">{product.productName}</p>
+                                                        <p className="text-[11px] text-[#8A8A8A] mt-0.5">{variant.purity} {variant.weight}g</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <span className="rounded-md bg-[#F5F2EE] px-2 py-1 text-[11px] font-semibold text-[#6B6B6B]">
+                                                        Qty: {quantity}
+                                                    </span>
+                                                    <p className="text-[13px] font-bold text-[#8B6914] mt-1">₹{(variant.price * quantity).toLocaleString("en-IN")}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {cartItems.length > 3 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAllSummaryItems(!showAllSummaryItems)}
+                                            className="w-full mt-3 pt-1 text-center text-[11px] font-bold text-[#8B6914] hover:underline flex items-center justify-center gap-1 cursor-pointer"
+                                        >
+                                            <span>{showAllSummaryItems ? "Show Less" : `View All ${cartItems.length} Items`}</span>
+                                            {showAllSummaryItems ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                        </button>
+                                    )}
                                 </div>
 
                                 {/* Payment Method */}
-                                <div className="bg-white border border-[#E8E0D5] rounded-xl p-5">
+                                <div className="bg-white border border-[#E8E0D5] rounded-xl p-5 shadow-2xs">
                                     <h3 className="text-[14px] font-semibold text-[#1A1A1A] mb-4">Payment Method</h3>
-                                    <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3">
-                                        {(["CASHFREE", "COD"] as const).map((mode) => (
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {(["CASHFREE"] as const).map((mode) => (
                                             <button
                                                 key={mode}
                                                 onClick={() => patch({ paymentMode: mode })}
                                                 className={`flex items-center gap-3 px-4 py-3.5 rounded-lg border transition-all text-left w-full ${s.paymentMode === mode ? "border-[#8B6914] bg-[#F5EDD6]/30" : "border-[#E8E0D5] hover:border-[#C9B87A]"}`}
                                             >
                                                 <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${s.paymentMode === mode ? "bg-[#8B6914] text-white" : "bg-[#F5F2EE] text-[#D1C7BB]"}`}>
-                                                    {mode === "COD" ? <Coins size={16} /> : <CreditCard size={16} />}
+                                                    <CreditCard size={16} />
                                                 </div>
                                                 <div className="min-w-0">
                                                     <p className={`text-[13px] font-semibold leading-tight ${s.paymentMode === mode ? "text-[#8B6914]" : "text-[#1A1A1A]"}`}>
-                                                        {mode === "COD" ? "Cash on Delivery" : "Online Payment"}
+                                                        Online Payment
                                                     </p>
                                                     <p className="text-[11px] text-[#8A8A8A] mt-0.5">
-                                                        {mode === "COD" ? "Pay when order arrives" : "UPI, Cards, Net Banking"}
+                                                        UPI, Cards, Net Banking
                                                     </p>
                                                 </div>
                                                 {s.paymentMode === mode && (
@@ -897,36 +1450,99 @@ const CartPage: React.FC = () => {
                         <div className="bg-white border border-[#E8E0D5] rounded-xl p-5 shadow-sm">
                             <h2 className="text-[15px] font-semibold text-[#1A1A1A] mb-4">Order Summary</h2>
 
-                            {/* Products — name and quantity from cart response */}
-                            <div className="mb-4 border-b border-[#F0EBE1] pb-4">
-                                {cartItems.length > 3 && (
-                                    <div className="flex items-center justify-between pb-1.5 text-[11px] text-[#8A8A8A]">
-                                        <span>Items ({cartItems.length})</span>
-                                        <span className="text-[10px] text-[#8B6914] font-medium">Scroll to view all</span>
-                                    </div>
-                                )}
-                                <div
-                                    className={`space-y-2 ${cartItems.length > 3
-                                            ? "max-h-[135px] overflow-y-auto pr-1.5 overscroll-contain scroll-smooth [scrollbar-width:thin] [scrollbar-color:#D1C7BB_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[#F5F2EE] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D1C7BB] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#8B6914]"
-                                            : ""
-                                        }`}
-                                >
-                                    {cartItems.map(({ product, variant, quantity }) => (
-                                        <div
-                                            key={`summary-${variant.id}`}
-                                            className="flex min-w-0 items-start justify-between gap-3"
-                                        >
-                                            <p
-                                                className="min-w-0 flex-1 break-words text-[12px] font-medium leading-5 text-[#1A1A1A]"
-                                                title={product.productName}
-                                            >
-                                                {product.productName}
-                                            </p>
-                                            <span className="shrink-0 rounded-md bg-[#F5F2EE] px-2 py-1 text-[11px] font-semibold text-[#6B6B6B]">
-                                                Qty: {quantity}
-                                            </span>
+                            {/* Coupons & Offers Section — Modal Box Trigger */}
+                            <div className="mb-4 rounded-2xl border border-[#E8E0D5] bg-[#FAF8F5] p-3.5 shadow-2xs">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className="bg-amber-100/70 text-[#8B6914] shrink-0">
+                                            <Tag size={14} />
                                         </div>
-                                    ))}
+                                        <h3 className="text-[14px] font-extrabold tracking-wide text-[#1A1A1A]">Apply Coupon</h3>
+                                    </div>
+                                    {availableCoupons.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCouponsModalOpen(true)}
+                                            className="text-[12px] font-bold text-[#8B6914] hover:underline flex items-center gap-0.5 cursor-pointer"
+                                        >
+                                            View All Coupons ({availableCoupons.length}) <ChevronRight size={13} />
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Always Visible Coupon Input Box */}
+                                <div className="space-y-2.5">
+                                    <div className="flex items-center gap-2 bg-white rounded-xl border border-[#E8E0D5] p-1 shadow-2xs">
+                                        <input
+                                            type="text"
+                                            placeholder="Enter coupon code"
+                                            value={couponInput}
+                                            onChange={(e) => {
+                                                setCouponInput(e.target.value.toUpperCase());
+                                                setCouponError("");
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    if (appliedCoupon && couponInput === appliedCoupon.couponCode) {
+                                                        removeAppliedCoupon();
+                                                        setCouponInput("");
+                                                    } else if (couponInput.trim()) {
+                                                        handleApplyCoupon(couponInput);
+                                                    }
+                                                }
+                                            }}
+                                            className="w-full bg-transparent px-3 py-1.5 text-xs font-mono font-extrabold uppercase tracking-wider placeholder:font-sans placeholder:capitalize placeholder:text-[#8A8A8A] placeholder:font-normal focus:outline-none"
+                                        />
+                                        {appliedCoupon && couponInput === appliedCoupon.couponCode ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    removeAppliedCoupon();
+                                                    setCouponInput("");
+                                                    setCouponError("");
+                                                }}
+                                                className="shrink-0 rounded-lg bg-rose-600 px-4 py-2 text-xs font-black text-white hover:bg-rose-700 transition cursor-pointer shadow-2xs uppercase tracking-wider min-w-[65px] flex items-center justify-center"
+                                            >
+                                                REMOVE
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                disabled={!couponInput.trim() || isApplyingCoupon}
+                                                onClick={() => handleApplyCoupon(couponInput)}
+                                                className="shrink-0 rounded-lg bg-[#8B6914] px-4 py-2 text-xs font-black text-white transition hover:bg-[#7A5C10] disabled:opacity-40 cursor-pointer shadow-2xs uppercase tracking-wider min-w-[65px] flex items-center justify-center"
+                                            >
+                                                {isApplyingCoupon ? <Loader2 size={13} className="animate-spin" /> : "APPLY"}
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {couponError && (
+                                        <p className="text-[11px] font-semibold text-rose-600 flex items-center gap-1 pt-0.5">
+                                            <AlertTriangle size={12} /> {couponError}
+                                        </p>
+                                    )}
+
+                                    {appliedCoupon && !couponError && (
+                                        <p className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1 pt-0.5">
+                                            <CheckCircle2 size={12} /> Coupon applied successfully! Saved ₹{couponDiscountAmount.toLocaleString("en-IN")}
+                                        </p>
+                                    )}
+
+                                    {/* {availableCoupons.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCouponsModalOpen(true)}
+                                            className="w-full mt-1 p-2.5 rounded-xl border border-dashed border-[#8B6914]/40 bg-[#F5EDD6]/40 hover:bg-[#F5EDD6] text-[#8B6914] text-xs font-bold flex items-center justify-between transition cursor-pointer group shadow-2xs"
+                                        >
+                                            <span className="flex items-center gap-1.5">
+                                                <span>View All Coupons</span>
+                                            </span>
+                                            <span className="flex items-center gap-1 text-[11px] font-extrabold group-hover:translate-x-0.5 transition-transform">
+                                                <ChevronRight size={13} />
+                                            </span>
+                                        </button>
+                                    )} */}
                                 </div>
                             </div>
 
@@ -945,8 +1561,8 @@ const CartPage: React.FC = () => {
                                     <span className="font-medium text-[#1A1A1A]">₹{totalGstCharges.toLocaleString("en-IN")}</span>
                                 </div>
 
-                                {/* Delivery Fee: Display ONLY if distance > 0 OR fee > 0 */}
-                                {((deliveryDistanceKm !== null && deliveryDistanceKm > 0) || deliveryFee > 0) && (
+                                {/* Delivery Fee: Display ONLY if fee > 0 */}
+                                {/* {deliveryFee > 0 && ( */}
                                     <div>
                                         <div className="flex justify-between items-center text-[12px]">
                                             <span className="text-[#8A8A8A]">
@@ -958,7 +1574,7 @@ const CartPage: React.FC = () => {
                                             <p className="text-[10px] text-[#8A8A8A] text-right mt-0.5">₹{ratePerKm}/km delivery rate</p>
                                         )}
                                     </div>
-                                )}
+                                {/* )} */}
 
                                 {totalDiscountAmount > 0 && (
                                     <div className="flex justify-between items-center text-[12px]">
@@ -971,15 +1587,21 @@ const CartPage: React.FC = () => {
                                     </div>
                                 )}
 
-                                {/* <div className="flex justify-between items-center text-[12px]">
-                                    <span className="text-[#8A8A8A]">Insurance</span>
-                                    <span className="font-medium text-[#1A1A1A]">Included</span>
-                                </div> */}
+                                {couponDiscountAmount > 0 && (
+                                    <div className="flex justify-between items-center text-[12px]">
+                                        <span className="text-emerald-800 flex items-center gap-1 font-bold">
+                                           Coupon ({appliedCoupon?.couponCode})
+                                        </span>
+                                        <span className="font-extrabold text-emerald-700">
+                                            -₹{couponDiscountAmount.toLocaleString("en-IN")}
+                                        </span>
+                                    </div>
+                                )}
 
                                 <div className="border-t border-[#E8E0D5] pt-3 mt-3 flex justify-between items-center">
                                     <span className="text-[14px] font-semibold text-[#1A1A1A]">Total To Pay</span>
                                     <span className="text-[18px] font-bold text-[#8B6914]">
-                                        ₹{totalPayableAmount.toLocaleString("en-IN")}
+                                        ₹{Math.max(0, totalPayableAmount - couponDiscountAmount).toLocaleString("en-IN")}
                                     </span>
                                 </div>
                             </div>
@@ -993,6 +1615,18 @@ const CartPage: React.FC = () => {
                                     <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                                 </button>
                             ) : (() => {
+                                if (s.addresses.length === 0) {
+                                    return (
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate(`/physical-gold/profile?tab=address&add=true&returnTo=${encodeURIComponent(location.pathname + location.search)}`)}
+                                            className="w-full py-2.5 rounded-lg bg-[#8B6914] text-white text-[13px] font-medium hover:bg-[#7A5C10] transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
+                                        >
+                                            <Plus size={15} />
+                                            Add New Address
+                                        </button>
+                                    );
+                                }
                                 const selectedAddr = s.addresses.find(a => a.id === s.selectedAddressId);
                                 const missingLocation = selectedAddr && (!selectedAddr.latitude || !selectedAddr.longitude);
                                 const locationMessage = s.cartError || (missingLocation ? "This address is missing location coordinates. Please edit the address and capture your current location to proceed." : "");
@@ -1005,7 +1639,7 @@ const CartPage: React.FC = () => {
                                                     {locationMessage.includes("edit the address") ? (
                                                         <>
                                                             {locationMessage.split("Please ")[0]}
-                                                            <button onClick={() => navigate("/physical-gold/profile?tab=address")} className="underline font-semibold">edit the address</button>
+                                                            <button onClick={() => navigate(`/physical-gold/profile?tab=address&returnTo=${encodeURIComponent(location.pathname + location.search)}`)} className="underline font-semibold">edit the address</button>
                                                             {locationMessage.includes("to proceed") ? " to proceed." : ""}
                                                         </>
                                                     ) : (
@@ -1017,7 +1651,7 @@ const CartPage: React.FC = () => {
                                         <button
                                             disabled={!s.selectedAddressId || s.loadingCheckout || !!missingLocation}
                                             onClick={handleCheckoutClick}
-                                            className="w-full py-2.5 rounded-lg bg-[#8B6914] text-white text-[13px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-50 flex items-center justify-center"
+                                            className="w-full py-2.5 rounded-lg bg-[#8B6914] text-white text-[13px] font-medium hover:bg-[#7A5C10] transition disabled:opacity-50 flex items-center justify-center cursor-pointer"
                                         >
                                             {s.loadingCheckout
                                                 ? <Loader2 size={15} className="animate-spin" />

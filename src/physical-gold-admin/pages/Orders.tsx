@@ -210,7 +210,7 @@ const Orders: React.FC = () => {
       key: "orderNumber",
      
       render: (_: string, item: AdminOrder) => (
-        <div className="min-w-[180px] space-y-1 text-left text-[11px]">
+        <div className="min-w-[140px] space-y-1 text-left text-[12px]">
           <p>
             <b>Order:</b> {item.orderNumber}
           </p>
@@ -232,7 +232,7 @@ const Orders: React.FC = () => {
       key: "userName",
       
       render: (_: string, item: AdminOrder) => (
-        <div className="min-w-[180px] space-y-1 text-left text-[11px]">
+        <div className="min-w-[180px] space-y-1 text-left text-[12px]">
           <p className="font-bold text-slate-700">
             {item.userName || "Anonymous"}
           </p>
@@ -244,7 +244,7 @@ const Orders: React.FC = () => {
             <b>Ordered:</b> {item.createdAt ? formatDate(item.createdAt) : "—"}
           </p>
           <span
-            className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold ${getStatusColor(item.orderStatus)}`}
+            className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${getStatusColor(item.orderStatus)}`}
           >
             {item.orderStatus}
           </span>
@@ -265,13 +265,13 @@ const Orders: React.FC = () => {
         const deliveryPhone = item.deliveryBoyPhone || item.delivery?.deliveryBoy?.phone;
 
         return (
-          <div className="min-w-[160px] space-y-1 text-left text-[11px]">
-            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold ${getStatusColor(deliveryStatus)}`}>
+          <div className="min-w-[120px] space-y-1 text-left text-[12px]">
+            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${getStatusColor(deliveryStatus)}`}>
               {deliveryStatus}
             </span>
             <p className="font-bold text-slate-700">{deliveryBoy}</p>
             {deliveryPhone && <p className="text-slate-500">{deliveryPhone}</p>}
-            {deliveryId && <p className="text-[9px] text-slate-400">Tracking: {item.trackingNumber || item.delivery?.trackingNumber || "—"}</p>}
+            {deliveryId && <p className="text-[10px] text-slate-400">Tracking: {item.trackingNumber || item.delivery?.trackingNumber || "—"}</p>}
           </div>
         );
       },
@@ -282,7 +282,7 @@ const Orders: React.FC = () => {
       key: "address",
       width: 180,
       render: (_: unknown, item: AdminOrder) => (
-        <div className="w-[220px] space-y-0.5 text-left text-[11px] leading-4">
+        <div className="w-[220px] space-y-0.5 text-left text-[12px] leading-4">
           <p
             className="line-clamp-2 text-slate-600"
             title={[item.flatNo, item.address, item.landMark, item.state, item.pinCode].filter(Boolean).join(", ") || "Address unavailable"}
@@ -297,7 +297,7 @@ const Orders: React.FC = () => {
               .filter(Boolean)
               .join(", ") || "Address unavailable"}
           </p>
-          <p className="truncate text-[9px] text-slate-400">
+          <p className="truncate text-[10px] text-slate-400">
             Lat: {item.latitude || "—"} · Long: {item.longitude || "—"}
           </p>
         </div>
@@ -313,7 +313,7 @@ const Orders: React.FC = () => {
           {item.items.map((product) => (
             <div
               key={product.orderItemId || product.productId}
-              className="rounded-lg bg-slate-50 p-2 text-[10px]"
+              className="rounded-lg bg-slate-50 p-2 text-[11px]"
             >
               <p className="font-bold text-slate-700">
                 {product.productName || `Product #${product.productId}`}
@@ -338,7 +338,7 @@ const Orders: React.FC = () => {
       title: "Actions",
       key: "actions",
       width: 105,
-      fixed: "right" as const,
+     
       render: (_: unknown, item: AdminOrder) => {
         const assigned = !!getDeliveryId(item);
         const canReassign = assigned && getDeliveryStatus(item).toUpperCase() === "ASSIGNED";
@@ -352,7 +352,7 @@ const Orders: React.FC = () => {
               }}
               title="Assign delivery"
               aria-label="Assign delivery"
-              className="h-8 min-w-8 rounded-lg bg-emerald-600 px-2 text-[10px] font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-8 min-w-8 rounded-lg bg-emerald-600 px-2 text-[11px] font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               A
             </button>
@@ -364,7 +364,7 @@ const Orders: React.FC = () => {
               }}
               title={canReassign ? "Reassign delivery" : "Reassignment is available while delivery is assigned"}
               aria-label="Reassign delivery"
-              className="h-8 min-w-8 rounded-lg border border-amber-200 bg-amber-50 px-2 text-[10px] font-bold text-amber-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-8 min-w-8 rounded-lg border border-amber-200 bg-amber-50 px-2 text-[11px] font-bold text-amber-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Re
             </button>
@@ -467,7 +467,7 @@ const Orders: React.FC = () => {
                 {stat.icon}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">
+                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider truncate">
                   {stat.label}
                 </span>
                 <span className="text-base font-bold text-slate-800 tracking-tight truncate">
@@ -513,10 +513,6 @@ const Orders: React.FC = () => {
           pagination={false}
           scroll={{ x: true }}
           locale={{ emptyText: "No active orders found" }}
-          onRow={(record) => ({
-            onClick: () => handleRowClick(record),
-            className: "cursor-pointer",
-          })}
           className="orders-antd-table"
         />
         <Pagination
@@ -542,12 +538,12 @@ const Orders: React.FC = () => {
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                 <div className="flex items-center gap-2 text-slate-400 mb-1">
                   <ShoppingBag size={14} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">
                     Order Status
                   </span>
                 </div>
                 <span
-                  className={`text-[12px] font-bold uppercase ${getStatusColor(selectedOrder.orderStatus).split(" ")[1]}`}
+                  className={`text-[13px] font-bold uppercase ${getStatusColor(selectedOrder.orderStatus).split(" ")[1]}`}
                 >
                   {selectedOrder.orderStatus}
                 </span>
@@ -555,12 +551,12 @@ const Orders: React.FC = () => {
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                 <div className="flex items-center gap-2 text-slate-400 mb-1">
                   <CreditCard size={14} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">
                     Payment Status
                   </span>
                 </div>
                 <span
-                  className={`text-[12px] font-bold uppercase ${getStatusColor(selectedOrder.paymentStatus).split(" ")[1]}`}
+                  className={`text-[13px] font-bold uppercase ${getStatusColor(selectedOrder.paymentStatus).split(" ")[1]}`}
                 >
                   {selectedOrder.paymentStatus}
                 </span>
@@ -568,22 +564,22 @@ const Orders: React.FC = () => {
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                 <div className="flex items-center gap-2 text-slate-400 mb-1">
                   <Calendar size={14} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">
                     Payment Expiry
                   </span>
                 </div>
-                <span className="text-[12px] font-bold text-slate-700">
+                <span className="text-[13px] font-bold text-slate-700">
                   {formatDate(selectedOrder.paymentExpiry)}
                 </span>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                 <div className="flex items-center gap-2 text-slate-400 mb-1">
                   <Box size={14} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">
                     Payment Mode
                   </span>
                 </div>
-                <span className="text-[12px] font-bold text-slate-700 uppercase">
+                <span className="text-[13px] font-bold text-slate-700 uppercase">
                   {selectedOrder.paymentMode}
                 </span>
               </div>
@@ -602,10 +598,10 @@ const Orders: React.FC = () => {
                       <User size={14} />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+                      <span className="text-[12px] text-slate-400 font-bold uppercase tracking-wider">
                         Full Name
                       </span>
-                      <span className="text-[13px] font-bold text-slate-700">
+                      <span className="text-[14px] font-bold text-slate-700">
                         {selectedOrder.userName || "N/A"}
                       </span>
                     </div>
@@ -615,10 +611,10 @@ const Orders: React.FC = () => {
                       <Phone size={14} />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+                      <span className="text-[12px] text-slate-400 font-bold uppercase tracking-wider">
                         Phone Number
                       </span>
-                      <span className="text-[13px] font-bold text-slate-700">
+                      <span className="text-[14px] font-bold text-slate-700">
                         {selectedOrder.phoneNumber}
                       </span>
                     </div>
@@ -628,10 +624,10 @@ const Orders: React.FC = () => {
                       <Mail size={14} />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+                      <span className="text-[12px] text-slate-400 font-bold uppercase tracking-wider">
                         Email Address
                       </span>
-                      <span className="text-[13px] font-bold text-slate-700">
+                      <span className="text-[14px] font-bold text-slate-700">
                         {selectedOrder.userEmail || "N/A"}
                       </span>
                     </div>
@@ -685,24 +681,24 @@ const Orders: React.FC = () => {
               <h3 className="text-[13px] font-bold text-slate-800">Delivery Assignment</h3>
               <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-100 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Delivery Status</p>
-                  <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${getStatusColor(getDeliveryStatus(selectedOrder))}`}>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Delivery Status</p>
+                  <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${getStatusColor(getDeliveryStatus(selectedOrder))}`}>
                     {getDeliveryStatus(selectedOrder)}
                   </span>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Delivery Partner</p>
-                  <p className="mt-1 text-[12px] font-bold text-slate-700">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Delivery Partner</p>
+                  <p className="mt-1 text-[13px] font-bold text-slate-700">
                     {selectedOrder.deliveryBoyName || `${selectedOrder.delivery?.deliveryBoy?.firstName || ""} ${selectedOrder.delivery?.deliveryBoy?.lastName || ""}`.trim() || "Not assigned"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Partner Phone</p>
-                  <p className="mt-1 text-[12px] font-bold text-slate-700">{selectedOrder.deliveryBoyPhone || selectedOrder.delivery?.deliveryBoy?.phone || "—"}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Partner Phone</p>
+                  <p className="mt-1 text-[13px] font-bold text-slate-700">{selectedOrder.deliveryBoyPhone || selectedOrder.delivery?.deliveryBoy?.phone || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tracking Number</p>
-                  <p className="mt-1 break-all text-[12px] font-bold text-slate-700">{selectedOrder.trackingNumber || selectedOrder.delivery?.trackingNumber || "—"}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tracking Number</p>
+                  <p className="mt-1 break-all text-[13px] font-bold text-slate-700">{selectedOrder.trackingNumber || selectedOrder.delivery?.trackingNumber || "—"}</p>
                 </div>
               </div>
             </div>
@@ -714,7 +710,7 @@ const Orders: React.FC = () => {
                 Order Items
               </h3>
               <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm">
-                <table className="w-full text-center text-[12px]">
+                <table className="w-full text-center text-[13px]">
                   <thead className="bg-[#FBF7EC] text-[#8B6914] font-bold uppercase tracking-wider tabular-nums">
                     <tr>
                       <th className="px-4 py-3 text-center">Product ID</th>

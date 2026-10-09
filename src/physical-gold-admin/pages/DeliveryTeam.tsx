@@ -92,11 +92,6 @@ const DeliveryTeam: React.FC = () => {
                 </div>}
             </section>
 
-            {false && selectedBoy && <section className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-                <div className="flex items-start justify-between gap-3"><div><h2 className="flex items-center gap-2 text-sm font-bold text-slate-800"><Truck size={16} className="text-emerald-600" />{selectedBoy.firstName} {selectedBoy.lastName}&apos;s pending assignments</h2><p className="mt-1 text-xs text-slate-400">Delivery personnel ID: {selectedBoy.id}</p></div><button onClick={() => setSelectedBoy(null)} className="text-xs font-bold text-slate-400">Close</button></div>
-                {assignmentsLoading ? <div className="py-10 text-center text-xs text-slate-400">Loading assignments...</div> : assignments.length ? <div className="mt-4 grid gap-3 md:grid-cols-2">{assignments.map(item => <article key={item.id} className="rounded-xl border border-slate-100 p-4"><div className="flex justify-between gap-3"><div><p className="text-xs font-bold text-emerald-700">{item.orderNumber}</p><p className="mt-1 text-sm font-bold text-slate-800">{item.customerName}</p></div><span className="h-fit rounded-full bg-amber-50 px-2 py-1 text-[9px] font-bold text-amber-700">{item.statusLabel || item.status}</span></div><p className="mt-3 flex gap-2 text-xs text-slate-500"><MapPin size={13} className="shrink-0" />{item.deliveryAddress}</p><p className="mt-2 text-[11px] text-slate-400">{item.trackingNumber} · {item.customerPhone}</p></article>)}</div> : <div className="mt-4 rounded-xl border border-dashed border-slate-200 py-10 text-center text-xs text-slate-400">No pending assignments for this delivery person.</div>}
-            </section>}
-
             {selectedBoy && <section className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
                 <div className="space-y-4">
                     <div className="flex items-center justify-between gap-3">
@@ -107,27 +102,23 @@ const DeliveryTeam: React.FC = () => {
                         <button type="button" onClick={() => setSelectedBoy(null)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-bold text-slate-500 transition hover:bg-slate-50">Close</button>
                     </div>
                     <div className="flex flex-col gap-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-3">
-                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-emerald-600 shadow-sm"><Bike size={19} /></span>
-                            <div><p className="text-sm font-bold text-slate-800">{selectedBoy.firstName} {selectedBoy.lastName}</p><p className="mt-0.5 text-[11px] text-slate-500">Delivery personnel ID: #{selectedBoy.id}</p></div>
-                        </div>
+                        <div><p className="text-sm font-bold text-slate-800">{selectedBoy.firstName} {selectedBoy.lastName}</p><p className="mt-0.5 text-[11px] text-slate-500">Delivery personnel ID: #{selectedBoy.id}</p></div>
                         <div className="flex items-center gap-2">
                             <span className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-emerald-700 shadow-sm">{assignments.length} pending {assignments.length === 1 ? 'order' : 'orders'}</span>
-                            <button type="button" onClick={() => viewAssignments(selectedBoy)} disabled={assignmentsLoading} title="Refresh assignments" className="rounded-lg bg-white p-2 text-slate-500 shadow-sm hover:text-emerald-700 disabled:opacity-50"><RefreshCw size={15} className={assignmentsLoading ? 'animate-spin' : ''} /></button>
                         </div>
                     </div>
 
                     {assignmentsLoading ? <div className="py-14 text-center"><RefreshCw size={22} className="mx-auto animate-spin text-emerald-600" /><p className="mt-3 text-xs text-slate-400">Loading pending assignments...</p></div>
                     : assignments.length ? <>
-                        <div className="hidden overflow-x-auto rounded-xl border border-slate-100 md:block">
-                            <table className="w-full border-collapse text-left">
-                                <thead className="bg-[#FBF7EC]"><tr className="text-[10px] font-bold uppercase tracking-wider text-[#8B6914]"><th className="px-4 py-3">Order &amp; tracking</th><th className="px-4 py-3">Customer</th><th className="px-4 py-3">Delivery address</th><th className="px-4 py-3">Assigned on</th><th className="px-4 py-3">Status</th></tr></thead>
-                                <tbody className="divide-y divide-slate-100">{assignments.map(item => <tr key={item.id} className="align-top hover:bg-slate-50/70">
-                                    <td className="px-4 py-3"><p className="text-xs font-bold text-emerald-700">{item.orderNumber || '—'}</p><p className="mt-1 text-[10px] text-slate-400">{item.trackingNumber || 'No tracking number'}</p></td>
-                                    <td className="px-4 py-3"><p className="text-xs font-bold text-slate-700">{item.customerName || '—'}</p><p className="mt-1 flex items-center gap-1 text-[10px] text-slate-400"><Phone size={10} />{item.customerPhone || '—'}</p></td>
-                                    <td className="max-w-[280px] px-4 py-3"><p className="flex gap-1.5 text-[11px] leading-5 text-slate-500"><MapPin size={12} className="mt-1 shrink-0 text-emerald-600" />{item.deliveryAddress || 'Address unavailable'}</p></td>
-                                    <td className="whitespace-nowrap px-4 py-3 text-[11px] text-slate-500">{formatDate(item.assignedAt)}</td>
-                                    <td className="px-4 py-3"><span className={`inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[9px] font-bold uppercase ring-1 ${assignmentStatusStyle(item.status)}`}>{item.statusLabel || item.status}</span></td>
+                        <div className="hidden overflow-x-auto rounded-xl border border-slate-200 md:block">
+                            <table className="w-full border-collapse border border-slate-200 text-left">
+                                <thead className="bg-[#FBF7EC]"><tr className="text-[10px] font-bold uppercase tracking-wider text-[#8B6914]"><th className="border border-slate-200 px-4 py-3">Order &amp; tracking</th><th className="border border-slate-200 px-4 py-3">Customer</th><th className="border border-slate-200 px-4 py-3">Delivery address</th><th className="border border-slate-200 px-4 py-3">Assigned on</th><th className="border border-slate-200 px-4 py-3">Status</th></tr></thead>
+                                <tbody>{assignments.map(item => <tr key={item.id} className="align-top hover:bg-slate-50/70">
+                                    <td className="border border-slate-200 px-4 py-3"><p className="text-xs font-bold text-emerald-700">{item.orderNumber || '—'}</p><p className="mt-1 text-[10px] text-slate-400">{item.trackingNumber || 'No tracking number'}</p></td>
+                                    <td className="border border-slate-200 px-4 py-3"><p className="text-xs font-bold text-slate-700">{item.customerName || '—'}</p><p className="mt-1 flex items-center gap-1 text-[10px] text-slate-400"><Phone size={10} />{item.customerPhone || '—'}</p></td>
+                                    <td className="max-w-[280px] border border-slate-200 px-4 py-3"><p className="flex gap-1.5 text-[11px] leading-5 text-slate-500"><MapPin size={12} className="mt-1 shrink-0 text-emerald-600" />{item.deliveryAddress || 'Address unavailable'}</p></td>
+                                    <td className="whitespace-nowrap border border-slate-200 px-4 py-3 text-[11px] text-slate-500">{formatDate(item.assignedAt)}</td>
+                                    <td className="border border-slate-200 px-4 py-3"><span className={`inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[9px] font-bold uppercase ring-1 ${assignmentStatusStyle(item.status)}`}>{item.statusLabel || item.status}</span></td>
                                 </tr>)}</tbody>
                             </table>
                         </div>

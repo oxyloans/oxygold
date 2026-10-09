@@ -467,11 +467,18 @@ export const fetchProducts = async (
       imageUrl:
         resolveS3ImageUrl(item.imageUrl) || firstProductImageUrl(item) || "",
       priceRange: item.priceRange || "Price on request",
+      discountedPriceRange: item.discountedPriceRange,
       description: item.description || "",
       subCategoryId: item.categoryId
         ? item.categoryId.toString()
         : subCategoryId,
       status: item.status || "ACTIVE",
+      basePriceDiscountType: item.basePriceDiscountType,
+      basePriceDiscountValue: item.basePriceDiscountValue,
+      basePriceDiscountStart: item.basePriceDiscountStart,
+      basePriceDiscountEnd: item.basePriceDiscountEnd,
+      discountedPrice: item.discountedPrice,
+      price: item.price,
     }));
   return mappedData;
 };
@@ -502,6 +509,7 @@ export const fetchProductVariants = async (
   const variants = variantsData.listVariantResponse.map((item: any) => ({
     id: item.id.toString(),
     price: item.price,
+    discountedPrice: item.discountedPrice,
     mrp: item.mrp,
     imageUrl:
       resolveS3ImageUrl(item.imageUrl) ||
@@ -513,6 +521,11 @@ export const fetchProductVariants = async (
     status: item.status,
     stockQuantity: item.stockQuantity,
     weight: item.weight,
+    discountActive: item.discountActive,
+    basePriceDiscountType: item.basePriceDiscountType,
+    basePriceDiscountValue: item.basePriceDiscountValue,
+    basePriceDiscountStart: item.basePriceDiscountStart,
+    basePriceDiscountEnd: item.basePriceDiscountEnd,
   }));  
 
   const productData = result.data.productResponse;
@@ -527,13 +540,20 @@ export const fetchProductVariants = async (
             firstProductImageUrl(productImages),
           imageSet: productImages || undefined,
           priceRange: productData.priceRange || "Price on request",
+          discountedPriceRange: productData.discountedPriceRange,
           description: productData.description,
-          subCategoryId: productData.categoryId.toString(),
+          subCategoryId: productData.categoryId ? productData.categoryId.toString() : "",
           categoryName: productData.categoryName,
           subCategoryName: productData.subCategoryName,
           status: productData.status,
           gstPercentage: productData.gstPercentage,
           makingPercentage: productData.makingPercentage,
+          basePriceDiscountType: productData.basePriceDiscountType,
+          basePriceDiscountValue: productData.basePriceDiscountValue,
+          basePriceDiscountStart: productData.basePriceDiscountStart,
+          basePriceDiscountEnd: productData.basePriceDiscountEnd,
+          discountedPrice: productData.discountedPrice,
+          price: productData.price,
         }
       : (null as any),
   };
@@ -1010,9 +1030,14 @@ export const addToWishlistService = async (payload: any) => {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  const data = await response.json();
-  if (!response.ok)
-    throw new Error(data?.message || "Failed to add to wishlist");
+  const data = await response.json().catch(() => null);
+  if (!response.ok || data?.success === false) {
+    return {
+      success: false,
+      message: data?.message || "Product Already Added to Wishlist",
+      data: data?.data || null,
+    };
+  }
   return data;
 };
 
@@ -1118,15 +1143,19 @@ export interface GoldSilverRateBreakdown {
 
 
 export const fetchGoldSilverRateBreakdown = async (
-  variantId: string,
+  variantId: string | number,
+  quantity?: number
 ): Promise<GoldSilverRateBreakdown> => {
+  const url = quantity && quantity > 0
+    ? `${API_BASE_URL}/oxygold-api/admin/categories/variants/${encodeURIComponent(variantId)}/price-breakup?quantity=${quantity}`
+    : `${API_BASE_URL}/oxygold-api/admin/categories/variants/${encodeURIComponent(variantId)}/price-breakup`;
   const response = await fetch(
-    `${API_BASE_URL}/oxygold-api/admin/categories/variants/${encodeURIComponent(variantId)}/price-breakup`,
+    url,
     {
       headers: {
         "X-API-KEY": PUBLIC_API_KEY,
       },
-    },
+    }
   );
   const payload = await response.json().catch(() => null);
   if (!response.ok)
@@ -1299,4 +1328,70 @@ export const uploadQueryScreenshot = async (
   const data = await response.json();
   if (!response.ok) throw new Error(data?.message || "Failed to upload file");
   return data;
+};
+
+// --- Available & Apply Coupons User APIs ---
+
+export interface AvailableCoupon {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  discountType: "PERCENTAGE" | "FIXED" | string;
+  discountValue: number;
+  minimumOrderAmount: number;
+  maximumDiscountAmount: number;
+  applyTo: string;
+  categoryId?: number;
+  categoryName?: string;
+  startDateTime?: string;
+  endDateTime?: string;
+  usageLimit?: number;
+  usedCount?: number;
+  usageLimitPerUser?: number;
+  active: boolean;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const fetchAvailableCoupons = async (): Promise<AvailableCoupon[]> => {
+  try {
+    const response = await authenticatedFetch(`${BASE_URL}/coupons/available`, {
+      method: "GET",
+    });
+    const data = await response.json();
+    if (!response.ok || data?.success === false) {
+      console.warn("fetchAvailableCoupons response not OK:", data?.message);
+      return [];
+    }
+    const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+    // Only return active coupons
+    return list.filter((c: any) => c && (c.active === undefined || c.active === true));
+  } catch (err) {
+    console.error("fetchAvailableCoupons error:", err);
+    return [];
+  }
+};
+
+export interface ApplyCouponResult {
+  couponCode: string;
+  discountType: "PERCENTAGE" | "FIXED" | string;
+  discountValue: number;
+  eligibleAmount: number;
+  discountAmount: number;
+  finalAmount: number;
+  message?: string;
+}
+
+export const applyCouponApi = async (couponCode: string): Promise<ApplyCouponResult> => {
+  const response = await authenticatedFetch(`${BASE_URL}/coupons/apply`, {
+    method: "POST",
+    body: JSON.stringify({ couponCode: couponCode.trim().toUpperCase() }),
+  });
+  const data = await response.json();
+  if (!response.ok || data?.success === false) {
+    throw new Error(data?.message || "Invalid or ineligible coupon code.");
+  }
+  return data?.data || data;
 };

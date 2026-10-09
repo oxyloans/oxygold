@@ -13,6 +13,23 @@ import Select from "../components/ui/Select";
 import * as adminService from '../services/adminService';
 import Toast from '../../PhysicalGold/components/Toast';
 import { firstProductImageUrl, resolveS3ImageUrl, resolveProductImageSet } from '../../PhysicalGold/physicalGoldData';
+const formatDateTimeForInput = (dateStr?: string) => {
+    if (!dateStr) return '';
+    if (dateStr.includes('T')) {
+        const sliced = dateStr.slice(0, 19);
+        return sliced.length === 16 ? sliced + ':00' : sliced;
+    }
+    return dateStr;
+};
+
+const formatDateTimeForPayload = (dateStr?: string) => {
+    if (!dateStr) return null;
+    if (dateStr.length === 16) {
+        return dateStr + ':00';
+    }
+    return dateStr;
+};
+
 const CatalogUpload: React.FC = () => {
     // Hierarchical Navigation State
     const [level, setLevel] = useState(0); // 0: Main Cat, 1: Sub Cat, 2: Products, 3: Variants
@@ -27,7 +44,7 @@ const CatalogUpload: React.FC = () => {
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalType, setModalType] = useState<'category' | 'product' | 'variant' | 'price' | 'quantity'>('category');
+    const [modalType, setModalType] = useState<'category' | 'product' | 'variant' | 'price'>('category');
     const [isEditing, setIsEditing] = useState(false);
     const [currentItem, setCurrentItem] = useState<any>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -132,11 +149,6 @@ const CatalogUpload: React.FC = () => {
                 if (level === 2) params.productId = currentItem.id;
                 else params.categoryId = currentItem.id;
             } else {
-                // For new items, we might need to handle this differently if API requires ID 
-                // But user says categeryId and productId are query params.
-                // If they are new, they don't have IDs yet. 
-                // Usually we upload after creation or use a temporary container.
-                // However, the user request shows params: categoryId and productId.
                 if (level === 2 && currentParent) params.categoryId = currentParent.id;
                 else if (level === 1 && currentParent) params.categoryId = currentParent.id;
             }
@@ -172,13 +184,17 @@ const CatalogUpload: React.FC = () => {
             setFormData({
                 name: '', description: '', imageId: 0,
                 productType: '', gstPercentage: 0, makingPercentage: 0, discountPercentage: 0,
-                status: 'ACTIVE'
+                status: 'ACTIVE',
+                basePriceDiscountType: 'PERCENTAGE',
+                basePriceDiscountValue: 0,
+                basePriceDiscountStart: '',
+                basePriceDiscountEnd: ''
             });
         } else {
             setModalType('variant');
             setFormData({
                 sku: '', size: '', purity: '',
-                weight: 0, mrp: 0, stockQuantity: 0
+                weight: 0, mrp: 0
             });
         }
         setIsModalOpen(true);
@@ -198,7 +214,11 @@ const CatalogUpload: React.FC = () => {
                 productType: item.productType || '', gstPercentage: item.gstPercentage ?? 0,
                 makingPercentage: item.makingPercentage ?? 0,
                 discountPercentage: item.discountPercentage ?? 0,
-                status: item.status || 'ACTIVE'
+                status: item.status || 'ACTIVE',
+                basePriceDiscountType: item.basePriceDiscountType || 'PERCENTAGE',
+                basePriceDiscountValue: item.basePriceDiscountValue ?? 0,
+                basePriceDiscountStart: formatDateTimeForInput(item.basePriceDiscountStart),
+                basePriceDiscountEnd: formatDateTimeForInput(item.basePriceDiscountEnd)
             });
         } else {
             setModalType('variant');
@@ -223,7 +243,14 @@ const CatalogUpload: React.FC = () => {
                     successMessage = "Category created successfully";
                 }
             } else if (modalType === 'product') {
-                const payload = { ...formData, categoryId: currentParent!.id };
+                const payload = {
+                    ...formData,
+                    categoryId: currentParent!.id,
+                    basePriceDiscountType: formData.basePriceDiscountType || 'PERCENTAGE',
+                    basePriceDiscountValue: Number(formData.basePriceDiscountValue || 0),
+                    basePriceDiscountStart: formatDateTimeForPayload(formData.basePriceDiscountStart),
+                    basePriceDiscountEnd: formatDateTimeForPayload(formData.basePriceDiscountEnd)
+                };
                 if (isEditing) {
                     await adminService.updateProduct(currentItem.id, payload);
                     successMessage = "Product updated successfully";
@@ -239,9 +266,6 @@ const CatalogUpload: React.FC = () => {
             } else if (modalType === 'price') {
                 await adminService.updateVariantPrice(currentItem.id, formData.price, formData.mrp);
                 successMessage = "Price updated successfully";
-            } else if (modalType === 'quantity') {
-                await adminService.updateVariantQuantity(currentItem.id, formData.stockQuantity);
-                successMessage = "Stock quantity updated successfully";
             }
 
             setIsModalOpen(false);
@@ -313,6 +337,21 @@ const CatalogUpload: React.FC = () => {
                 common.push({ header: 'Making', key: 'makingPercentage', width: '70px', render: (v: any) => `${v ?? 0}%` });
                 common.push({ header: 'Discount', key: 'discountPercentage', width: '70px', render: (v: any) => `${v ?? 0}%` });
                 common.push({
+                    header: 'Base Discount Price',
+                    key: 'basePriceDiscountValue',
+                    width: '120px',
+                    render: (_: any, item: any) => {
+                        if (!item.basePriceDiscountValue) return <span className="text-slate-400 text-xs">-</span>;
+                        const valStr = item.basePriceDiscountType === 'FIXED' ? `₹${item.basePriceDiscountValue}` : `${item.basePriceDiscountValue}%`;
+                        return (
+                            <div className="text-xs">
+                                <span className="font-semibold text-emerald-600">{valStr}</span>
+                                <span className="text-[10px] text-slate-400 block">{item.basePriceDiscountType || 'PERCENTAGE'}</span>
+                            </div>
+                        );
+                    }
+                });
+                common.push({
                     header: 'Status',
                     key: 'status',
                     width: '100px',
@@ -349,7 +388,19 @@ const CatalogUpload: React.FC = () => {
             common.push({ header: 'Size', key: 'size', width: '80px' });
             common.push({ header: 'Weight', key: 'weight', width: '80px', render: (v: any) => `${v}g` });
             common.push({ header: 'Price', key: 'price', width: '100px', render: (v: any) => `₹${Number(v).toLocaleString()}` });
-            common.push({ header: 'Stock', key: 'stockQuantity', width: '80px' });
+            common.push({
+                header: 'Stock',
+                key: 'stockQuantity',
+                width: '90px',
+                render: (_: any, item: any) => {
+                    const qty = item.stockQuantity ?? item.stock ?? item.quantity ?? item.availableQuantity ?? 0;
+                    return (
+                        <span className={`font-semibold text-xs ${qty > 0 ? 'text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded' : 'text-rose-600 bg-rose-50 px-2 py-0.5 rounded'}`}>
+                            {qty}
+                        </span>
+                    );
+                }
+            });
             common.push({
                 header: 'Status',
                 key: 'status',
@@ -381,34 +432,19 @@ const CatalogUpload: React.FC = () => {
             render: (_: any, item: any) => (
                 <div className="flex justify-center gap-1">
                     {level === 3 && (
-                        <>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setCurrentItem(item);
-                                    setFormData({ price: item.price, mrp: item.mrp });
-                                    setModalType('price');
-                                    setIsModalOpen(true);
-                                }}
-                                className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-emerald-600 transition-all"
-                                title="Update Price"
-                            >
-                                <Settings2 size={14} />
-                            </button>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setCurrentItem(item);
-                                    setFormData({ stockQuantity: item.stockQuantity });
-                                    setModalType('quantity');
-                                    setIsModalOpen(true);
-                                }}
-                                className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-emerald-600 transition-all"
-                                title="Update Stock"
-                            >
-                                <Plus size={14} />
-                            </button>
-                        </>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentItem(item);
+                                setFormData({ price: item.price, mrp: item.mrp });
+                                setModalType('price');
+                                setIsModalOpen(true);
+                            }}
+                            className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-emerald-600 transition-all"
+                            title="Update Price"
+                        >
+                            <Settings2 size={14} />
+                        </button>
                     )}
                     {level !== 3 && (
                         <button
@@ -504,13 +540,13 @@ const CatalogUpload: React.FC = () => {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title={isEditing ? `Update ${modalType}` : modalType === 'price' ? 'Update Price' : modalType === 'quantity' ? 'Update Stock' : `Create New ${modalType}`}
+                title={isEditing ? `Update ${modalType}` : modalType === 'price' ? 'Update Price' : `Create New ${modalType}`}
                 size="md"
                 footer={
                     <div className="flex gap-2">
                         <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                         <Button onClick={handleSubmit} disabled={isUploading}>
-                            {modalType === 'price' || modalType === 'quantity' ? 'Update' : (isEditing ? 'Save Changes' : 'Create')}
+                            {modalType === 'price' ? 'Update' : (isEditing ? 'Save Changes' : 'Create')}
                         </Button>
                     </div>
                 }
@@ -529,11 +565,6 @@ const CatalogUpload: React.FC = () => {
                                 required
                             />
                         </div>
-                    ) : modalType === 'quantity' ? (
-                        <Input
-                            label="New Stock Quantity" type="number" value={formData.stockQuantity || 0}
-                            onChange={e => setFormData({ ...formData, stockQuantity: Number(e.target.value) })}
-                        />
                     ) : modalType !== 'variant' ? (
                         <>
                             <Input
@@ -583,6 +614,57 @@ const CatalogUpload: React.FC = () => {
                                             value={formData.discountPercentage ?? 0}
                                             onChange={e => setFormData({ ...formData, discountPercentage: Number(e.target.value) })}
                                         />
+                                    </div>
+                                    {/* Base Price Discount Section */}
+                                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                                            Base Price Discount
+                                        </label>
+
+                                        {/* Row 1: Discount Type & Discount Value */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                                            <Select
+                                                label="Discount Type"
+                                                options={[
+                                                    { label: 'Percentage (%)', value: 'PERCENTAGE' },
+                                                    { label: 'Fixed Amount (₹)', value: 'FIXED' },
+                                                ]}
+                                                value={formData.basePriceDiscountType || 'PERCENTAGE'}
+                                                onChange={val => setFormData({ ...formData, basePriceDiscountType: val as string })}
+                                            />
+                                            <Input
+                                                className="!mb-0"
+                                                style={{ height: '38px', borderRadius: '0.5rem' }}
+                                                label={`Discount Value (${formData.basePriceDiscountType === 'FIXED' ? '₹' : '%'})`}
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={formData.basePriceDiscountValue ?? 0}
+                                                onChange={e => setFormData({ ...formData, basePriceDiscountValue: Number(e.target.value) })}
+                                            />
+                                        </div>
+
+                                        {/* Row 2: Promotion Start & Promotion End */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                                            <Input
+                                                className="!mb-0"
+                                                style={{ height: '38px', borderRadius: '0.5rem' }}
+                                                label="Promotion Start"
+                                                type="datetime-local"
+                                                step="1"
+                                                value={formData.basePriceDiscountStart || ''}
+                                                onChange={e => setFormData({ ...formData, basePriceDiscountStart: e.target.value })}
+                                            />
+                                            <Input
+                                                className="!mb-0"
+                                                style={{ height: '38px', borderRadius: '0.5rem' }}
+                                                label="Promotion End"
+                                                type="datetime-local"
+                                                step="1"
+                                                value={formData.basePriceDiscountEnd || ''}
+                                                onChange={e => setFormData({ ...formData, basePriceDiscountEnd: e.target.value })}
+                                            />
+                                        </div>
                                     </div>
                                     {/* Status Field */}
                                     <div className="space-y-1">
@@ -679,9 +761,6 @@ const CatalogUpload: React.FC = () => {
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Input label="Weight (g)" type="number" value={formData.weight || 0} onChange={e => setFormData({ ...formData, weight: Number(e.target.value) })} />
-                                <Input label="Stock" type="number" value={formData.stockQuantity || 0} onChange={e => setFormData({ ...formData, stockQuantity: Number(e.target.value) })} />
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Input label="MRP (₹)" type="number" value={formData.mrp || 0} onChange={e => setFormData({ ...formData, mrp: Number(e.target.value) })} />
                             </div>
                         </div>

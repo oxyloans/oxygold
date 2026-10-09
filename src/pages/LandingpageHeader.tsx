@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Logo from "../assets/oxygoldlogo.png";
+import Logo from "../assets/oxygoldlogo-wk.png";
 import SubscribeLivePrice from "../components/SubscribeLivePrice";
 import { IoMdMenu } from "react-icons/io";
 type LinkItem = { label: string; targetId: string };
@@ -10,7 +10,7 @@ type Props = {
 };
 
 const NAV_LINKS: LinkItem[] = [
-  { label: "Live Gold Rates", targetId: "live-rate" },
+  { label: "About Us", targetId: "hero" },
   { label: "Buy Silver Coins", targetId: "buy-silver" },
   { label: "Buy Gold Coins", targetId: "buy-gold" },
 
@@ -106,7 +106,8 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
           background: "radial-gradient(1200px 700px at 10% 10%, rgba(91,46,255,0.14) 0%, transparent 62%), radial-gradient(900px 520px at 90% 18%, rgba(212,175,55,0.08) 0%, transparent 62%)",
         }} />
 
-        <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "0 18px", height: "100%" }}>
+  <div className="mx-auto h-full max-w-7xl sm:px-4 px-2">
+
           <div className="og-header-row" style={{ display: "flex", alignItems: "center", height: "100%", gap: "12px" }}>
 
             {/* ── Mobile: Hamburger LEFT ── */}
@@ -146,7 +147,9 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
               aria-label="Go to top"
               style={{ display: "flex", alignItems: "center", background: "transparent", border: "none", cursor: "pointer", padding: 0, flexShrink: 0 }}
             >
-              <img src={Logo} alt="OxyGold Logo" style={{ height: "72px", width: "170px", objectFit: "contain" }} />
+              <img src={Logo} alt="OxyGold Logo" 
+               className="h-14 md:h-16 w-auto object-contain cursor-pointer"
+               />
             </button>
 
             {/* ── Desktop Nav (center) ── */}

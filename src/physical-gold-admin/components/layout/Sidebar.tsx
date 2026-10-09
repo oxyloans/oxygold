@@ -13,6 +13,7 @@ import {
   Bike,
   Truck,
   MessageSquareText,
+  Tag,
   X,
 } from "lucide-react";
 import { logout } from "../../services/adminService";
@@ -36,12 +37,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
       icon: <UploadCloud size={18} />,
       path: "/admin/catalog-upload",
     },
-    { title: "Registered Users", icon: <User size={18} />, path: "/admin/users" },
-    { title: "Orders Management", icon: <ShoppingBag size={18} />, path: "/admin/orders" },
-    { title: "Delivery Boy List", icon: <Bike size={18} />, path: "/admin/delivery" },
-    { title: "Delivery Pricing", icon: <Truck size={18} />, path: "/admin/delivery-pricing" },
-    { title: "Reviews & Ratings", icon: <MessageSquareText size={18} />, path: "/admin/reviews" },
-    { title: "All User Queries", icon: <HelpCircle size={18} />, path: "/admin/helpdesk" },
+   { title: "Orders Management", icon: <ShoppingBag size={18} />, path: "/admin/orders" },
+   { title: "Coupons Management", icon: <Tag size={18} />, path: "/admin/coupons" },
+   { title: "All User Queries", icon: <HelpCircle size={18} />, path: "/admin/helpdesk" },
+   { title: "Delivery Boy List", icon: <Bike size={18} />, path: "/admin/delivery" },
+   { title: "Registered Users", icon: <User size={18} />, path: "/admin/users" },
+   { title: "Delivery Pricing", icon: <Truck size={18} />, path: "/admin/delivery-pricing" },
+   { title: "Reviews & Ratings", icon: <MessageSquareText size={18} />, path: "/admin/reviews" },
   ];
 
   const handleLogoutVerify = async () => {

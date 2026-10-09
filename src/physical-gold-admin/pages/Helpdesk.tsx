@@ -157,26 +157,23 @@ const Helpdesk: React.FC = () => {
     };
 
     const columns = [
-        {
-            header: 'S No.', key: 'id', width: '90px',
-            render: (_: number, item: HelpdeskQuery) => (
-                <span className="font-bold text-slate-700 tabular-nums">
-                    {searchTerm.trim() ? filtered.indexOf(item) + 1 : currentPage * pageSize + filtered.indexOf(item) + 1}
-                </span>
-            ),
-        },
+        // {
+        //     header: 'S No.', key: 'id', width: '90px',
+        //     render: (_: number, item: HelpdeskQuery) => (
+        //         <span className="font-bold text-slate-700 tabular-nums">
+        //             {searchTerm.trim() ? filtered.indexOf(item) + 1 : currentPage * pageSize + filtered.indexOf(item) + 1}
+        //         </span>
+        //     ),
+        // },
         {
             header: 'User Info', key: 'name', width: '250px',
             render: (_: string, item: HelpdeskQuery) => (
-                <div className="min-w-[220px] space-y-1 text-left text-[11px] leading-relaxed">
+                <div className="min-w-[220px] space-y-1 text-left text-[12px] leading-relaxed">
                     <p><span className="font-bold text-slate-500">Name:</span> {item.name || '—'}</p>
                     <p><span className="font-bold text-slate-500">Email:</span> <span className="break-all">{item.email || '—'}</span></p>
                     <p><span className="font-bold text-slate-500">Mobile:</span> {item.number || '—'}</p>
                     <p><span className="font-bold text-slate-500">Ticket ID:</span> {item.randomTicketId || item.ticketId || item.id}</p>
                     <p><span className="font-bold text-slate-500">Date:</span> {formatHelpdeskDate(item.createdAt)}</p>
-                    {/* <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${getStatusStyle(item.queryStatus)}`}>
-                        {item.queryStatus}
-                    </span> */}
                 </div>
             ),
         },
@@ -184,7 +181,7 @@ const Helpdesk: React.FC = () => {
             header: 'User Query', key: 'query', width: '300px',
             render: (_: string, item: HelpdeskQuery) => (
                 <div className="min-w-[260px] space-y-2 text-left">
-                    <p className="text-[12px] leading-relaxed text-slate-700 whitespace-pre-wrap">{item.query || '—'}</p>
+                    <p className="text-[13px] leading-relaxed text-slate-700 whitespace-pre-wrap">{item.query || '—'}</p>
                     {item.userDocuments?.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
                             {item.userDocuments.map((doc) => {
@@ -196,7 +193,7 @@ const Helpdesk: React.FC = () => {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     onClick={event => event.stopPropagation()}
-                                    className="inline-flex max-w-[180px] items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-emerald-700 hover:border-emerald-300"
+                                    className="inline-flex max-w-[180px] items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-emerald-700 hover:border-emerald-300"
                                 >
                                     <Paperclip size={10} className="shrink-0" />
                                     <span className="truncate">{doc.fileName || doc.adminUploadedFileName || 'Document'}</span>
@@ -211,7 +208,7 @@ const Helpdesk: React.FC = () => {
         {
             header: 'Admin & User Replies', key: 'comments', width: '320px',
             render: (_: string | null, item: HelpdeskQuery) => (
-                <div className="min-w-[280px] space-y-2 text-[11px]">
+                <div className="min-w-[280px] space-y-2 text-[12px]">
                     {item.userPendingQueries?.map(reply => (
                         <div key={reply.id} className="rounded-lg border border-blue-100 bg-blue-50 p-2">
                             <p className="mb-0.5 font-bold text-blue-700">User Reply</p>
@@ -241,7 +238,7 @@ const Helpdesk: React.FC = () => {
             render: (_: string, item: HelpdeskQuery) => (
                 <button
                     onClick={event => { event.stopPropagation(); openDetail(item); }}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-[11px] font-bold text-amber-700 transition hover:bg-amber-100"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-[12px] font-bold text-amber-700 transition hover:bg-amber-100"
                 >
                      Update
                 </button>
@@ -257,7 +254,7 @@ const Helpdesk: React.FC = () => {
                         <HelpCircle className="text-emerald-600 shrink-0" size={22} />
                         <h1 className="text-xl font-bold text-slate-800 tracking-tight">Helpdesk</h1>
                     </div>
-                    <p className="text-[12px] text-slate-400 font-medium mt-0.5 tracking-tight">
+                    <p className="text-[13px] text-slate-400 font-medium mt-0.5 tracking-tight">
                         Manage and resolve user support queries
                     </p>
                 </div>
@@ -269,7 +266,7 @@ const Helpdesk: React.FC = () => {
                     <button
                         key={tab}
                         onClick={() => setStatusFilter(tab)}
-                        className={`px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${statusFilter === tab
+                        className={`px-4 py-1.5 rounded-md text-[13px] font-bold uppercase tracking-wider transition-all ${statusFilter === tab
                             ? tab === 'COMPLETED'
                                 ? 'bg-white text-emerald-600 shadow-sm'
                                 : tab === 'PENDING'
@@ -364,22 +361,22 @@ const Helpdesk: React.FC = () => {
 
                         {/* Query Text */}
                         <div>
-                            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">User Query</p>
-                            <p className="text-[13px] text-slate-700 bg-slate-50 rounded-lg p-3 leading-relaxed">{selectedQuery.query}</p>
+                            <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">User Query</p>
+                            <p className="text-[14px] text-slate-700 bg-slate-50 rounded-lg p-3 leading-relaxed">{selectedQuery.query}</p>
                         </div>
 
                         {/* Existing Comments */}
                         {selectedQuery.comments && (
                             <div>
-                                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Admin Response</p>
-                                <p className="text-[13px] text-slate-700 bg-emerald-50 border border-emerald-100 rounded-lg p-3">{selectedQuery.comments}</p>
+                                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Admin Response</p>
+                                <p className="text-[14px] text-slate-700 bg-emerald-50 border border-emerald-100 rounded-lg p-3">{selectedQuery.comments}</p>
                             </div>
                         )}
 
                         {/* Attachments */}
                         {selectedQuery.userDocuments?.length > 0 && (
                             <div>
-                                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">User Attachments</p>
+                                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400 mb-2">User Attachments</p>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                     {selectedQuery.userDocuments.map((doc) => {
                                         const filePath = doc.filePath || doc.adminUploadedFilePath || '';
@@ -409,7 +406,7 @@ const Helpdesk: React.FC = () => {
                                                 )}
                                                 <div className="px-2 py-1.5 flex items-center gap-1.5 bg-white">
                                                     <Paperclip size={10} className="text-slate-400 shrink-0" />
-                                                    <span className="text-[11px] text-slate-600 truncate">{doc.fileName}</span>
+                                                    <span className="text-[12px] text-slate-600 truncate">{doc.fileName}</span>
                                                 </div>
                                             </a>
                                         );
@@ -421,7 +418,7 @@ const Helpdesk: React.FC = () => {
                         {/* Upload document / screenshot (admin) */}
                         {selectedQuery.queryStatus === 'PENDING' && (
                             <div>
-                                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Upload Document / Screenshot</p>
+                                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400 mb-2">Upload Document / Screenshot</p>
                                 <div className="flex items-center gap-2">
                                     <input
                                         ref={fileRef}
@@ -432,7 +429,7 @@ const Helpdesk: React.FC = () => {
                                     />
                                     <button
                                         onClick={() => fileRef.current?.click()}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-slate-300 rounded-lg text-[12px] text-slate-500 hover:border-emerald-400 hover:text-emerald-600 transition-all"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-slate-300 rounded-lg text-[13px] text-slate-500 hover:border-emerald-400 hover:text-emerald-600 transition-all"
                                     >
                                         <Paperclip size={12} />
                                         {uploadFile ? uploadFile.name : 'Choose file'}

@@ -585,3 +585,21 @@
         transform: translateY(0);
     }
 }
+
+/* Ensure hand/pointer cursor on all buttons, click icons, interactive elements, SVG symbols, and clickable images */
+button,
+a,
+select,
+summary,
+label[for],
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+input[type="checkbox"],
+input[type="radio"],
+[role="button"],
+.cursor-pointer,
+button svg,
+svg.cursor-pointer {
+    cursor: pointer !important;
+}

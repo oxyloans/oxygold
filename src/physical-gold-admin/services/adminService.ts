@@ -286,6 +286,22 @@ export const updateCategory = async (data: any) => {
 
 // --- Products API ---
 
+export interface CreateProductPayload {
+  name: string;
+  description?: string;
+  productType?: string;
+  gstPercentage?: number;
+  makingPercentage?: number;
+  discountPercentage?: number;
+  status?: string;
+  categoryId?: number | string;
+  basePriceDiscountType?: "PERCENTAGE" | "FIXED";
+  basePriceDiscountValue?: number;
+  basePriceDiscountStart?: string;
+  basePriceDiscountEnd?: string;
+  [key: string]: any;
+}
+
 export const getAllProducts = async (categoryId: number | string) => {
   const response = await adminAuthenticatedFetch(
     `${BASE_URL}/products/getAllProduct?categoryId=${categoryId}`,
@@ -294,7 +310,7 @@ export const getAllProducts = async (categoryId: number | string) => {
   return response.json();
 };
 
-export const createProduct = async (data: any) => {
+export const createProduct = async (data: CreateProductPayload | any) => {
   const response = await adminAuthenticatedFetch(
     `${BASE_URL}/products/createProduct`,
     {
@@ -309,7 +325,7 @@ export const createProduct = async (data: any) => {
   return response.json();
 };
 
-export const updateProduct = async (productId: number | string, data: any) => {
+export const updateProduct = async (productId: number | string, data: CreateProductPayload | any) => {
   const response = await adminAuthenticatedFetch(
     `${BASE_URL}/products/updateProduct/${productId}`,
     {
@@ -377,12 +393,12 @@ export const getAllVariants = async (productId: number | string) => {
 };
 
 export const addVariant = async (productId: number | string, data: any) => {
-  const { sku, size, purity, weight, mrp, stockQuantity } = data;
+  const { sku, size, purity, weight, mrp } = data;
   const response = await adminAuthenticatedFetch(
     `${BASE_URL}/productvariants/addVariant/${productId}`,
     {
       method: "POST",
-      body: JSON.stringify({ sku, size, purity, weight, mrp, stockQuantity }),
+      body: JSON.stringify({ sku, size, purity, weight, mrp }),
     },
   );
   if (!response.ok) {
@@ -1093,3 +1109,116 @@ export const exportOrdersPDF = async (filters?: {
   if (!response.ok) throw new Error("Failed to export orders");
   return response.blob();
 };
+
+// --- Coupon Management API Functions ---
+
+export type ApplyTo = "ALL" | "CATEGORY";
+export type DiscountType = "PERCENTAGE" | "FIXED";
+
+export interface CouponPayload {
+  code: string;
+  name: string;
+  description: string;
+  discountType: DiscountType;
+  discountValue: number;
+  minimumOrderAmount: number;
+  maximumDiscountAmount: number;
+  applyTo: ApplyTo;
+  categoryId?: number;
+  startDateTime: string;
+  endDateTime: string;
+  usageLimit: number;
+  usageLimitPerUser: number;
+  active: boolean;
+}
+
+export interface CouponData extends CouponPayload {
+  id: number;
+  categoryName?: string;
+  usedCount: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CouponUser {
+  userId: number;
+  name: string;
+  phoneNumber: string;
+  orderId: number;
+  discountAmount: number;
+  usedAt: string;
+}
+
+export interface CouponUsersData {
+  couponCode: string;
+  usageLimit: number;
+  usedCount: number;
+  remainingCount: number;
+  users: CouponUser[];
+}
+
+/** Fetch all coupons */
+export const fetchCoupons = async (): Promise<CouponData[]> => {
+  const response = await adminAuthenticatedFetch(`${BASE_URL}/coupons`, {
+    method: "GET",
+  });
+  const json = await response.json().catch(() => null);
+  if (!response.ok || !json?.success) {
+    throw new Error(json?.message || "Failed to fetch coupons");
+  }
+  return Array.isArray(json.data) ? json.data : [];
+};
+
+/** Create a new coupon */
+export const createCoupon = async (payload: CouponPayload): Promise<CouponData> => {
+  const response = await adminAuthenticatedFetch(`${BASE_URL}/coupons`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const json = await response.json().catch(() => null);
+  if (!response.ok || !json?.success) {
+    throw new Error(json?.message || "Failed to create coupon");
+  }
+  return json.data;
+};
+
+/** Update an existing coupon */
+export const updateCoupon = async (id: number | string, payload: CouponPayload): Promise<CouponData> => {
+  const response = await adminAuthenticatedFetch(`${BASE_URL}/coupons/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const json = await response.json().catch(() => null);
+  if (!response.ok || !json?.success) {
+    throw new Error(json?.message || "Failed to update coupon");
+  }
+  return json.data;
+};
+
+/** Toggle coupon active status */
+export const updateCouponStatus = async (id: number | string, active: boolean): Promise<CouponData> => {
+  const response = await adminAuthenticatedFetch(`${BASE_URL}/coupons/${id}/status?active=${active}`, {
+    method: "PATCH",
+  });
+  const json = await response.json().catch(() => null);
+  if (!response.ok || !json?.success) {
+    throw new Error(json?.message || "Failed to update coupon status");
+  }
+  return json.data;
+};
+
+/** Fetch users who applied a coupon */
+export const fetchCouponUsers = async (id: number | string): Promise<CouponUsersData> => {
+  const response = await adminAuthenticatedFetch(`${BASE_URL}/coupons/${id}/users`, {
+    method: "GET",
+  });
+  const json = await response.json().catch(() => null);
+  if (!response.ok || !json?.success) {
+    throw new Error(json?.message || "Failed to fetch coupon users");
+  }
+  return json.data;
+};
+

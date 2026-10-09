@@ -27,7 +27,7 @@ function Table<T>({
     className = '',
 }: TableProps<T>) {
     return (
-        <div className={`overflow-x-auto rounded-lg border border-slate-100 bg-white ${className}`}>
+        <div className={`overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs ${className}`}>
             <table className="w-full text-center border-collapse">
                 <thead className="bg-[#FBF7EC]">
                     <tr>
@@ -35,14 +35,14 @@ function Table<T>({
                             <th
                                 key={index}
                                 style={{ width: column.width, textAlign: 'center' }}
-                                className="px-4 py-3 text-[10px] font-bold text-[#8B6914] uppercase tracking-wider border-b border-[#E8D8A8]"
+                                className="px-3.5 py-3 text-[10px] font-bold text-[#8B6914] uppercase tracking-wider border-b border-[#E8D8A8] border-r border-[#E8D8A8]/40 last:border-r-0"
                             >
                                 {column.header}
                             </th>
                         ))}
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-100">
                     {isLoading ? (
                         <tr>
                             <td colSpan={columns.length} className="px-4 py-8 text-center">
@@ -60,7 +60,7 @@ function Table<T>({
                             <tr
                                 key={rowIndex}
                                 onClick={() => onRowClick?.(item)}
-                                className={`group transition-colors ${onRowClick ? 'cursor-pointer hover:bg-slate-50/50' : ''}`}
+                                className={`group transition-colors border-b border-slate-100 last:border-b-0 ${onRowClick ? 'cursor-pointer hover:bg-slate-50/50' : 'hover:bg-slate-50/30'}`}
                             >
                                 {columns.map((column, colIndex) => {
                                     const value = (item as any)[column.key];
@@ -68,7 +68,7 @@ function Table<T>({
                                         <td
                                             key={colIndex}
                                             style={{ textAlign: 'center' }}
-                                            className="px-4 py-3 text-[13px] text-slate-600 font-medium"
+                                            className="px-3 py-2.5 text-[13px] text-slate-600 font-medium border-r border-slate-100/80 last:border-r-0"
                                         >
                                             {column.render ? column.render(value, item) : value}
                                         </td>

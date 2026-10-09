@@ -4,9 +4,9 @@ import { fetchWishlistService, addToWishlistService, removeFromWishlistService, 
 
 interface WishlistContextType {
   wishlist: PhysicalGoldProduct[];
-  addToWishlist: (product: PhysicalGoldProduct, variantId?: string) => Promise<void>;
-  removeFromWishlist: (productId: string) => Promise<void>;
-  toggleWishlist: (product: PhysicalGoldProduct, variantId?: string) => Promise<void>;
+  addToWishlist: (product: PhysicalGoldProduct, variantId?: string) => Promise<{ success: boolean; message: string }>;
+  removeFromWishlist: (productId: string) => Promise<{ success: boolean; message: string }>;
+  toggleWishlist: (product: PhysicalGoldProduct, variantId?: string) => Promise<{ success: boolean; message: string }>;
   isInWishlist: (productId: string) => boolean;
   refreshWishlist: () => Promise<void>;
   wishlistCount: number;
@@ -93,14 +93,14 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
     refreshWishlist();
   }, [refreshWishlist]);
 
-  const addToWishlist = async (product: PhysicalGoldProduct, variantId?: string) => {
+  const addToWishlist = async (product: PhysicalGoldProduct, variantId?: string): Promise<{ success: boolean; message: string }> => {
     const userId = GET_USER_ID();
     if (!userId) {
       setWishlist((prev) => {
         if (prev.some((p) => p.id === product.id)) return prev;
         return [...prev, product];
       });
-      return;
+      return { success: true, message: "Product added to Wishlist" };
     }
     try {
       setWishlist((prev) => {
@@ -121,19 +121,29 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
       }
 
-      await addToWishlistService({
+      const res = await addToWishlistService({
         userId: userId,
         productId: parseInt(product.id),
         productVariantId: finalVariantId
       });
       await refreshWishlist();
-    } catch (error) {
+      const isSuccess = res?.success !== false;
+      const responseMsg = res?.data?.message || res?.message || (isSuccess ? "Product added to Wishlist" : "Product Already Added to Wishlist");
+      return {
+        success: isSuccess,
+        message: responseMsg,
+      };
+    } catch (error: any) {
       console.error("Failed to add to wishlist:", error);
       await refreshWishlist();
+      return {
+        success: false,
+        message: error?.message || "Product Already Added to Wishlist",
+      };
     }
   };
 
-  const removeFromWishlist = async (productId: string) => {
+  const removeFromWishlist = async (productId: string): Promise<{ success: boolean; message: string }> => {
     const itemToRemove = wishlist.find(p => p.id === productId);
     const wId = (itemToRemove as any)?.wishlistId;
 
@@ -141,19 +151,22 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     if (wId) {
       try {
-        await removeFromWishlistService(wId);
-      } catch (error) {
+        const res = await removeFromWishlistService(wId);
+        return { success: true, message: res?.message || "Product removed from Wishlist" };
+      } catch (error: any) {
         console.error("Failed to remove from wishlist:", error);
         await refreshWishlist();
+        return { success: false, message: error?.message || "Failed to remove from Wishlist" };
       }
     }
+    return { success: true, message: "Product removed from Wishlist" };
   };
 
-  const toggleWishlist = async (product: PhysicalGoldProduct, variantId?: string) => {
+  const toggleWishlist = async (product: PhysicalGoldProduct, variantId?: string): Promise<{ success: boolean; message: string }> => {
     if (isInWishlist(product.id)) {
-      await removeFromWishlist(product.id);
+      return await removeFromWishlist(product.id);
     } else {
-      await addToWishlist(product, variantId);
+      return await addToWishlist(product, variantId);
     }
   };
 

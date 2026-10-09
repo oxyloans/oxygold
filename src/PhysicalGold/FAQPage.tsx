@@ -23,14 +23,14 @@ const FAQPage: React.FC = () => {
       question: "Do you offer free shipping?",
       answer: "Yes, we offer free shipping on all orders above ₹50,000. For orders below this amount, a nominal shipping charge of ₹200 applies."
     },
-    {
-      question: "What is your return policy?",
-      answer: "We offer a 15-day return policy from the date of delivery. Products must be in original condition with tags and certificates intact."
-    },
-    {
-      question: "Do you offer lifetime exchange?",
-      answer: "Yes, we offer lifetime exchange on all products at 100% value. You can exchange for any product of equal or higher value, paying only the making charges on the new purchase."
-    },
+    // {
+    //   question: "What is your return policy?",
+    //   answer: "We offer a 15-day return policy from the date of delivery. Products must be in original condition with tags and certificates intact."
+    // },
+    // {
+    //   question: "Do you offer lifetime exchange?",
+    //   answer: "Yes, we offer lifetime exchange on all products at 100% value. You can exchange for any product of equal or higher value, paying only the making charges on the new purchase."
+    // },
     {
       question: "How do I track my order?",
       answer: "Once your order is shipped, you will receive a tracking number via email and SMS. You can use this to track your order on our website or the courier partner's website."
@@ -54,11 +54,11 @@ const FAQPage: React.FC = () => {
     {
       question: "Do you provide certificates with jewellery?",
       answer: "Yes, all our products come with BIS hallmark certificates and detailed invoices. For diamond jewellery, we also provide diamond certificates."
-    },
-    {
-      question: "Can I cancel my order?",
-      answer: "Orders can be cancelled before shipment for a full refund. Once shipped, cancellation is subject to our return policy. Customized orders cannot be cancelled."
     }
+    // {
+    //   question: "Can I cancel my order?",
+    //   answer: "Orders can be cancelled before shipment for a full refund. Once shipped, cancellation is subject to our return policy. Customized orders cannot be cancelled."
+    // }
   ];
 
   return (
@@ -110,7 +110,7 @@ const FAQPage: React.FC = () => {
             <div className="space-y-2 text-[14px]">
               <p><strong>Email:</strong> support@oxygold.ai</p>
               <p><strong>Phone:</strong> +91 81432 71103</p>
-              <p><strong>Hours:</strong> Monday - Saturday, 9:00 AM - 6:00 PM IST</p>
+              <p><strong>Hours:</strong> Monday - Saturday, 9:30 AM - 7:30 PM IST</p>
             </div>
           </div>
         </div>

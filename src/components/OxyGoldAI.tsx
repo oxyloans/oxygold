@@ -205,7 +205,7 @@ export default function OxyGoldLandingPage({ assets }: Props) {
         </section> */}
 
         {/* Main Container */}
-        <div className="mx-auto w-full max-w-[1464px] px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-7xl sm:px-4 px-2">
 
           <div className="space-y-10 sm:space-y-14 lg:space-y-20">
 

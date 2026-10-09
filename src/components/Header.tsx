@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/Header.css';
-import Logo from "../assets/oxygoldlogo.png";
+import Logo from "../assets/oxygoldlogo-bk.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

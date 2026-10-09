@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Search, ShoppingCart, User, Heart, Menu, X, ChevronDown, ChevronUp, LogOut } from "lucide-react";
-import { FaHandsHelping } from "react-icons/fa";
+import { ShoppingCart, User, Heart, Menu, X, ChevronDown, ChevronUp, LogOut } from "lucide-react";
+
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../CartContext";
 import { useWishlist } from "../WishlistContext";
-import oxygoldLogo from "../../assets/oxygoldlogo.png";
+import oxygoldLogo from "../../assets/oxygoldlogo-bk.png";
 import Toast from "./Toast";
 import TokenManager from "../../utils/tokenManager";
 import { logout } from "../physicalGoldService";
 import "../styles.css";
+import { RiCustomerServiceFill } from "react-icons/ri";
 
 const ALL_CATEGORY_ID = "__all__";
 
@@ -97,7 +98,7 @@ const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Main Header */}
-        <div className="bg-white" style={{ borderBottom: "0.5px solid hsl(40, 20%, 88%)" }}>
+        <div className="bg-white"  style={{ borderBottom: "0.5px solid hsl(40, 20%, 88%)" }}>
           <div className="mx-auto h-14 w-full max-w-7xl ">
             <div className="flex items-center justify-between h-12 md:h-12">
               {/* Mobile Menu Button */}
@@ -125,7 +126,7 @@ const Header: React.FC<HeaderProps> = ({
                 <img
                   src={oxygoldLogo}
                   alt="OxyGold"
-                  className="h-4 md:h-7 w-auto object-contain"
+                  className="h-14 md:h-16 w-auto object-contain cursor-pointer"
                 />
               </button>
 
@@ -138,6 +139,25 @@ const Header: React.FC<HeaderProps> = ({
               >
                 Digital Gold
               </button> */}
+
+                {/* Account */}
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => {
+                      const target = "/physical-gold/profile";
+                      if (!isLoggedIn) {
+                        navigate("/login");
+                      } else {
+                        navigate(target);
+                      }
+                    }}
+                    className="p-2 transition-colors cursor-pointer text-foreground hover:text-primary"
+                    aria-label="Account"
+                    title="Account"
+                  >
+                    <User size={24} />
+                  </button>
+                </div>
 
                 {/* Wishlist */}
                 <button
@@ -153,33 +173,31 @@ const Header: React.FC<HeaderProps> = ({
                   aria-label="Wishlist"
                   title="Wishlist"
                 >
-                  <Heart size={20} />
-                  {wishlistCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 text-xs rounded-full flex items-center justify-center font-semibold bg-primary text-white">
-                      {wishlistCount}
-                    </span>
-                  )}
+                  <Heart size={24} />
+                  <span className="absolute -top-1 -right-1 w-5 h-5 text-xs rounded-full flex items-center justify-center font-semibold bg-primary text-white">
+                    {wishlistCount ?? 0}
+                  </span>
                 </button>
 
-                {/* Profile Icon */}
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => {
-                      const target = "/physical-gold/profile";
-                      if (!isLoggedIn) {
-                       
-                        navigate("/login");
-                      } else {
-                        navigate(target);
-                      }
-                    }}
-                    className="p-2 transition-colors cursor-pointer text-foreground hover:text-primary"
-                    aria-label="Account"
-                    title="Account"
-                  >
-                    <User size={20} />
-                  </button>
-                </div>
+                {/* Cart */}
+                <button
+                  onClick={() => {
+                    const target = "/physical-gold/cart";
+                    if (!isLoggedIn) {
+                      navigate("/login");
+                    } else {
+                      navigate(target);
+                    }
+                  }}
+                  className="p-2 transition-colors cursor-pointer relative text-foreground hover:text-primary"
+                  aria-label="My Cart"
+                  title="My Cart"
+                >
+                  <ShoppingCart size={24} />
+                  <span className="absolute -top-1 -right-1 w-5 h-5 text-xs rounded-full flex items-center justify-center font-semibold bg-primary text-white">
+                    {totalItems ?? 0}
+                  </span>
+                </button>
 
                 {/* Help Desk */}
                 <button
@@ -195,30 +213,7 @@ const Header: React.FC<HeaderProps> = ({
                   aria-label="Help Desk"
                   title="Help Desk & Support"
                 >
-                  <FaHandsHelping size={19} />
-                </button>
-
-                {/* Cart */}
-                <button
-                  onClick={() => {
-                    const target = "/physical-gold/cart";
-                    if (!isLoggedIn) {
-                     
-                      navigate("/login");
-                    } else {
-                      navigate(target);
-                    }
-                  }}
-                  className="p-2 transition-colors cursor-pointer relative text-foreground hover:text-primary"
-                  aria-label="Cart"
-                  title="Cart"
-                >
-                  <ShoppingCart size={20} />
-                  {totalItems > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 text-xs rounded-full flex items-center justify-center font-semibold bg-primary text-white">
-                      {totalItems}
-                    </span>
-                  )}
+                  <RiCustomerServiceFill   size={24} />
                 </button>
 
                 {/* Logout */}
@@ -229,7 +224,7 @@ const Header: React.FC<HeaderProps> = ({
                     aria-label="Logout"
                     title="Logout"
                   >
-                    <LogOut size={20} />
+                    <LogOut size={24} />
                   </button>
                 )}
               </div>
@@ -250,14 +245,14 @@ const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   onClick={() => onCategoryClick?.(ALL_CATEGORY_ID)}
-                  className={`relative cursor-pointer pb-1 font-sans text-[13px] uppercase tracking-wide transition-all duration-300 ${!selectedCategoryId || selectedCategoryId === ALL_CATEGORY_ID
+                  className={`relative cursor-pointer pb-1 font-sans text-[13px] uppercase tracking-wide transition-all duration-300 ${selectedCategoryId === ALL_CATEGORY_ID || selectedCategoryId === "all"
                     ? "font-semibold text-primary"
                     : "text-[#27272A] hover:text-primary"
                     }`}
                 >
                   All
                   <span
-                    className={`absolute bottom-0 left-0 h-[3px] rounded-t bg-primary transition-all duration-300 ${!selectedCategoryId || selectedCategoryId === ALL_CATEGORY_ID ? "w-full" : "w-0"
+                    className={`absolute bottom-0 left-0 h-[3px] rounded-t bg-primary transition-all duration-300 ${selectedCategoryId === ALL_CATEGORY_ID || selectedCategoryId === "all" ? "w-full" : "w-0"
                       }`}
                   />
                 </button>
@@ -316,8 +311,8 @@ const Header: React.FC<HeaderProps> = ({
                           setIsCategoriesOpen(false);
                           onCategoryClick?.(ALL_CATEGORY_ID);
                         }}
-                        className={`rounded-md px-4 py-2 text-left font-sans text-sm font-semibold uppercase tracking-wide transition-colors ${!selectedCategoryId || selectedCategoryId === ALL_CATEGORY_ID
-                          ? "bg-secondary text-primary"
+                        className={`rounded-md px-4 py-2 text-left font-sans text-sm uppercase tracking-wide transition-colors ${selectedCategoryId === ALL_CATEGORY_ID || selectedCategoryId === "all"
+                          ? "bg-secondary font-semibold text-primary"
                           : "text-foreground hover:bg-secondary hover:text-primary"
                           }`}
                       >

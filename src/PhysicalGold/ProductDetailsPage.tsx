@@ -22,11 +22,12 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import LoadingSpinner from "./components/LoadingSpinner";
+import Toast from "./components/Toast";
 
 import AIModelPreviewModal from "./components/AIModelPreviewModal";
 import VirtualTryOnModal from "./components/VirtualTryOnModal";
 
-import { PhysicalGoldProduct, ProductVariant, resolveS3ImageUrl } from "./physicalGoldData";
+import { PhysicalGoldProduct, ProductVariant, resolveS3ImageUrl, isDiscountTimeActive } from "./physicalGoldData";
 import { fetchProductVariants, fetchProducts, generateModelImage, generateVirtualTryOn, fetchProductRecommendations, fetchProductRatings, fetchGoldSilverRateBreakdown, GoldSilverRateBreakdown } from "./physicalGoldService";
 import { useCart, ProfileIncompleteError } from "./CartContext";
 import { useWishlist } from "./WishlistContext";
@@ -58,14 +59,53 @@ const CompactProductCard: React.FC<{
 }> = ({ product, onClick }) => {
   const [imageFailed, setImageFailed] = useState(false);
   useEffect(() => setImageFailed(false), [product.imageUrl]);
+
+  const baseDiscountType = product?.basePriceDiscountType;
+  const baseDiscountValue = Number(product?.basePriceDiscountValue || 0);
+
+  const originalPriceNum = product.price ?? null;
+  let calculatedDiscountedPrice = product.discountedPrice ?? null;
+
+  if (baseDiscountType && baseDiscountValue > 0 && originalPriceNum != null) {
+    if (baseDiscountType === "FIXED") {
+      calculatedDiscountedPrice = originalPriceNum - baseDiscountValue;
+    } else if (baseDiscountType === "PERCENTAGE") {
+      calculatedDiscountedPrice = originalPriceNum - (originalPriceNum * baseDiscountValue) / 100;
+    }
+  }
+
+  const hasBaseDiscount = Boolean(
+    baseDiscountType &&
+    (baseDiscountType === "FIXED" || baseDiscountType === "PERCENTAGE") &&
+    baseDiscountValue > 0 &&
+    originalPriceNum != null
+  );
+
+  let discountTagLabel = "";
+  if (hasBaseDiscount) {
+    if (baseDiscountType === "FIXED") {
+      discountTagLabel = `₹${baseDiscountValue} EXTRA OFF`;
+    } else if (baseDiscountType === "PERCENTAGE") {
+      discountTagLabel = `${baseDiscountValue}% EXTRA OFF`;
+    }
+  }
+
+  const mainPrice = hasBaseDiscount && calculatedDiscountedPrice != null ? calculatedDiscountedPrice : originalPriceNum;
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-stone-200 bg-white text-left transition duration-200 hover:border-amber-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2"
+      className="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-stone-200 bg-white text-left transition duration-200 hover:border-amber-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2"
       aria-label={`View ${product.productName}`}
     >
       <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden border-b border-stone-100 bg-stone-50 p-2.5 sm:aspect-square sm:p-3">
+        {hasBaseDiscount && discountTagLabel && (
+          <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+            <Tag size={9} />
+            {discountTagLabel}
+          </span>
+        )}
         {product.imageUrl && !imageFailed ? (
           <img
             src={product.imageUrl}
@@ -86,9 +126,17 @@ const CompactProductCard: React.FC<{
         <h4 className="mb-2 line-clamp-2 min-h-[2.5rem] break-words text-sm font-semibold leading-5 text-stone-900">
           {product.productName}
         </h4>
-        <p className="mt-auto break-words text-sm font-semibold text-stone-900 sm:text-base">
-          {displayPrice(product.priceRange)}
-        </p>
+        <div className="mt-auto flex flex-wrap items-baseline gap-1.5">
+          <span className="text-sm font-bold text-stone-900 sm:text-base">
+            {mainPrice != null ? `₹${mainPrice.toLocaleString("en-IN")}` : displayPrice(product.priceRange)}
+          </span>
+          {hasBaseDiscount && originalPriceNum != null && (
+            <>
+              <span className="text-xs text-stone-400 line-through">₹{originalPriceNum.toLocaleString("en-IN")}</span>
+              <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">{discountTagLabel}</span>
+            </>
+          )}
+        </div>
         <span className="mt-3 flex min-h-10 items-center justify-center rounded-lg border-t border-stone-100 px-2 py-2 text-xs font-medium text-stone-600 transition group-hover:text-amber-800">
           View details <span aria-hidden="true" className="ml-2">→</span>
         </span>
@@ -105,6 +153,8 @@ const ProductDetailsPage: React.FC = () => {
   const { isInWishlist, toggleWishlist } = useWishlist();
 
   const { categoryId, categoryName, subCategoryId, subCategoryName, fromWishlist } = (location.state as any) || {};
+
+  const [toast, setToast] = useState<{ message: string; type: "success" | "info" | "warning" | "error" } | null>(null);
 
   const [product, setProduct] = useState<PhysicalGoldProduct | null>(null);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
@@ -229,10 +279,17 @@ const ProductDetailsPage: React.FC = () => {
               productName: item.name,
               imageUrl: resolveS3ImageUrl(item.frontViewurl) || "",
               priceRange: item.priceRange || `₹${item.price?.toLocaleString('en-IN')}`,
+              discountedPriceRange: item.discountedPriceRange,
               description: item.description,
               subCategoryId: item.categoryId?.toString(),
               categoryName: item.categoryName,
               status: item.status,
+              basePriceDiscountType: item.basePriceDiscountType,
+              basePriceDiscountValue: item.basePriceDiscountValue,
+              basePriceDiscountStart: item.basePriceDiscountStart,
+              basePriceDiscountEnd: item.basePriceDiscountEnd,
+              discountedPrice: item.discountedPrice,
+              price: item.price,
             })));
           }
           if (recommendations.exploreMoreProducts) {
@@ -241,10 +298,17 @@ const ProductDetailsPage: React.FC = () => {
               productName: item.name,
               imageUrl: resolveS3ImageUrl(item.frontViewurl) || "",
               priceRange: item.priceRange || `₹${item.price?.toLocaleString('en-IN')}`,
+              discountedPriceRange: item.discountedPriceRange,
               description: item.description,
               subCategoryId: item.categoryId?.toString(),
               categoryName: item.categoryName,
               status: item.status,
+              basePriceDiscountType: item.basePriceDiscountType,
+              basePriceDiscountValue: item.basePriceDiscountValue,
+              basePriceDiscountStart: item.basePriceDiscountStart,
+              basePriceDiscountEnd: item.basePriceDiscountEnd,
+              discountedPrice: item.discountedPrice,
+              price: item.price,
             })));
           }
         } catch (error) {
@@ -270,7 +334,7 @@ const ProductDetailsPage: React.FC = () => {
     let cancelled = false;
     setPriceBreakdownLoading(true);
     setPriceBreakdownError(null);
-    fetchGoldSilverRateBreakdown(selectedVariant.id)
+    fetchGoldSilverRateBreakdown(selectedVariant.id, quantity || 1)
       .then((breakdown) => {
         if (!cancelled) setPriceBreakdown(breakdown);
       })
@@ -284,7 +348,7 @@ const ProductDetailsPage: React.FC = () => {
         if (!cancelled) setPriceBreakdownLoading(false);
       });
     return () => { cancelled = true; };
-  }, [selectedVariant?.id]);
+  }, [selectedVariant?.id, quantity]);
 
   useEffect(() => {
     if (!product || !priceBreakdown || !selectedVariant) return;
@@ -623,10 +687,58 @@ const ProductDetailsPage: React.FC = () => {
     .filter(Boolean)
     .some((name) => /silver/i.test(String(name)));
   const metalName = isSilverProduct ? "Silver" : "Gold";
+  const baseDiscountType = selectedVariant.basePriceDiscountType || product.basePriceDiscountType;
+  const baseDiscountValue = Number(selectedVariant.basePriceDiscountValue ?? product.basePriceDiscountValue ?? 0);
+  const baseDiscountStart = selectedVariant.basePriceDiscountStart ?? product.basePriceDiscountStart;
+  const baseDiscountEnd = selectedVariant.basePriceDiscountEnd ?? product.basePriceDiscountEnd;
+
+  const isPromoActive = isDiscountTimeActive(baseDiscountStart, baseDiscountEnd);
+
   const itemPrice = Number(selectedVariant.price) || 0;
+  const rawDiscountedPrice = selectedVariant.discountedPrice != null
+    ? Number(selectedVariant.discountedPrice)
+    : product.discountedPrice != null
+    ? Number(product.discountedPrice)
+    : itemPrice;
+
+  const discountedItemPrice = isPromoActive && rawDiscountedPrice > 0 && rawDiscountedPrice < itemPrice
+    ? rawDiscountedPrice
+    : itemPrice;
+
+  const hasBaseDiscount = Boolean(
+    isPromoActive &&
+    ((discountedItemPrice > 0 && discountedItemPrice < itemPrice) ||
+      (baseDiscountType &&
+        (baseDiscountType === "FIXED" || baseDiscountType === "PERCENTAGE") &&
+        baseDiscountValue > 0))
+  );
+
+  let discountTagLabel = "";
+  if (hasBaseDiscount && discountedItemPrice > 0 && discountedItemPrice < itemPrice) {
+    const diff = Math.round(itemPrice - discountedItemPrice);
+    if (baseDiscountType === "PERCENTAGE" && baseDiscountValue > 0) {
+      discountTagLabel = `${baseDiscountValue}% EXTRA OFF`;
+    } else if (baseDiscountType === "FIXED" && baseDiscountValue > 0) {
+      discountTagLabel = `₹${baseDiscountValue} EXTRA OFF`;
+    } else {
+      const pct = Math.round((diff / itemPrice) * 100);
+      discountTagLabel = pct > 0 ? `${pct}% EXTRA OFF` : `₹${diff} EXTRA OFF`;
+    }
+  } else if (hasBaseDiscount) {
+    if (baseDiscountType === "FIXED") {
+      discountTagLabel = `₹${baseDiscountValue} EXTRA OFF`;
+    } else if (baseDiscountType === "PERCENTAGE") {
+      discountTagLabel = `${baseDiscountValue}% EXTRA OFF`;
+    }
+  }
+
+  const effectiveMainPrice = hasBaseDiscount ? discountedItemPrice : itemPrice;
   const mrp = Number(selectedVariant.mrp) || 0;
-  const hasValidMrp = mrp > 0 && mrp > itemPrice;
-  const mrpDiscount = hasValidMrp ? mrp - itemPrice : 0;
+  const hasValidMrp = mrp > 0 && mrp > effectiveMainPrice;
+  const mrpDiscount = hasValidMrp ? mrp - effectiveMainPrice : 0;
+  const totalSavings = hasValidMrp
+    ? mrp - effectiveMainPrice
+    : (hasBaseDiscount ? itemPrice - effectiveMainPrice : 0);
   const apiDiscountAmount = priceBreakdown?.discountAmount ?? 0;
   const apiDiscountPercentage = priceBreakdown?.discountPercentage ?? 0;
   const formatMetalOption = (purity: string) =>
@@ -717,15 +829,30 @@ const ProductDetailsPage: React.FC = () => {
                   alt={product.productName}
                   className="w-full h-full object-contain"
                 />
-                {tag && (
+                {hasBaseDiscount && discountTagLabel ? (
+                  <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-sm">
+                    <Tag size={11} />
+                    {discountTagLabel}
+                  </span>
+                ) : tag ? (
                   <span className="absolute top-3 left-3 text-xs font-semibold uppercase tracking-widest px-2 py-1 rounded-md bg-[#C29B27] text-white">
                     {tag}
                   </span>
-                )}
+                ) : null}
                 {/* Wishlist button — semi-rounded, white bg */}
                 <button
                   aria-label={liked ? "Remove from wishlist" : "Add to wishlist"}
-                  onClick={() => product && toggleWishlist(product)}
+                  onClick={async () => {
+                    if (product) {
+                      const res = await toggleWishlist(product, selectedVariant?.id);
+                      if (res && res.message) {
+                        setToast({
+                          message: res.message,
+                          type: res.success ? "success" : "info",
+                        });
+                      }
+                    }
+                  }}
                   className={`absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center bg-white border border-[#E8E2D8] shadow-sm transition-colors ${liked ? "text-[#C29B27]" : "text-[#8A8A8A] hover:text-[#C29B27]"
                     }`}
                 >
@@ -788,32 +915,60 @@ const ProductDetailsPage: React.FC = () => {
               {/* Price */}
               <div className="flex flex-wrap items-end gap-3">
                 <span className="text-[26px] font-bold text-[#C29B27] leading-none">
-                  ₹{selectedVariant.price.toLocaleString("en-IN")}
+                  ₹{effectiveMainPrice.toLocaleString("en-IN")}
                 </span>
-                {hasValidMrp && (
+                {hasBaseDiscount && (
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[13px] text-[#8A8A8A] line-through">
-                      ₹{mrp.toLocaleString("en-IN")}
+                    <span className="text-[14px] text-[#8A8A8A] line-through">
+                      ₹{itemPrice.toLocaleString("en-IN")}
                     </span>
-                    <span className="text-xs font-semibold tracking-wide uppercase text-green-700 px-1.5 py-0.5 bg-green-50 rounded">
-                      {Math.round((mrpDiscount / mrp) * 100)}% OFF
+                    <span className="text-xs font-bold tracking-wide text-emerald-700 px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded inline-flex items-center gap-1">
+                      <Tag size={11} className="text-emerald-600" />
+                      {discountTagLabel}
                     </span>
                   </div>
                 )}
-                {hasValidMrp && apiDiscountAmount > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                    <Tag size={11} /> {apiDiscountPercentage > 0 ? `${apiDiscountPercentage}% discount applied` : 'Discount applied'}
-                  </span>
+                {hasBaseDiscount && (hasValidMrp || totalSavings > 0) ? (
+                  <div className="w-full flex flex-wrap items-center gap-3 mt-1">
+                    {hasValidMrp && (
+                      <span className="text-[13px] text-[#8A8A8A]">
+                        MRP <span className="line-through">₹{mrp.toLocaleString("en-IN")}</span>
+                      </span>
+                    )}
+                    {totalSavings > 0 && (
+                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        You Save ₹{totalSavings.toLocaleString("en-IN")}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {hasValidMrp && (
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[13px] text-[#8A8A8A]">
+                          MRP <span className="line-through">₹{mrp.toLocaleString("en-IN")}</span>
+                        </span>
+                      </div>
+                    )}
+                    {totalSavings > 0 && (
+                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 mb-0.5">
+                        You Save ₹{totalSavings.toLocaleString("en-IN")}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
 
-              {/* <button
+              <button
                 type="button"
-                onClick={() => priceBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[#C29B27]/35 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-[#9B7416] transition-colors hover:bg-amber-100"
+                onClick={() => {
+                  setShowDiscountModal(true);
+                  priceBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[#C29B27]/35 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-[#9B7416] transition-colors hover:bg-amber-100 cursor-pointer"
               >
                 View Price Breakdown ↓
-              </button> */}
+              </button>
 
               {/* Inline badges */}
               <div className="flex items-center gap-3">
@@ -1452,13 +1607,12 @@ const ProductDetailsPage: React.FC = () => {
                           <td className="whitespace-nowrap px-3 py-3 text-center">{selectedVariant.weight}g</td>
                           <td className="whitespace-nowrap px-3 py-3 text-center font-semibold">₹{priceBreakdown.variantPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
                         </tr>
-                        {priceBreakdown.makingPercentage > 0 && (
-                          <tr className="border-t border-[#F0EBE1]">
-                            <td className="whitespace-nowrap px-3 py-3">Making charges ({priceBreakdown.makingPercentage}%)</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-center">−</td><td className="whitespace-nowrap px-3 py-3 text-center">−</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-center">₹{priceBreakdown.makingAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
-                          </tr>
-                        )}
+                        
+                        <tr className="border-t border-[#F0EBE1]">
+                          <td className="whitespace-nowrap px-3 py-3">Making charges ({priceBreakdown.makingPercentage}%)</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-center">−</td><td className="whitespace-nowrap px-3 py-3 text-center">−</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-center">₹{priceBreakdown.makingAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                        </tr>
                         <tr className="border-t border-[#F0EBE1]">
                           <td className="whitespace-nowrap px-3 py-3">GST ({priceBreakdown.gstPercentage}%)</td>
                           <td className="whitespace-nowrap px-3 py-3 text-center">−</td><td className="whitespace-nowrap px-3 py-3 text-center">−</td>
@@ -1480,7 +1634,7 @@ const ProductDetailsPage: React.FC = () => {
                       <tfoot className={isSilverProduct ? "bg-slate-50" : "bg-amber-50"}>
                         <tr>
                           <td className="whitespace-nowrap px-3 py-3 text-base font-bold text-[#1A1A1A]" colSpan={3}>Grand Total</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-center text-base font-bold text-[#1A1A1A]">₹{(priceBreakdown.finalAmount ?? priceBreakdown.totalAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-center text-base font-bold text-[#1A1A1A]">₹{Number((priceBreakdown?.finalAmount && priceBreakdown.finalAmount > 0) ? priceBreakdown.finalAmount : ((priceBreakdown?.totalAmount || 0) - (priceBreakdown?.discountAmount || 0))).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                       </tfoot>
                     </table>
@@ -1576,10 +1730,10 @@ const ProductDetailsPage: React.FC = () => {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Corner decorative icons */}
-            <span className="pointer-events-none absolute left-6 top-6 text-purple-300">
+            <span className="pointer-events-none absolute left-6 top-6 text-[#C29B27]">
               <Sparkles size={18} />
             </span>
-            <span className="pointer-events-none absolute right-12 top-7 text-amber-300 text-xs">
+            <span className="pointer-events-none absolute right-12 top-7 text-amber-400 text-xs">
               ✨
             </span>
 
@@ -1597,14 +1751,14 @@ const ProductDetailsPage: React.FC = () => {
 
             <div className="relative z-10 pt-1">
               {/* Party Popper Celebration Icon */}
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#7C3AED] to-[#8B5CF6] text-white shadow-lg shadow-purple-300/50">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#C29B27] to-[#8B6914] text-white shadow-lg shadow-amber-300/50">
                 <PartyPopper size={26} />
               </div>
 
               {/* Header Title */}
               <h2
                 id="discount-title"
-                className="text-xl font-extrabold text-[#7C3AED] flex items-center justify-center gap-1.5"
+                className="text-xl font-extrabold text-[#8B6914] flex items-center justify-center gap-1.5"
               >
                 GST & Making Charges on Us 🎉
               </h2>
@@ -1619,41 +1773,67 @@ const ProductDetailsPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Price Breakdown Box */}
-              <div className="my-4 rounded-2xl border border-dashed border-gray-200 bg-white p-3.5 text-left text-[13px] space-y-2.5 shadow-2xs">
-                <div className="flex justify-between items-center text-gray-700">
-                  <span className="font-medium text-gray-600">GST ({priceBreakdown?.gstPercentage || 3}%)</span>
-                  <span className="font-bold text-gray-900">
-                    ₹{(priceBreakdown?.gstAmount ?? apiDiscountAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-gray-700">
-                  <span className="font-medium text-gray-600">Making Charges</span>
-                  <span className="font-bold text-gray-900">
-                    ₹{Number(priceBreakdown?.makingAmount || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-emerald-600 font-bold pt-1">
-                  <span className="flex items-center gap-1.5 text-gray-900">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
-                    OXYGOLD.AI GST Waiver:
-                  </span>
-                  <span className="text-emerald-600">
-                    -₹{apiDiscountAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="rounded-xl bg-[#E8F8F0] px-3 py-2 flex justify-between items-center text-[12px] mt-2">
-                  <span className="font-semibold text-emerald-900">Your Net Extra Charges</span>
-                  <span className="font-bold text-emerald-700">
-                    ₹0.00 (Zero Extra Tax)
-                  </span>
-                </div>
-              </div>
+              {/* Price Breakdown Box Matching Image 1 */}
+              {(() => {
+                const basePriceVal = Number(priceBreakdown?.variantPrice || 0);
+                const gstVal = Number(priceBreakdown?.gstAmount || 0);
+                const totalVal = Number(priceBreakdown?.totalAmount || (basePriceVal + gstVal));
+                const makingAmount = Number(priceBreakdown?.makingAmount || 0);
+                const discountVal = Number(priceBreakdown?.discountAmount || apiDiscountAmount || 0);
+                const finalVal = Number(
+                  (priceBreakdown?.finalAmount && priceBreakdown.finalAmount > 0)
+                    ? priceBreakdown.finalAmount
+                    : (totalVal - discountVal)
+                ) || basePriceVal;
+
+                return (
+                  <div className="my-4 rounded-2xl border border-dashed border-stone-200 bg-[#FDFAF4] p-3.5 text-left text-[13px] space-y-2 shadow-2xs">
+                    <div className="flex justify-between items-center text-stone-700">
+                      <span className="font-medium text-stone-600">Base Price:</span>
+                      <span className="font-bold text-stone-900">
+                        ₹{basePriceVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-stone-700">
+                      <span className="font-medium text-stone-600">GST ({priceBreakdown?.gstPercentage ?? 3}%):</span>
+                      <span className="font-bold text-stone-900">
+                        ₹{gstVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-stone-700">
+                      <span className="font-medium text-stone-600">Making Charges:</span>
+                      <span className="font-bold text-stone-900">
+                        ₹{makingAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-stone-900 font-bold border-t border-dashed border-stone-200 pt-2">
+                      <span>Total Amount:</span>
+                      <span>
+                        ₹{totalVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    {discountVal > 0 && (
+                      <div className="flex justify-between items-center rounded-xl bg-[#E8F8F0] border border-emerald-200 px-3 py-2 text-[12px] font-bold text-emerald-700">
+                        <span>GST Waiver Discount:</span>
+                        <span>
+                          -₹{discountVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center text-[#8B6914] font-extrabold text-[15px] pt-1.5 border-t border-stone-200">
+                      <span>Final Amount:</span>
+                      <span>
+                        ₹{finalVal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Highlight Badges */}
               <div className="mb-5 flex justify-center gap-2.5">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-100 bg-purple-50 px-3 py-1.5 text-[11px] font-bold text-purple-700">
-                  <Gem size={13} className="text-purple-600" /> Valid Only on {metalName}
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-bold text-[#8B6914]">
+                  <Gem size={13} className="text-[#C29B27]" /> Valid Only on {metalName}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-[#E8F8F0] px-3 py-1.5 text-[11px] font-bold text-emerald-700">
                   <CheckCircle2 size={13} className="text-emerald-600" /> 100% Tax Covered
@@ -1667,7 +1847,7 @@ const ProductDetailsPage: React.FC = () => {
                   e.stopPropagation();
                   setShowDiscountModal(false);
                 }}
-                className="w-full cursor-pointer rounded-2xl py-3.5 text-[14px] font-bold text-white bg-gradient-to-r from-[#7C3AED] to-[#6366F1] hover:from-[#6D28D9] hover:to-[#4F46E5] shadow-lg shadow-purple-300/40 transition active:scale-[0.99]"
+                className="w-full cursor-pointer rounded-2xl py-3.5 text-[14px] font-bold text-white bg-gradient-to-r from-[#C29B27] to-[#8B6914] hover:from-[#B08B20] hover:to-[#78590E] shadow-lg shadow-amber-300/40 transition active:scale-[0.99]"
               >
                 Awesome, Got It!
               </button>
@@ -1698,6 +1878,14 @@ const ProductDetailsPage: React.FC = () => {
         productImage={productImages[selectedImageIndex] || productImages[0]}
         userImage={userPhoto}
       />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

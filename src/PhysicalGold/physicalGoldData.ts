@@ -86,7 +86,9 @@ export interface SubCategory {
 export interface ProductVariant {
   id: string;
   price: number;
+  discountedPrice?: number;
   mrp?: number;
+  savedAmount?: number;
   imageUrl?: string;
   purity: string;
   size: string;
@@ -94,13 +96,33 @@ export interface ProductVariant {
   status: string;
   stockQuantity: number;
   weight: number;
+  discountActive?: boolean | null;
+  basePriceDiscountType?: "FIXED" | "PERCENTAGE" | string | null;
+  basePriceDiscountValue?: number | null;
+  basePriceDiscountStart?: string | null;
+  basePriceDiscountEnd?: string | null;
 }
+
+export const isDiscountTimeActive = (start?: string | null, end?: string | null): boolean => {
+  if (!start && !end) return true;
+  const now = new Date().getTime();
+  if (start) {
+    const startTime = new Date(start).getTime();
+    if (!isNaN(startTime) && now < startTime) return false;
+  }
+  if (end) {
+    const endTime = new Date(end).getTime();
+    if (!isNaN(endTime) && now > endTime) return false;
+  }
+  return true;
+};
 
 export interface PhysicalGoldProduct {
   id: string;
   productName: string;
   imageUrl?: string;
   priceRange: string;
+  discountedPriceRange?: string;
   description: string;
   subCategoryId: string;
   status: string;
@@ -113,6 +135,12 @@ export interface PhysicalGoldProduct {
   subCategoryName?: string;
   weight?: number | string;
   purity?: string;
+  basePriceDiscountType?: "FIXED" | "PERCENTAGE" | string | null;
+  basePriceDiscountValue?: number | null;
+  basePriceDiscountStart?: string | null;
+  basePriceDiscountEnd?: string | null;
+  discountedPrice?: number | null;
+  price?: number;
 }
 export interface OrderItem {
   id?: number;
@@ -147,6 +175,9 @@ export interface Order {
   landMark?: string;
   state?: string;
   pinCode?: string;
+  couponCode?: string | null;
+  couponDiscountAmount?: number;
+  couponEligibleAmount?: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

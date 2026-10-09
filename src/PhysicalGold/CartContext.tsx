@@ -1,6 +1,17 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { PhysicalGoldProduct, ProductVariant, firstProductImageUrl, resolveS3ImageUrl } from "./physicalGoldData";
-import { AddItemToCart, decrementCartItems, fetchCustomerCartInfo, removeCartItem, fetchGoldSilverRateBreakdown ,fetchProductImageURLs } from "./physicalGoldService";
+import {
+    AddItemToCart,
+    decrementCartItems,
+    fetchCustomerCartInfo,
+    removeCartItem,
+    fetchGoldSilverRateBreakdown,
+    fetchProductImageURLs,
+    AvailableCoupon,
+    ApplyCouponResult,
+    fetchAvailableCoupons,
+    applyCouponApi,
+} from "./physicalGoldService";
 
 export class ProfileIncompleteError extends Error {
     readonly isProfileIncomplete = true;
@@ -36,6 +47,15 @@ interface CartContextType {
     cartNotification: { message: string; type: "success" | "error" } | null;
     dismissCartNotification: () => void;
     isLoading: boolean;
+
+    // Available & Applied Coupons
+    appliedCoupon: ApplyCouponResult | null;
+    availableCoupons: AvailableCoupon[];
+    isCouponsLoading: boolean;
+    couponDiscountAmount: number;
+    loadAvailableCoupons: () => Promise<AvailableCoupon[]>;
+    applyCoupon: (code: string) => Promise<ApplyCouponResult>;
+    removeAppliedCoupon: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -101,6 +121,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             variant: {
                                 id: item.productVariantId.toString(),
                                 price: item.price,
+                                mrp: Number(item.mrp ?? item.price) || 0,
+                                savedAmount: Number(item.savedAmount ?? (item.mrp && item.mrp > item.price ? item.mrp - item.price : 0)) || 0,
                                 purity: item.purity,
                                 size: item.size,
                                 weight: item.weight,
@@ -369,6 +391,47 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [cartItems, applyOptimisticCart, refreshCart]);
 
+    // Coupons State
+    const [appliedCoupon, setAppliedCoupon] = useState<ApplyCouponResult | null>(null);
+    const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
+    const [isCouponsLoading, setIsCouponsLoading] = useState<boolean>(false);
+    const [couponDiscountAmount, setCouponDiscountAmount] = useState<number>(0);
+
+    const loadAvailableCoupons = useCallback(async () => {
+        try {
+            setIsCouponsLoading(true);
+            const list = await fetchAvailableCoupons();
+            setAvailableCoupons(list);
+            return list;
+        } catch (err: any) {
+            console.error("Failed to load available coupons:", err);
+            return [];
+        } finally {
+            setIsCouponsLoading(false);
+        }
+    }, []);
+
+    const applyCoupon = useCallback(async (code: string) => {
+        try {
+            const result = await applyCouponApi(code);
+            setAppliedCoupon(result);
+            setCouponDiscountAmount(Number(result.discountAmount || 0));
+            setCartNotification({
+                message: result.message || `Coupon '${result.couponCode}' applied successfully! Saved ₹${result.discountAmount}`,
+                type: "success",
+            });
+            return result;
+        } catch (err: any) {
+            throw err;
+        }
+    }, []);
+
+    const removeAppliedCoupon = useCallback(() => {
+        setAppliedCoupon(null);
+        setCouponDiscountAmount(0);
+        setCartNotification({ message: "Coupon removed.", type: "success" });
+    }, []);
+
     const clearCart = useCallback(() => {
         setCartItems([]);
         setTotalItems(0);
@@ -382,6 +445,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setRatePerKm(null);
         setTotalDiscountAmount(0);
         setTotalDiscountPercentage(0);
+        setAppliedCoupon(null);
+        setCouponDiscountAmount(0);
     }, []);
 
     return (
@@ -408,6 +473,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 cartNotification,
                 dismissCartNotification: () => setCartNotification(null),
                 isLoading,
+
+                // Coupons
+                appliedCoupon,
+                availableCoupons,
+                isCouponsLoading,
+                couponDiscountAmount,
+                loadAvailableCoupons,
+                applyCoupon,
+                removeAppliedCoupon,
             }}
         >
             {children}
