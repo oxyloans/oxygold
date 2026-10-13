@@ -286,6 +286,7 @@ const CartPage: React.FC = () => {
     const [showAllSummaryItems, setShowAllSummaryItems] = useState(false);
     const [showAllAddresses, setShowAllAddresses] = useState(false);
     const [isCouponsModalOpen, setIsCouponsModalOpen] = useState(false);
+    const [testuser, setTestuser] = useState(false);
 
     useEffect(() => {
         loadAvailableCoupons();
@@ -554,6 +555,7 @@ const CartPage: React.FC = () => {
                     patch({ profileReminderOpen: true, loadingCheckout: false });
                     return;
                 }
+                setTestuser(profile?.testUser || false);
             } catch {
                 patch({ profileReminderOpen: true, loadingCheckout: false });
                 return;
@@ -605,7 +607,8 @@ const CartPage: React.FC = () => {
         try {
             // await confirmOrder(s.orderId);
             if (s.paymentMode === "CASHFREE" && s.paymentSessionId) {
-                const cashfree = await load({ mode: "production" });
+                const modeType = testuser ? "sandbox" : "production";
+                const cashfree = await load({ mode: modeType });
                 const orderNumber = s.orderSuccess?.orderNumber || "";
                 cashfree.checkout({
                     paymentSessionId: s.paymentSessionId,

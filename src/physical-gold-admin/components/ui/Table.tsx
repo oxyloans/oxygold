@@ -31,15 +31,22 @@ function Table<T>({
             <table className="w-full text-center border-collapse">
                 <thead className="bg-[#FBF7EC]">
                     <tr>
-                        {columns.map((column, index) => (
-                            <th
-                                key={index}
-                                style={{ width: column.width, textAlign: 'center' }}
-                                className="px-3.5 py-3 text-[10px] font-bold text-[#8B6914] uppercase tracking-wider border-b border-[#E8D8A8] border-r border-[#E8D8A8]/40 last:border-r-0"
-                            >
-                                {column.header}
-                            </th>
-                        ))}
+                        {columns.map((column, index) => {
+                            const alignClass = column.align === 'left'
+                                ? '!text-left'
+                                : column.align === 'right'
+                                ? '!text-right'
+                                : '!text-center';
+                            return (
+                                <th
+                                    key={index}
+                                    style={{ width: column.width, textAlign: column.align || 'center' }}
+                                    className={`px-3.5 py-3 text-[10px] font-bold text-[#8B6914] uppercase tracking-wider border-b border-[#E8D8A8] border-r border-[#E8D8A8]/40 last:border-r-0 ${alignClass}`}
+                                >
+                                    {column.header}
+                                </th>
+                            );
+                        })}
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -64,11 +71,16 @@ function Table<T>({
                             >
                                 {columns.map((column, colIndex) => {
                                     const value = (item as any)[column.key];
+                                    const alignClass = column.align === 'left'
+                                        ? '!text-left'
+                                        : column.align === 'right'
+                                        ? '!text-right'
+                                        : '!text-center';
                                     return (
                                         <td
                                             key={colIndex}
-                                            style={{ textAlign: 'center' }}
-                                            className="px-3 py-2.5 text-[13px] text-slate-600 font-medium border-r border-slate-100/80 last:border-r-0"
+                                            style={{ textAlign: column.align || 'center' }}
+                                            className={`px-3 py-2.5 text-[13px] text-slate-600 font-medium border-r border-slate-100/80 last:border-r-0 ${alignClass}`}
                                         >
                                             {column.render ? column.render(value, item) : value}
                                         </td>

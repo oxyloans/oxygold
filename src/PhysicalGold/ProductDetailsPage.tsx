@@ -62,11 +62,22 @@ const CompactProductCard: React.FC<{
 
   const baseDiscountType = product?.basePriceDiscountType;
   const baseDiscountValue = Number(product?.basePriceDiscountValue || 0);
+  const baseDiscountStart = product?.basePriceDiscountStart;
+  const baseDiscountEnd = product?.basePriceDiscountEnd;
+  const isPromoActive = isDiscountTimeActive(baseDiscountStart, baseDiscountEnd);
 
   const originalPriceNum = product.price ?? null;
   let calculatedDiscountedPrice = product.discountedPrice ?? null;
 
-  if (baseDiscountType && baseDiscountValue > 0 && originalPriceNum != null) {
+  const hasBaseDiscount = Boolean(
+    isPromoActive &&
+    baseDiscountType &&
+    (baseDiscountType === "FIXED" || baseDiscountType === "PERCENTAGE") &&
+    baseDiscountValue > 0 &&
+    originalPriceNum != null
+  );
+
+  if (hasBaseDiscount && originalPriceNum != null) {
     if (baseDiscountType === "FIXED") {
       calculatedDiscountedPrice = originalPriceNum - baseDiscountValue;
     } else if (baseDiscountType === "PERCENTAGE") {
@@ -74,23 +85,20 @@ const CompactProductCard: React.FC<{
     }
   }
 
-  const hasBaseDiscount = Boolean(
-    baseDiscountType &&
-    (baseDiscountType === "FIXED" || baseDiscountType === "PERCENTAGE") &&
-    baseDiscountValue > 0 &&
-    originalPriceNum != null
-  );
-
   let discountTagLabel = "";
   if (hasBaseDiscount) {
-    if (baseDiscountType === "FIXED") {
-      discountTagLabel = `₹${baseDiscountValue} EXTRA OFF`;
-    } else if (baseDiscountType === "PERCENTAGE") {
+    if (baseDiscountType === "PERCENTAGE") {
       discountTagLabel = `${baseDiscountValue}% EXTRA OFF`;
+    } else if (baseDiscountType === "FIXED") {
+      discountTagLabel = `₹${baseDiscountValue} EXTRA OFF`;
     }
   }
 
-  const mainPrice = hasBaseDiscount && calculatedDiscountedPrice != null ? calculatedDiscountedPrice : originalPriceNum;
+  const mainPrice = hasBaseDiscount && calculatedDiscountedPrice != null
+    ? calculatedDiscountedPrice
+    : (product.discountedPrice != null && product.discountedPrice > 0
+        ? product.discountedPrice
+        : originalPriceNum);
 
   return (
     <button
@@ -695,40 +703,39 @@ const ProductDetailsPage: React.FC = () => {
   const isPromoActive = isDiscountTimeActive(baseDiscountStart, baseDiscountEnd);
 
   const itemPrice = Number(selectedVariant.price) || 0;
-  const rawDiscountedPrice = selectedVariant.discountedPrice != null
-    ? Number(selectedVariant.discountedPrice)
-    : product.discountedPrice != null
-    ? Number(product.discountedPrice)
-    : itemPrice;
-
-  const discountedItemPrice = isPromoActive && rawDiscountedPrice > 0 && rawDiscountedPrice < itemPrice
-    ? rawDiscountedPrice
-    : itemPrice;
 
   const hasBaseDiscount = Boolean(
     isPromoActive &&
-    ((discountedItemPrice > 0 && discountedItemPrice < itemPrice) ||
-      (baseDiscountType &&
-        (baseDiscountType === "FIXED" || baseDiscountType === "PERCENTAGE") &&
-        baseDiscountValue > 0))
+    baseDiscountType &&
+    (baseDiscountType === "FIXED" || baseDiscountType === "PERCENTAGE") &&
+    baseDiscountValue > 0 &&
+    itemPrice > 0
   );
 
-  let discountTagLabel = "";
-  if (hasBaseDiscount && discountedItemPrice > 0 && discountedItemPrice < itemPrice) {
-    const diff = Math.round(itemPrice - discountedItemPrice);
-    if (baseDiscountType === "PERCENTAGE" && baseDiscountValue > 0) {
-      discountTagLabel = `${baseDiscountValue}% EXTRA OFF`;
-    } else if (baseDiscountType === "FIXED" && baseDiscountValue > 0) {
-      discountTagLabel = `₹${baseDiscountValue} EXTRA OFF`;
-    } else {
-      const pct = Math.round((diff / itemPrice) * 100);
-      discountTagLabel = pct > 0 ? `${pct}% EXTRA OFF` : `₹${diff} EXTRA OFF`;
-    }
-  } else if (hasBaseDiscount) {
+  let rawDiscountedPrice: number | null = selectedVariant.discountedPrice != null
+    ? Number(selectedVariant.discountedPrice)
+    : product.discountedPrice != null
+    ? Number(product.discountedPrice)
+    : null;
+
+  if (hasBaseDiscount) {
     if (baseDiscountType === "FIXED") {
-      discountTagLabel = `₹${baseDiscountValue} EXTRA OFF`;
+      rawDiscountedPrice = itemPrice - baseDiscountValue;
     } else if (baseDiscountType === "PERCENTAGE") {
+      rawDiscountedPrice = itemPrice - (itemPrice * baseDiscountValue) / 100;
+    }
+  }
+
+  const discountedItemPrice = isPromoActive && (hasBaseDiscount || (rawDiscountedPrice != null && rawDiscountedPrice > 0 && rawDiscountedPrice < itemPrice))
+    ? (rawDiscountedPrice ?? itemPrice)
+    : itemPrice;
+
+  let discountTagLabel = "";
+  if (hasBaseDiscount) {
+    if (baseDiscountType === "PERCENTAGE") {
       discountTagLabel = `${baseDiscountValue}% EXTRA OFF`;
+    } else if (baseDiscountType === "FIXED") {
+      discountTagLabel = `₹${baseDiscountValue} EXTRA OFF`;
     }
   }
 

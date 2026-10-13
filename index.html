@@ -17,7 +17,15 @@
     <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#07061A;gap:16px;font-family:sans-serif;">
+        <div style="width:64px;height:64px;border-radius:50%;border:3px solid rgba(194,155,39,0.2);border-top-color:#C29B27;animation:preloaderSpin 1s linear infinite;"></div>
+        <div style="color:#E2BF55;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;">OXYGOLD.AI</div>
+        <style>
+          @keyframes preloaderSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        </style>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

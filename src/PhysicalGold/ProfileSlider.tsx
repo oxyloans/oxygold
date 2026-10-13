@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
     ArrowLeft,
+    Check,
     CheckCircle2,
     History,
     Loader2,
@@ -2091,34 +2092,143 @@ const ProfilePage: React.FC = () => {
                                                                         </div>
 
                                                                         {/* Timeline */}
-                                                                        {tracking.timeline?.length ? (
-                                                                            <div>
-                                                                                <p className="text-[10px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-2 mt-1">Delivery Timeline</p>
-                                                                                <ol className="space-y-0">
-                                                                                    {tracking.timeline.map((event: any, index: number) => {
-                                                                                        const isFirst = index === 0;
-                                                                                        const isLast = index === tracking.timeline!.length - 1;
-                                                                                        return (
-                                                                                            <li key={`${event.status}-${event.timestamp}`} className="relative flex gap-3">
-                                                                                                <div className="flex flex-col items-center">
-                                                                                                    <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 z-10 mt-0.5 ${isFirst ? "bg-emerald-500" : "bg-[#E8E0D5]"}`}>
-                                                                                                        {isFirst
-                                                                                                            ? <CheckCircle2 className="h-3.5 w-3.5 text-white" />
-                                                                                                            : <span className="h-2 w-2 rounded-full bg-[#BEB5AA]" />}
+                                                                        {(() => {
+                                                                            const DELIVERY_STEPS = [
+                                                                                { status: "ASSIGNED", label: "Order Assigned", defaultDesc: "Order assigned to agent" },
+                                                                                { status: "ACCEPTED", label: "Delivery Accepted", defaultDesc: "Delivery accepted by agent" },
+                                                                                { status: "PICKED_UP", label: "Order Picked Up", defaultDesc: "Order picked up from store/warehouse" },
+                                                                                { status: "OUT_FOR_DELIVERY", label: "Out for Delivery", defaultDesc: "Order is out for delivery, on the way to customer" },
+                                                                                { status: "DELIVERED", label: "Delivered", defaultDesc: "Delivered successfully" },
+                                                                            ];
+
+                                                                            const currentStatus = (tracking.status || order.orderStatus || "").toUpperCase();
+                                                                            const isOrderDelivered = currentStatus === "DELIVERED" || currentStatus === "COMPLETED";
+                                                                            const timelineEvents = tracking.timeline || [];
+
+                                                                            const timelineByStatus = new Map<string, any>();
+                                                                            timelineEvents.forEach((ev: any) => {
+                                                                                if (ev?.status) {
+                                                                                    timelineByStatus.set(ev.status.toUpperCase(), ev);
+                                                                                }
+                                                                            });
+
+                                                                            let currentStepIdx = -1;
+                                                                            DELIVERY_STEPS.forEach((step, idx) => {
+                                                                                if (timelineByStatus.has(step.status) || currentStatus === step.status) {
+                                                                                    currentStepIdx = Math.max(currentStepIdx, idx);
+                                                                                }
+                                                                            });
+                                                                            if (isOrderDelivered) {
+                                                                                currentStepIdx = DELIVERY_STEPS.length - 1;
+                                                                            }
+
+                                                                            const stepsToRender: Array<{
+                                                                                status: string;
+                                                                                statusLabel: string;
+                                                                                description?: string;
+                                                                                timestamp?: string;
+                                                                                isCompleted: boolean;
+                                                                                isCurrent: boolean;
+                                                                            }> = [];
+
+                                                                            DELIVERY_STEPS.forEach((step, idx) => {
+                                                                                const ev = timelineByStatus.get(step.status);
+                                                                                const isCompleted = isOrderDelivered || idx <= currentStepIdx || !!ev;
+                                                                                const isCurrent = !isOrderDelivered && idx === currentStepIdx;
+
+                                                                                if (ev) {
+                                                                                    stepsToRender.push({
+                                                                                        status: ev.status,
+                                                                                        statusLabel: ev.statusLabel || step.label,
+                                                                                        description: ev.description || step.defaultDesc,
+                                                                                        timestamp: ev.timestamp,
+                                                                                        isCompleted: true,
+                                                                                        isCurrent,
+                                                                                    });
+                                                                                } else if (!isOrderDelivered && idx > currentStepIdx) {
+                                                                                    stepsToRender.push({
+                                                                                        status: step.status,
+                                                                                        statusLabel: step.label,
+                                                                                        description: step.defaultDesc,
+                                                                                        timestamp: undefined,
+                                                                                        isCompleted: false,
+                                                                                        isCurrent: false,
+                                                                                    });
+                                                                                }
+                                                                            });
+
+                                                                            timelineEvents.forEach((ev: any) => {
+                                                                                const statusKey = ev.status?.toUpperCase();
+                                                                                if (!DELIVERY_STEPS.some(s => s.status === statusKey) && !stepsToRender.some(s => s.status === ev.status)) {
+                                                                                    stepsToRender.push({
+                                                                                        status: ev.status,
+                                                                                        statusLabel: ev.statusLabel || ev.status,
+                                                                                        description: ev.description,
+                                                                                        timestamp: ev.timestamp,
+                                                                                        isCompleted: true,
+                                                                                        isCurrent: false,
+                                                                                    });
+                                                                                }
+                                                                            });
+
+                                                                            if (!stepsToRender.length) return null;
+
+                                                                            return (
+                                                                                <div>
+                                                                                    <p className="text-[10px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-2.5 mt-1">
+                                                                                        Delivery Timeline
+                                                                                    </p>
+                                                                                    <ol className="space-y-0">
+                                                                                        {stepsToRender.map((step, index) => {
+                                                                                            const isLast = index === stepsToRender.length - 1;
+                                                                                            const nextStep = !isLast ? stepsToRender[index + 1] : null;
+                                                                                            const lineCompleted = step.isCompleted && nextStep?.isCompleted;
+
+                                                                                            return (
+                                                                                                <li key={`${step.status}-${index}`} className="relative flex gap-3">
+                                                                                                    <div className="flex flex-col items-center">
+                                                                                                        {step.isCompleted ? (
+                                                                                                            <div className="h-5 w-5 rounded-full flex items-center justify-center shrink-0 z-10 mt-0.5 bg-emerald-500 text-white shadow-2xs">
+                                                                                                                <Check className="h-3 w-3 stroke-[2.5]" />
+                                                                                                            </div>
+                                                                                                        ) : (
+                                                                                                            <div className="h-5 w-5 rounded-full border border-[#D1C7BB] bg-white flex items-center justify-center shrink-0 z-10 mt-0.5">
+                                                                                                                <span className="h-1.5 w-1.5 rounded-full bg-[#BEB5AA]" />
+                                                                                                            </div>
+                                                                                                        )}
+                                                                                                        {!isLast && (
+                                                                                                            <span className={`w-0.5 flex-1 my-1 transition-colors ${lineCompleted ? "bg-emerald-500" : "bg-[#E8E0D5]"}`} />
+                                                                                                        )}
                                                                                                     </div>
-                                                                                                    {!isLast && <span className="w-px flex-1 bg-[#E8E0D5] my-1" />}
-                                                                                                </div>
-                                                                                                <div className={`pb-3 min-w-0 ${isLast ? "pb-0" : ""}`}>
-                                                                                                    <p className={`text-[12px] font-semibold ${isFirst ? "text-[#1A1A1A]" : "text-[#8A8A8A]"}`}>{event.statusLabel}</p>
-                                                                                                    {event.description && <p className="text-[11px] text-[#8A8A8A] mt-0.5 leading-4">{event.description}</p>}
-                                                                                                    <p className="text-[10px] text-[#BEB5AA] mt-0.5">{formatDate(event.timestamp)}</p>
-                                                                                                </div>
-                                                                                            </li>
-                                                                                        );
-                                                                                    })}
-                                                                                </ol>
-                                                                            </div>
-                                                                        ) : null}
+                                                                                                    <div className={`pb-3.5 min-w-0 ${isLast ? "pb-0" : ""}`}>
+                                                                                                        <div className="flex items-center gap-2">
+                                                                                                            <p className={`text-[12px] font-semibold ${step.isCompleted ? "text-[#1A1A1A]" : "text-[#8A8A8A]"}`}>
+                                                                                                                {step.statusLabel}
+                                                                                                            </p>
+                                                                                                            {step.isCurrent && (
+                                                                                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300/60 uppercase">
+                                                                                                                    Current
+                                                                                                                </span>
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                        {step.description && (
+                                                                                                            <p className={`text-[11px] mt-0.5 leading-4 ${step.isCompleted ? "text-[#555]" : "text-[#999]"}`}>
+                                                                                                                {step.description}
+                                                                                                            </p>
+                                                                                                        )}
+                                                                                                        {step.timestamp && (
+                                                                                                            <p className="text-[10px] text-[#8A8A8A] font-medium mt-0.5">
+                                                                                                                {formatDate(step.timestamp)}
+                                                                                                            </p>
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                </li>
+                                                                                            );
+                                                                                        })}
+                                                                                    </ol>
+                                                                                </div>
+                                                                            );
+                                                                        })()}
                                                                     </div>
                                                                 </section>
                                                             ) : trackingUnavailable ? (

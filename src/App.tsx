@@ -1,11 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useEffect, useState, Suspense, lazy } from 'react';
+import { useEffect, useState, Suspense, lazy as reactLazy } from 'react';
 import ProtectedRoute from './components/ProtectedRoute';
 import { GoldPriceProvider } from './context/GoldPriceContext';
 import { PurchaseProvider } from './context/PurchaseContext';
 import { CartProvider } from './PhysicalGold/CartContext';
 import { WishlistProvider } from './PhysicalGold/WishlistContext';
 import oxygoldLogo from './assets/oxygoldlogo-wk.png';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Eagerly loaded (critical path)
 import Header from './components/Header';
@@ -18,6 +19,26 @@ declare global {
     gtag?: (command: string, eventName: string, parameters?: Record<string, unknown>) => void;
   }
 }
+
+// Robust lazy loading with automatic retry on chunk failure / new session
+const lazy = (importFn: () => Promise<any>) =>
+  reactLazy(async () => {
+    try {
+      const mod = await importFn();
+      sessionStorage.removeItem(`chunk_retry_${window.location.pathname}`);
+      return mod;
+    } catch (error: any) {
+      console.warn('Dynamic chunk import error encountered:', error);
+      const retryKey = `chunk_retry_${window.location.pathname}`;
+      const hasRetried = sessionStorage.getItem(retryKey);
+      if (!hasRetried) {
+        sessionStorage.setItem(retryKey, 'true');
+        window.location.reload();
+        return new Promise(() => {});
+      }
+      throw error;
+    }
+  });
 
 // Lazy loaded pages
 const Landing = lazy(() => import('./pages/Landing'));
@@ -79,6 +100,15 @@ const BISCertificate = lazy(() => import('./pages/BISCertificate'));
 
 // Global loading fallback
 function PageLoader() {
+  const [showRefreshHint, setShowRefreshHint] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowRefreshHint(true);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -87,17 +117,69 @@ function PageLoader() {
       alignItems: 'center',
       justifyContent: 'center',
       background: '#07061A',
-      gap: 16
+      gap: 16,
+      padding: 24,
+      boxSizing: 'border-box'
     }}>
-      <img
-        src={oxygoldLogo}
-        alt="OxyGold"
-        style={{ width: 80, height: 80, objectFit: 'contain', animation: 'pulse 1.5s ease-in-out infinite' }}
-      />
+      <div style={{ position: 'relative', width: 84, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Animated outer golden spinner ring */}
+        <div style={{
+          position: 'absolute',
+          inset: -4,
+          borderRadius: '50%',
+          border: '3px solid rgba(194, 155, 39, 0.15)',
+          borderTopColor: '#C29B27',
+          borderRightColor: '#E2BF55',
+          animation: 'spinLoader 1s linear infinite'
+        }} />
+        <img
+          src={oxygoldLogo}
+          alt="OxyGold"
+          style={{ width: 72, height: 72, objectFit: 'contain', animation: 'pulse 1.5s ease-in-out infinite' }}
+        />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginTop: 4 }}>
+        <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '0.08em', color: '#E2BF55', textTransform: 'uppercase' }}>
+          OxyGold.AI
+        </span>
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
+          Loading your experience...
+        </span>
+      </div>
+
+      {showRefreshHint && (
+        <button
+          onClick={() => {
+            sessionStorage.removeItem(`chunk_retry_${window.location.pathname}`);
+            window.location.reload();
+          }}
+          style={{
+            marginTop: 10,
+            padding: '8px 18px',
+            fontSize: 12,
+            fontWeight: 600,
+            borderRadius: 8,
+            border: '1px solid #C29B27',
+            background: 'linear-gradient(135deg, #C29B27 0%, #8B6914 100%)',
+            color: '#ffffff',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(194, 155, 39, 0.3)',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          Taking longer than usual? Click to Refresh
+        </button>
+      )}
+
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.6; transform: scale(0.95); }
+          50% { opacity: 0.65; transform: scale(0.96); }
+        }
+        @keyframes spinLoader {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
       `}</style>
     </div>
@@ -158,7 +240,8 @@ function AppContent() {
     <div className="app">
       {!isAuthPage && !isTestPage && !isFullPageFlow && <Header />}
       <div className="flex-1">
-        <Suspense fallback={<PageLoader />}>
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
 
           <Routes>
             {/* Auth & Utility */}
@@ -268,6 +351,7 @@ function AppContent() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+      </ErrorBoundary>
       </div>
       {!isAuthPage && !isTestPage && !isFullPageFlow && <Footer />}
     </div>
@@ -276,18 +360,20 @@ function AppContent() {
 
 function App() {
   return (
-    <GoldPriceProvider>
-      <PurchaseProvider>
-        <BrowserRouter>
-          <CartProvider>
-            <WishlistProvider>
-              <GoogleAnalyticsTracker />
-              <AppContent />
-            </WishlistProvider>
-          </CartProvider>
-        </BrowserRouter>
-      </PurchaseProvider>
-    </GoldPriceProvider>
+    <ErrorBoundary>
+      <GoldPriceProvider>
+        <PurchaseProvider>
+          <BrowserRouter>
+            <CartProvider>
+              <WishlistProvider>
+                <GoogleAnalyticsTracker />
+                <AppContent />
+              </WishlistProvider>
+            </CartProvider>
+          </BrowserRouter>
+        </PurchaseProvider>
+      </GoldPriceProvider>
+    </ErrorBoundary>
   );
 }
 

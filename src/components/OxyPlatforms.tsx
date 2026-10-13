@@ -34,11 +34,11 @@ const logos = [
     src: "https://i.ibb.co/Q3y9TssV/global-logo.png",
     href: "https://www.oxyglobal.tech/",
   },
-  // {
-  //   src: "https://i.ibb.co/PGYYDvL9/l4.png",
-  //   name: "OXYGOLD.AI",
-  //   href: "https://www.oxygold.ai/",
-  // },
+  {
+    src: "https://i.ibb.co/Q00zsj7/oxyjourneys-white-640x119.png",
+    name: "OXYJOURNEYS",
+    href: "https://www.oxyjourneys.com/",
+  },
   
   {
     src: "https://i.ibb.co/B2NcQ7Nj/l5.png",

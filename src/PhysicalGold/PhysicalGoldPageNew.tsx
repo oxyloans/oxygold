@@ -281,6 +281,14 @@ const CompactProductCard: React.FC<{
   const mrpNum = (selected as any)?.mrp ?? null;
   const originalPriceNum = selected ? selected.price : (targetProd?.price ?? product.price ?? null);
 
+  const hasBaseDiscount = Boolean(
+    isPromoActive &&
+    baseDiscountType &&
+    (baseDiscountType === "FIXED" || baseDiscountType === "PERCENTAGE") &&
+    baseDiscountValue > 0 &&
+    originalPriceNum != null
+  );
+
   let rawDiscountedPrice: number | null = selected?.discountedPrice != null
     ? selected.discountedPrice
     : targetProd?.discountedPrice != null
@@ -289,7 +297,7 @@ const CompactProductCard: React.FC<{
     ? product.discountedPrice
     : null;
 
-  if (baseDiscountType && baseDiscountValue > 0 && originalPriceNum != null) {
+  if (hasBaseDiscount && originalPriceNum != null) {
     if (baseDiscountType === "FIXED") {
       rawDiscountedPrice = originalPriceNum - baseDiscountValue;
     } else if (baseDiscountType === "PERCENTAGE") {
@@ -297,35 +305,19 @@ const CompactProductCard: React.FC<{
     }
   }
 
-  const calculatedDiscountedPrice = isPromoActive ? rawDiscountedPrice : null;
+  const calculatedDiscountedPrice = isPromoActive && (hasBaseDiscount || (rawDiscountedPrice != null && originalPriceNum != null && rawDiscountedPrice < originalPriceNum))
+    ? rawDiscountedPrice
+    : null;
 
-  // Determine if Base Price Discount is active
+  // Determine if discounted price is active
   const hasDiscountedPrice = isPromoActive && calculatedDiscountedPrice != null && originalPriceNum != null && calculatedDiscountedPrice < originalPriceNum;
-  const hasBaseDiscount = Boolean(
-    isPromoActive &&
-    (hasDiscountedPrice ||
-      (baseDiscountType &&
-        (baseDiscountType === "FIXED" || baseDiscountType === "PERCENTAGE") &&
-        baseDiscountValue > 0 &&
-        originalPriceNum != null))
-  );
 
   let discountTagLabel = "";
-  if (hasBaseDiscount && hasDiscountedPrice && calculatedDiscountedPrice != null && originalPriceNum != null) {
-    const diff = Math.round(originalPriceNum - calculatedDiscountedPrice);
-    if (baseDiscountType === "PERCENTAGE" && baseDiscountValue > 0) {
+  if (hasBaseDiscount) {
+    if (baseDiscountType === "PERCENTAGE") {
       discountTagLabel = `${baseDiscountValue}% EXTRA OFF`;
-    } else if (baseDiscountType === "FIXED" && baseDiscountValue > 0) {
+    } else if (baseDiscountType === "FIXED") {
       discountTagLabel = `₹${baseDiscountValue} EXTRA OFF`;
-    } else {
-      const pct = Math.round((diff / originalPriceNum) * 100);
-      discountTagLabel = pct > 0 ? `${pct}% EXTRA OFF` : `₹${diff} EXTRA OFF`;
-    }
-  } else if (hasBaseDiscount) {
-    if (baseDiscountType === "FIXED") {
-      discountTagLabel = `₹${baseDiscountValue} EXTRA OFF`;
-    } else if (baseDiscountType === "PERCENTAGE") {
-      discountTagLabel = `${baseDiscountValue}% EXTRA OFF`;
     }
   }
 
@@ -337,7 +329,7 @@ const CompactProductCard: React.FC<{
   const mainPriceValue = calculatedDiscountedPrice != null && (hasBaseDiscount || hasDiscountedPrice) ? calculatedDiscountedPrice : originalPriceNum;
 
   // Top left badge text:
-  const topLeftBadgeText = (hasBaseDiscount || hasDiscountedPrice) ? discountTagLabel : (hasMrpDiscount && mrpDiscountPct > 0 ? `${mrpDiscountPct}% OFF` : null);
+  const topLeftBadgeText = (hasBaseDiscount && discountTagLabel) ? discountTagLabel : (hasMrpDiscount && mrpDiscountPct > 0 ? `${mrpDiscountPct}% OFF` : null);
 
   const activeOffer = selectedId ? offersCache[selectedId] : null;
   const hasOfferDiscount = activeOffer != null && (

@@ -178,6 +178,7 @@ export interface Order {
   couponCode?: string | null;
   couponDiscountAmount?: number;
   couponEligibleAmount?: number;
+  trackingNumber?: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

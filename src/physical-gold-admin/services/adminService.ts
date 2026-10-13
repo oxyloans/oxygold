@@ -973,6 +973,30 @@ export const viewAllUsers = async (
   return response.json();
 };
 
+export const updateTestUserStatus = async (
+  userId: number,
+  testUser: boolean,
+) => {
+  const response = await adminAuthenticatedFetch(
+    `${BASE_URL}/auth/admin/users/${userId}/test-user`,
+    {
+      method: "PATCH",
+      headers: {
+        accept: "*/*",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        testUser,
+      }),
+    },
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.message || "Failed to update test user status");
+  }
+  return response.json();
+};
+
 // -- Helpdesk API --
 
 export interface UserDocument {
