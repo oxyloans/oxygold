@@ -227,91 +227,33 @@ const Coupons: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const code = (formData.code || "").trim().toUpperCase();
-    if (!code) {
-      setToast({ message: "Please enter a valid coupon code.", type: "warning" });
-      return;
-    }
-
-    const name = (formData.name || "").trim();
-    if (!name) {
-      setToast({ message: "Please enter a valid coupon name.", type: "warning" });
-      return;
-    }
-
-    if (formData.discountValue === "" || formData.discountValue === undefined || formData.discountValue === null) {
-      setToast({ message: "Please enter a discount value.", type: "warning" });
-      return;
-    }
-
-    const discountVal = Number(formData.discountValue);
-    if (isNaN(discountVal) || discountVal <= 0) {
-      setToast({ message: "Discount value must be greater than 0.", type: "warning" });
-      return;
-    }
-
-    if (formData.discountType === "PERCENTAGE" && discountVal > 100) {
-      setToast({ message: "Percentage discount cannot exceed 100%.", type: "warning" });
-      return;
-    }
-
-    const applyTo = formData.applyTo || "ALL";
-    const categoryId = applyTo === "CATEGORY" ? Number(formData.categoryId || 0) : 0;
-    if (applyTo === "CATEGORY" && (!categoryId || categoryId === 0)) {
-      setToast({ message: "Please select an active category for this coupon.", type: "warning" });
-      return;
-    }
-
-    let startTime: number | null = null;
-    let endTime: number | null = null;
-
-    if (formData.startDateTime) {
-      startTime = new Date(formData.startDateTime).getTime();
-      if (isNaN(startTime)) {
-        setToast({ message: "Please select a valid start date and time.", type: "warning" });
-        return;
-      }
-    }
-
-    if (formData.endDateTime) {
-      endTime = new Date(formData.endDateTime).getTime();
-      if (isNaN(endTime)) {
-        setToast({ message: "Please select a valid end date and time.", type: "warning" });
-        return;
-      }
-    }
-
-    if (startTime !== null && endTime !== null && endTime <= startTime) {
-      setToast({ message: "End Date & Time must be after Start Date & Time.", type: "warning" });
-      return;
-    }
-
-    const minOrder = Number(formData.minimumOrderAmount || 0);
-    if (minOrder < 0) {
-      setToast({ message: "Minimum order amount cannot be negative.", type: "warning" });
-      return;
-    }
-
-    const maxCap = Number(formData.maximumDiscountAmount || 0);
-    if (maxCap < 0) {
-      setToast({ message: "Maximum discount cap cannot be negative.", type: "warning" });
-      return;
-    }
-
-    const usageLim = Number(formData.usageLimit || 0);
-    if (usageLim < 0) {
-      setToast({ message: "Total usage limit cannot be negative.", type: "warning" });
-      return;
-    }
-
-    const userLim = Number(formData.usageLimitPerUser || 1);
-    if (userLim < 1) {
-      setToast({ message: "Usage limit per user must be at least 1.", type: "warning" });
-      return;
-    }
-
     setIsSubmitting(true);
     try {
+      const code = (formData.code || "").trim().toUpperCase();
+      const name = (formData.name || "").trim();
+      const applyTo = formData.applyTo || "ALL";
+      const categoryId = applyTo === "CATEGORY" ? Number(formData.categoryId || 0) : 0;
+      const discountVal =
+        formData.discountValue !== "" && formData.discountValue !== undefined && formData.discountValue !== null
+          ? Number(formData.discountValue)
+          : 0;
+      const minOrder =
+        formData.minimumOrderAmount !== "" && formData.minimumOrderAmount !== undefined && formData.minimumOrderAmount !== null
+          ? Number(formData.minimumOrderAmount)
+          : 0;
+      const maxCap =
+        formData.maximumDiscountAmount !== "" && formData.maximumDiscountAmount !== undefined && formData.maximumDiscountAmount !== null
+          ? Number(formData.maximumDiscountAmount)
+          : 0;
+      const usageLim =
+        formData.usageLimit !== "" && formData.usageLimit !== undefined && formData.usageLimit !== null
+          ? Number(formData.usageLimit)
+          : 0;
+      const userLim =
+        formData.usageLimitPerUser !== "" && formData.usageLimitPerUser !== undefined && formData.usageLimitPerUser !== null
+          ? Number(formData.usageLimitPerUser)
+          : 1;
+
       const payload: CouponPayload = {
         code,
         name,
@@ -322,8 +264,8 @@ const Coupons: React.FC = () => {
         maximumDiscountAmount: maxCap,
         applyTo,
         categoryId,
-        startDateTime: formatDateTimeForPayload(formData.startDateTime),
-        endDateTime: formatDateTimeForPayload(formData.endDateTime),
+        startDateTime: formatDateTimeForPayload(formData.startDateTime) || "",
+        endDateTime: formatDateTimeForPayload(formData.endDateTime) || "",
         usageLimit: usageLim,
         usageLimitPerUser: userLim,
         active: formData.active ?? true,
@@ -724,18 +666,16 @@ const Coupons: React.FC = () => {
           {/* Row 1: Code, Name, Discount Type */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
             <Input
-              label="Coupon Code *"
+              label="Coupon Code"
               placeholder="e.g. GOLD10"
               value={formData.code || ""}
               onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-              required
             />
             <Input
-              label="Coupon Name *"
+              label="Coupon Name"
               placeholder="e.g. Festive Gold Discount"
               value={formData.name || ""}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
             />
             <Select
               label="Discount Type"
@@ -751,14 +691,12 @@ const Coupons: React.FC = () => {
           {/* Row 2: Discount Value, Min Order, Max Cap */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
             <Input
-              label={`Discount Value (${formData.discountType === "FIXED" ? "₹" : "%"}) *`}
+              label={`Discount Value (${formData.discountType === "FIXED" ? "₹" : "%"})`}
               type="number"
-              min="0.01"
               step="0.01"
               placeholder={formData.discountType === "FIXED" ? "e.g. 500" : "e.g. 10"}
               value={formData.discountValue ?? ""}
               onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
-              required
             />
             <Input
               label="Minimum Order Amount (₹)"
@@ -800,7 +738,7 @@ const Coupons: React.FC = () => {
             {formData.applyTo === "CATEGORY" ? (
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-700">Select Active Category *</label>
+                  <label className="text-xs font-semibold text-slate-700">Select Active Category</label>
                   {isCategoriesLoading && (
                     <span className="text-[10px] text-amber-700 font-bold animate-pulse">Loading...</span>
                   )}

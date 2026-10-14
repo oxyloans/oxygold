@@ -1758,8 +1758,8 @@ const ProfilePage: React.FC = () => {
 
                     {/* ── ORDERS TAB ── */}
                     {s.activeTab === "orders" && (
-                        <div className="p-6">
-                            <h3 className="text-[18px] font-semibold text-[#1A1A1A] mb-5">Order History</h3>
+                        <div className="p-3.5 sm:p-5 md:p-6">
+                            <h3 className="text-[18px] font-semibold text-[#1A1A1A] mb-4 sm:mb-5">Order History</h3>
                             {s.isOrdersLoading ? (
                                 <div className="flex items-center justify-center py-16 gap-2 text-[#8A8A8A]">
                                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -1792,19 +1792,20 @@ const ProfilePage: React.FC = () => {
                                             order.paymentStatus?.toUpperCase() === 'COMPLETED' ||
                                             order.paymentStatus?.toUpperCase() === 'PAID';
                                         return (
-                                            <div key={order.orderId} className="border border-[#E8E0D5] rounded-xl overflow-hidden bg-white">
+                                            <div key={order.orderId} className="border border-[#E8E0D5] rounded-xl overflow-hidden bg-white shadow-2xs">
                                                 {/* Order Header */}
                                                 <div
                                                     onClick={() => !isPaymentFailed && toggleOrderExpand(order.orderId)}
-                                                    className={`flex items-start gap-3 px-4 py-4 ${!isPaymentFailed ? "cursor-pointer hover:bg-[#FAF8F5]" : ""} transition-colors`}
+                                                    className={`flex items-start gap-2.5 sm:gap-3 p-3.5 sm:p-4 ${!isPaymentFailed ? "cursor-pointer hover:bg-[#FAF8F5]" : ""} transition-colors`}
                                                 >
-                                                    <div className="h-10 w-10 rounded-xl bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
+                                                    {/* Order Icon - hidden in mobile responsive, displayed on sm+ */}
+                                                    <div className="hidden sm:flex h-10 w-10 rounded-xl bg-[#F5EDD6] items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
                                                         <Package className="h-5 w-5" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-start justify-between gap-2">
-                                                            <div className="min-w-0">
-                                                                <p className="text-[12px] font-semibold text-[#1A1A1A] truncate" title={order.orderNumber}>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="text-[12.5px] sm:text-[13px] font-semibold text-[#1A1A1A] truncate" title={order.orderNumber}>
                                                                     Order #{order.orderNumber}
                                                                 </p>
                                                                 <p className="text-[11px] text-[#8A8A8A] mt-0.5">
@@ -1812,7 +1813,7 @@ const ProfilePage: React.FC = () => {
                                                                 </p>
                                                             </div>
                                                             <div className="flex flex-col items-end gap-1.5 shrink-0">
-                                                                <span className="text-[14px] font-bold text-[#1A1A1A]">{DISPLAY_INR(order.totalAmount)}</span>
+                                                                <span className="text-[14px] sm:text-[15px] font-bold text-[#1A1A1A]">{DISPLAY_INR(order.totalAmount)}</span>
                                                                 {isPaymentPending && (
                                                                     <button
                                                                         type="button"
@@ -1821,7 +1822,7 @@ const ProfilePage: React.FC = () => {
                                                                             e.stopPropagation();
                                                                             handleRetryPayment(order);
                                                                         }}
-                                                                        className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#8B6914] text-white text-[11px] font-medium hover:bg-[#7A5C10] transition shadow-sm disabled:opacity-60"
+                                                                        className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg bg-[#8B6914] text-white text-[11px] font-medium hover:bg-[#7A5C10] transition shadow-sm disabled:opacity-60"
                                                                     >
                                                                         {retryingOrderId === order.orderId ? (
                                                                             <>
@@ -1838,7 +1839,7 @@ const ProfilePage: React.FC = () => {
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                                        <div className="flex flex-wrap items-center gap-1.5 mt-2 sm:mt-2.5">
                                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap ${getStatusColor(order.orderStatus)}`}>
                                                                 Order: {order.orderStatus}
                                                             </span>
@@ -1870,7 +1871,7 @@ const ProfilePage: React.FC = () => {
 
                                                 {/* Actions */}
                                                 {!isPaymentFailed && (
-                                                    <div className="flex items-center gap-2 px-4 pb-3 border-t border-[#F0EBE1] pt-3">
+                                                    <div className="flex items-center gap-2 px-3.5 sm:px-4 pb-3 border-t border-[#F0EBE1] pt-2.5 sm:pt-3">
                                                         {isOrderSuccessful && (
                                                             <button
                                                                 type="button"
@@ -1883,7 +1884,7 @@ const ProfilePage: React.FC = () => {
                                                                         window.open(u, "_blank");
                                                                     } catch (err) { console.error(err); }
                                                                 }}
-                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] transition"
+                                                                className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#8A8A8A] hover:bg-[#F5F2EE] hover:text-[#1A1A1A] transition active:scale-95"
                                                             >
                                                                 <FileText className="h-3 w-3" /> Invoice
                                                             </button>
@@ -1894,7 +1895,7 @@ const ProfilePage: React.FC = () => {
                                                                 e.stopPropagation();
                                                                 toggleOrderExpand(order.orderId);
                                                             }}
-                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition ml-auto"
+                                                            className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8E0D5] text-[11px] font-medium text-[#1A1A1A] hover:bg-[#F5F2EE] transition ml-auto active:scale-95"
                                                         >
                                                             {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                                                             {isExp ? "Hide Details" : (["ASSIGNED", "ACCEPTED", "PICKED_UP", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED", "IN_TRANSIT"].includes(order.orderStatus?.toUpperCase() || "") || order.trackingNumber || tracking ? "Track Order" : "View Details")}
@@ -1904,7 +1905,7 @@ const ProfilePage: React.FC = () => {
 
                                                 {/* Expanded Details */}
                                                 {isExp && !isPaymentFailed && (
-                                                    <div className="border-t border-[#F0EBE1] bg-[#FAFAF8] px-5 py-4 space-y-4">
+                                                    <div className="border-t border-[#F0EBE1] bg-[#FAFAF8] px-3.5 sm:px-5 py-3 sm:py-4 space-y-3 sm:space-y-4">
                                                         {/* Header */}
                                                         <div className="flex items-center justify-between">
                                                             <p className="text-[11px] font-semibold text-[#8A8A8A] uppercase tracking-wider">
@@ -1918,14 +1919,15 @@ const ProfilePage: React.FC = () => {
                                                             {order.items?.map((item: any, i: number) => {
                                                                 const existingReview = reviews.find((r) => r.productId === item.productId);
                                                                 return (
-                                                                    <div key={i} className="bg-white border border-[#E8E0D5] rounded-xl px-4 py-3.5 shadow-sm">
-                                                                        <div className="flex items-start gap-3">
-                                                                            <div className="h-9 w-9 rounded-lg bg-[#F5EDD6] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
+                                                                    <div key={i} className="bg-white border border-[#E8E0D5] rounded-xl p-3 sm:px-4 sm:py-3.5 shadow-sm">
+                                                                        <div className="flex items-start gap-2.5 sm:gap-3">
+                                                                            {/* Item Icon - hidden in mobile responsive, displayed on sm+ */}
+                                                                            <div className="hidden sm:flex h-9 w-9 rounded-lg bg-[#F5EDD6] items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
                                                                                 <Package className="h-4 w-4" />
                                                                             </div>
                                                                             <div className="flex-1 min-w-0">
                                                                                 <div className="flex items-start justify-between gap-2">
-                                                                                    <p className="text-[13px] font-semibold text-[#1A1A1A] leading-snug">
+                                                                                    <p className="text-[12.5px] sm:text-[13px] font-semibold text-[#1A1A1A] leading-snug">
                                                                                         {item.productName || `Product #${item.productId}`}
                                                                                     </p>
                                                                                     <p className="text-[13px] font-semibold text-[#1A1A1A] shrink-0">{DISPLAY_INR(item.subtotal)}</p>

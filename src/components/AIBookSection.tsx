@@ -1,4 +1,5 @@
 import React from "react";
+import { Sparkles, ArrowRight, BookOpen } from "lucide-react";
 import bookImage from "../assets/book.png";
 
 export default function AIBookSection() {
@@ -10,322 +11,80 @@ export default function AIBookSection() {
   };
 
   return (
-    <section className="ai-book-section" style={styles.section}>
-      <div style={styles.container}>
-        {/* ✅ use SAME div (no new div) + make it the rounded card */}
-        <div
-          style={{ ...styles.card, ...styles.inner }}
-          className="ai-book-inner ai-book-card"
-        >
-          <div style={styles.grid} className="ai-book-grid">
-            {/* LEFT: Image */}
-            <div style={styles.left} className="ai-book-left">
-              <div style={styles.imageWrap}>
+    <section className="w-full py-4 sm:py-8 lg:py-10">
+      <div
+        className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 p-5 sm:p-8 lg:p-12 transition-all hover:border-[#D4AF37]/35"
+        style={{
+          background:
+            "radial-gradient(900px 420px at 15% 10%, rgba(91,46,255,0.22), transparent 55%), radial-gradient(700px 360px at 90% 25%, rgba(212,175,55,0.16), transparent 60%), linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
+        }}
+      >
+        {/* Ambient Top Glow Line */}
+        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37]/50 to-transparent" />
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-10 lg:gap-12 items-center">
+          {/* LEFT: Book Image Showcase (5 columns on desktop) */}
+          <div className="lg:col-span-5 flex justify-center items-center">
+            <div className="group relative w-full max-w-[460px]">
+              {/* Ambient Glow Backdrop */}
+              <div className="absolute -inset-2 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#D4AF37]/20 via-[#8A5BFF]/15 to-[#D4AF37]/20 blur-xl opacity-70 group-hover:opacity-100 transition-opacity duration-500" />
+
+              {/* Showcase Container */}
+              <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/15 bg-black/40 backdrop-blur-md p-4 sm:p-6 shadow-2xl transition-transform duration-300 group-hover:scale-[1.01]">
                 <img
                   src={bookImage}
                   alt="Enter the AI & GenAI Universe book cover"
-                  style={styles.image}
+                  className="w-full h-auto object-contain rounded-xl drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)] transition-transform duration-500 group-hover:scale-[1.03]"
                 />
               </div>
             </div>
+          </div>
 
-            {/* RIGHT: Content */}
-            <div style={styles.content} className="ai-book-content">
-              <p
-                style={{
-                  margin: "4px 0",
-                  fontSize: "13px",
-                  fontWeight: 800,
-                  letterSpacing: "1px",
-                  textTransform: "uppercase",
-                  background: "linear-gradient(90deg, #ffffff, #D4AF37)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  textShadow: `
-      0 0 6px rgba(212,175,55,0.4),
-      0 0 14px rgba(212,175,55,0.2)
-    `,
-                }}
-              >
-                Our Co-Founders are Authors of a Prestigious Book
-              </p>
-              {/* BIG BOOK NAME */}
-              <h2
-                style={{
-                  margin: "8px 0 6px 0",
-                  fontSize: "clamp(24px, 4vw, 44px)",
-                  lineHeight: 1.15,
-                  fontWeight: 900,
-                  letterSpacing: "0.2px",
-                }}
-              >
-                Enter the{" "}
-                <span
-                  style={{
-                    background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  AI & GenAI Universe
-                </span>
-              </h2>
+          {/* RIGHT: Content (7 columns on desktop) */}
+          <div className="lg:col-span-7 flex flex-col justify-center">
+            {/* Pre-title Badge */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#F5D36C] text-[11px] sm:text-xs font-semibold self-start mb-3">
+              <Sparkles size={12} className="animate-pulse" />
+              <span>Our Co-Founders are Authors of a Prestigious Book</span>
+            </div>
 
-              {/* Tagline */}
-              <p
-                style={{
-                  margin: "4px 0 8px 0",
-                  fontSize: "16px",
-                  fontWeight: 700,
-                  color: "rgba(255,255,255,0.85)",
-                }}
-              >
-                Build the Future with Agentic AI
-              </p>
+            {/* BIG BOOK NAME */}
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+              Enter the{" "}
+              <span className="bg-gradient-to-r from-[#D4AF37] to-[#F5D36C] bg-clip-text text-transparent">
+                AI & GenAI Universe
+              </span>
+            </h2>
 
-              {/* Description */}
-              <p
-                style={{
-                  margin: "0 0 12px 0",
-                  fontSize: "15px",
-                  lineHeight: 1.6,
-                  color: "rgba(255,255,255,0.75)",
-                  maxWidth: "540px",
-                }}
-              >
-                A beginner-friendly yet powerful guide to understand and use
-                Artificial Intelligence in real life. With 65 practical,
-                easy-to-follow chapters, it simplifies AI, Generative AI, Prompt
-                Engineering, Large Language Models (LLMs), Agentic AI, and
-                future AI careers.
-              </p>
+            {/* Tagline */}
+            <p className="mt-2 text-sm sm:text-base md:text-lg font-bold text-white/90">
+              Build the Future with Agentic AI
+            </p>
 
-              {/* CTA */}
-              <div style={styles.ctaRow}>
-                <button
-                  onClick={openAskOxyBook}
-                  style={styles.buyBtn}
-                  className="buy-btn"
-                  type="button"
-                >
-                  <span style={styles.buyIconChip}>→</span>
-                  <span>Buy Now</span>
-                </button>
-              </div>
+            {/* Description */}
+            <p className="mt-3 text-xs sm:text-sm md:text-[15px] leading-relaxed text-white/75 max-w-xl">
+              A beginner-friendly yet powerful guide to understand and use
+              Artificial Intelligence in real life. With 65 practical,
+              easy-to-follow chapters, it simplifies AI, Generative AI, Prompt
+              Engineering, Large Language Models (LLMs), Agentic AI, and
+              future AI careers.
+            </p>
+
+            {/* CTA Button */}
+            <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <button
+                onClick={openAskOxyBook}
+                className="group inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl bg-gradient-to-r from-[#D4AF37] via-[#F5D36C] to-[#C9A227] text-[#1B053A] font-extrabold text-sm shadow-[0_4px_20px_rgba(212,175,55,0.3)] hover:shadow-[0_8px_30px_rgba(212,175,55,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                type="button"
+              >
+                <BookOpen size={17} className="transition-transform group-hover:scale-110" />
+                <span>Buy Now</span>
+                <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+              </button>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Tiny responsive help without Tailwind */}
-      <style>
-        {`
-          @media (min-width: 900px){
-            .ai-book-grid{ grid-template-columns: 0.95fr 1.05fr !important; }
-          }
-          @media (max-width: 640px){
-            .ai-book-section { padding: 20px 0 !important; }
-            .ai-book-card{ border-radius: 16px !important; padding: 16px !important; }
-            .ai-book-left{ padding: 0 10px; }
-          }
-          @media (min-width: 641px) and (max-width: 899px){
-            .ai-book-card{ padding: 24px !important; }
-          }
-          .buy-btn:hover{ transform: translateY(-1px); filter: brightness(1.03); }
-          .buy-btn:active{ transform: translateY(0px) scale(0.99); }
-        `}
-      </style>
     </section>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  section: {
-    width: "100%",
-    padding: "0",
-    position: "relative",
-    overflow: "hidden",
-    background: "transparent",
-  },
-
-  container: {
-    width: "100%",
-    maxWidth: "1400px",
-    margin: "0 auto",
-    padding: "0 0px",
-  },
-
-  // ✅ Rounded corners focus (simple + premium)
-  card: {
-    borderRadius: "20px",
-    padding: "0px",
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.06)",
-    boxShadow: "0 12px 32px rgba(8,2,24,0.20)",
-    backdropFilter: "blur(12px)",
-  },
-
-  inner: {
-    padding: "32px",
-  },
-
-  // ✅ Top title (gold)
-  topTitle: {
-    margin: 0,
-    fontSize: "14px",
-    fontWeight: 900,
-    letterSpacing: "2px",
-    textTransform: "uppercase",
-    background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-  },
-
-  topSubTitle: {
-    margin: "10px 0 22px 0",
-    color: "rgba(255,255,255,0.72)",
-    fontSize: "14px",
-    fontWeight: 700,
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    gap: "20px",
-    alignItems: "center",
-  },
-
-  left: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  imageWrap: {
-    width: "100%",
-    maxWidth: "520px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "4px",
-  },
-
-  image: {
-    width: "100%",
-    height: "auto",
-    objectFit: "contain",
-    display: "block",
-    filter: "drop-shadow(0 12px 22px rgba(8,2,24,0.22))",
-  },
-
-  content: {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-  },
-
-  badgeRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "8px",
-    alignItems: "center",
-    marginBottom: "10px",
-  },
-
-  badge: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "8px",
-    borderRadius: "999px",
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.16)",
-    padding: "8px 12px",
-    fontSize: "11px",
-    fontWeight: 800,
-    color: "#FFFFFF",
-    letterSpacing: "0.2px",
-  },
-
-  badgeDot: {
-    width: "7px",
-    height: "7px",
-    borderRadius: "999px",
-    background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
-    boxShadow: "0 0 0 2px rgba(212,175,55,0.16)",
-  },
-
-  pill: {
-    display: "inline-flex",
-    alignItems: "center",
-    borderRadius: "999px",
-    padding: "7px 12px",
-    border: "1px solid rgba(212,175,55,0.35)",
-    background: "rgba(212,175,55,0.10)",
-  },
-
-  pillText: {
-    color: "#F5D36C",
-    fontWeight: 900,
-    fontSize: "11px",
-    letterSpacing: "0.2px",
-  },
-
-  title: {
-    margin: 0,
-    fontSize: "clamp(20px, 2.6vw, 30px)",
-    lineHeight: 1.15,
-    color: "#FFFFFF",
-    fontWeight: 900,
-    letterSpacing: "0.2px",
-  },
-  goldText: { color: "#D4AF37" },
-  subtitle: {
-    margin: "8px 0 0 0",
-    color: "rgba(255,255,255,0.82)",
-    fontSize: "14px",
-    fontWeight: 700,
-  },
-
-  description: {
-    marginTop: "12px",
-    color: "rgba(255,255,255,0.88)",
-    lineHeight: 1.7,
-    fontSize: "13px",
-    textAlign: "left",
-  },
-
-  ctaRow: {
-    marginTop: "14px",
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    flexWrap: "wrap",
-  },
-
-  buyBtn: {
-    padding: "12px 18px",
-    borderRadius: "14px",
-    background: "linear-gradient(135deg, #D4AF37, #F5D36C)",
-    color: "#2B0A59",
-    fontWeight: 900,
-    fontSize: "14px",
-    border: "none",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-    transition: "all 0.25s",
-  },
-
-  buyIconChip: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    background: "rgba(255,255,255,0.72)",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    boxShadow: "0 7px 18px rgba(8,2,24,0.16)",
-  },
-};

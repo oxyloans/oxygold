@@ -902,11 +902,11 @@ const CartPage: React.FC = () => {
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-extrabold text-[#1A1A1A] leading-tight">
-                                        Apply Coupon
+                                      Available Coupons for you
                                     </h2>
-                                    <p className="text-xs font-medium text-stone-500">
+                                    {/* <p className="text-xs font-medium text-stone-500">
                                         Use a coupon code to get the best offer
-                                    </p>
+                                    </p> */}
                                 </div>
                             </div>
                             <button
@@ -919,74 +919,16 @@ const CartPage: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* Top Coupon Code Input Row */}
-                        <div className="p-5 bg-white border-b border-[#F0EBE1]">
-                            <div className="flex items-center gap-2 rounded-2xl border-2 border-amber-500/30 bg-[#F9F9FB] p-1.5 focus-within:border-[#8B6914] focus-within:bg-white transition shadow-2xs">
-                                <div className="pl-3 text-amber-700 shrink-0">
-                                    <Tag size={18} />
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="Enter Coupon Code"
-                                    value={couponInput}
-                                    onChange={(e) => {
-                                        setCouponInput(e.target.value.toUpperCase());
-                                        setCouponError("");
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                            if (appliedCoupon && couponInput === appliedCoupon.couponCode) {
-                                                removeAppliedCoupon();
-                                                setCouponInput("");
-                                            } else if (couponInput.trim()) {
-                                                handleApplyCouponInModal(couponInput);
-                                            }
-                                        }
-                                    }}
-                                    className="w-full bg-transparent px-2 text-sm font-mono font-bold uppercase tracking-wider text-[#1A1A1A] placeholder:font-sans placeholder:normal-case placeholder:text-stone-400 placeholder:font-normal focus:outline-none"
-                                />
-                                {appliedCoupon && couponInput === appliedCoupon.couponCode ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            removeAppliedCoupon();
-                                            setCouponInput("");
-                                            setCouponError("");
-                                        }}
-                                        className="shrink-0 px-6 py-2.5 rounded-xl bg-rose-600 text-white font-extrabold text-xs hover:bg-rose-700 transition cursor-pointer uppercase tracking-wider shadow-2xs"
-                                    >
-                                        REMOVE
-                                    </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        disabled={!couponInput.trim() || isApplyingCoupon}
-                                        onClick={() => handleApplyCouponInModal(couponInput)}
-                                        className="shrink-0 px-7 py-2.5 rounded-xl bg-[#8B6914] hover:bg-[#775910] text-white font-extrabold text-xs transition disabled:opacity-40 cursor-pointer uppercase tracking-wider shadow-2xs"
-                                    >
-                                        {isApplyingCoupon ? <Loader2 size={16} className="animate-spin" /> : "Apply"}
-                                    </button>
-                                )}
-                            </div>
-                            {couponError && (
-                                <p className="text-xs font-semibold text-rose-600 flex items-center gap-1.5 mt-2.5 px-1">
-                                    <AlertTriangle size={14} /> {couponError}
-                                </p>
-                            )}
-                        </div>
-
                         {/* Modal Body — Coupon Cards List */}
                         <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-[#FAF9F6] [scrollbar-width:thin]">
+                            {couponError && (
+                                <div className="text-xs font-semibold text-rose-600 flex items-center gap-1.5 px-3 py-2.5 bg-rose-50 rounded-xl border border-rose-200">
+                                    <AlertTriangle size={14} className="shrink-0" /> {couponError}
+                                </div>
+                            )}
                             
-                            {/* Section Title */}
-                            <div className="flex items-center justify-between px-1">
-                                <h3 className="text-base font-bold text-[#1A1A1A]">
-                                    Available Coupons
-                                </h3>
-                                <span className="text-xs font-medium text-stone-500">
-                                    Choose the best offer for you
-                                </span>
-                            </div>
+                         
+                          
 
                             {/* Coupons Cards Container */}
                             <div className="space-y-4">
@@ -1120,7 +1062,7 @@ const CartPage: React.FC = () => {
                                                                 : "bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600"
                                                         }`}
                                                     >
-                                                        {isApplyingCoupon ? <Loader2 size={14} className="animate-spin" /> : "Apply"}
+                                                        {isApplyingCoupon ? <Loader2 size={14} className="animate-spin" /> : "Use Code"}
                                                     </button>
                                                 )}
                                             </div>

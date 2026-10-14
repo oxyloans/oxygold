@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Clock3,
-  Eye,
   MessageSquareText,
   RefreshCw,
   Search,
@@ -121,7 +120,14 @@ const Reviews: React.FC = () => {
     setReviews((current) =>
       current.map((item) => (item.id === updated.id ? updated : item)),
     );
-    setSelected(updated);
+  };
+
+  const closeModal = () => {
+    if (working) return;
+    setAction(null);
+    setSelected(null);
+    setReason("");
+    setActionError("");
   };
 
   const approve = async (review: AdminReview) => {
@@ -143,18 +149,16 @@ const Reviews: React.FC = () => {
     setWorking(selected.id);
     setActionError("");
     try {
-      if (action === "reject")
+      if (action === "reject") {
         replaceReview(await adminRejectReview(selected.id, reason));
-      else {
+      } else {
         await adminDeleteReview(selected.id);
         setReviews((current) =>
           current.filter((item) => item.id !== selected.id),
         );
-        setSelected(null);
         setTotalElements((value) => Math.max(0, value - 1));
       }
-      setAction(null);
-      setReason("");
+      closeModal();
     } catch (err) {
       setActionError(
         err instanceof Error ? err.message : `Unable to ${action} review.`,
@@ -388,20 +392,12 @@ const Reviews: React.FC = () => {
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-                      <button
-                        type="button"
-                        onClick={() => setSelected(review)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-amber-300 hover:text-amber-800 hover:bg-amber-50/30"
-                      >
-                        <Eye size={14} className="text-slate-500" />
-                        <span>Details</span>
-                      </button>
                       {review.moderationStatus !== "APPROVED" && (
                         <button
                           type="button"
                           disabled={working === review.id}
                           onClick={() => approve(review)}
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50 cursor-pointer"
                         >
                           <CheckCircle2 size={14} />
                           <span>Approve</span>
@@ -416,12 +412,25 @@ const Reviews: React.FC = () => {
                             setReason("");
                             setActionError("");
                           }}
-                          className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 shadow-sm transition hover:bg-rose-100"
+                          className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 shadow-sm transition hover:bg-rose-100 cursor-pointer"
                         >
                           <XCircle size={14} />
                           <span>Reject</span>
                         </button>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelected(review);
+                          setAction("delete");
+                          setActionError("");
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 shadow-sm transition hover:bg-rose-50 hover:border-rose-200 cursor-pointer"
+                        title="Delete review"
+                      >
+                        <Trash2 size={14} />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   </div>
                 </article>
@@ -439,141 +448,27 @@ const Reviews: React.FC = () => {
         />
       </div>
 
-      {/* Review Details Modal */}
-      <Modal
-        isOpen={!!selected && !action}
-        onClose={() => setSelected(null)}
-        title="Review Details & Moderation"
-        size="lg"
-      >
-        {selected && (
-          <div className="space-y-4 text-xs sm:text-sm">
-            <div className="grid gap-3 rounded-xl border border-slate-200/80 bg-slate-50 p-4 sm:grid-cols-2">
-              <div>
-                <p className="text-slate-400 text-[11px] font-semibold uppercase">Product</p>
-                <p className="font-bold text-slate-800">{selected.productName} <span className="font-mono text-slate-400">(#{selected.productId})</span></p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-[11px] font-semibold uppercase">Customer</p>
-                <p className="font-bold text-slate-800">{selected.userFullName} <span className="text-slate-400 font-normal">({selected.userEmail || "No Email"})</span></p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-[11px] font-semibold uppercase">Order Details</p>
-                <p className="font-semibold text-slate-700">Order #{selected.orderId || "—"} {selected.orderItemId ? `/ Item #${selected.orderItemId}` : ""}</p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-[11px] font-semibold uppercase">Moderation Status</p>
-                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold mt-0.5 ${statusStyle[selected.moderationStatus]?.bg} ${statusStyle[selected.moderationStatus]?.text}`}>
-                  {selected.moderationStatus}
-                </span>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-200/80 p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  {[1, 2, 3, 4, 5].map((val) => (
-                    <Star
-                      key={val}
-                      size={16}
-                      fill={val <= selected.rating ? "#D4AF37" : "none"}
-                      stroke={val <= selected.rating ? "#D4AF37" : "#cbd5e1"}
-                    />
-                  ))}
-                  <span className="font-bold text-slate-800 ml-1">{selected.rating}.0 Rating</span>
-                </div>
-                {selected.verifiedPurchase && (
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                    <ShieldCheck size={14} /> Verified Purchase
-                  </span>
-                )}
-              </div>
-              {selected.title && <h4 className="font-bold text-slate-900 text-sm sm:text-base pt-1">{selected.title}</h4>}
-              <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">
-                {selected.reviewText}
-              </p>
-            </div>
-
-            {selected.media && selected.media.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Attached Media ({selected.media.length})
-                </p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {selected.media.map((med) => (
-                    <div
-                      key={med.id}
-                      className="flex items-center justify-between rounded-lg border border-slate-200 p-3 bg-white text-xs"
-                    >
-                      <span className="font-semibold text-slate-700">{med.mediaType}</span>
-                      {med.mediaUrl.startsWith("http") ? (
-                        <a
-                          className="font-bold text-amber-600 hover:underline"
-                          href={med.mediaUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          View Media
-                        </a>
-                      ) : (
-                        <span className="text-slate-400">Stored in S3</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {actionError && (
-              <p className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700">
-                {actionError}
-              </p>
-            )}
-
-            <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-200/80 pt-4 gap-3">
-              <button
-                type="button"
-                onClick={() => setAction("delete")}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-800 transition"
-              >
-                <Trash2 size={15} />
-                <span>Delete Permanently</span>
-              </button>
-              <div className="flex gap-2 w-full sm:w-auto justify-end">
-                {selected.moderationStatus !== "REJECTED" && (
-                  <Button
-                    onClick={() => setAction("reject")}
-                    variant="secondary"
-                  >
-                    Reject Review
-                  </Button>
-                )}
-                {selected.moderationStatus !== "APPROVED" && (
-                  <Button onClick={() => approve(selected)}>Approve Review</Button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
-
       {/* Action Dialog Modal (Reject / Delete) */}
       <Modal
         isOpen={!!selected && !!action}
-        onClose={() => !working && setAction(null)}
+        onClose={closeModal}
         title={
-          action === "delete" ? "Delete Review Permanently?" : "Reject Customer Review"
+          action === "delete" ? "Delete Review?" : "Reject Customer Review"
         }
         footer={
           <>
             <Button
-              variant="secondary"
-              onClick={() => setAction(null)}
+              variant="outline"
+              onClick={closeModal}
               disabled={!!working}
             >
               Cancel
             </Button>
-            <Button onClick={confirmAction} disabled={!!working}>
+            <Button
+              variant={action === "delete" ? "danger" : "primary"}
+              onClick={confirmAction}
+              disabled={!!working}
+            >
               {working
                 ? "Processing…"
                 : action === "delete"
@@ -585,6 +480,14 @@ const Reviews: React.FC = () => {
       >
         {action === "reject" ? (
           <div className="space-y-3">
+            {selected && (
+              <div className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-600 border border-slate-100">
+                <p className="font-semibold text-slate-800">{selected.productName}</p>
+                <p className="truncate mt-0.5 text-slate-500">
+                  By {selected.userFullName || "Anonymous"} &bull; {selected.rating}★
+                </p>
+              </div>
+            )}
             <p className="text-xs sm:text-sm text-slate-600">
               Please provide a clear reason for rejecting this review for auditing purposes.
             </p>
@@ -603,9 +506,19 @@ const Reviews: React.FC = () => {
             </p>
           </div>
         ) : (
-          <p className="text-xs sm:text-sm text-slate-600">
-            Are you sure you want to permanently delete this review? This action cannot be undone and should only be used for severe spam or illegal content.
-          </p>
+          <div className="space-y-3">
+            {selected && (
+              <div className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-600 border border-slate-100">
+                <p className="font-semibold text-slate-800">{selected.productName}</p>
+                <p className="truncate mt-0.5 text-slate-500">
+                  By {selected.userFullName || "Anonymous"} &bull; {selected.rating}★
+                </p>
+              </div>
+            )}
+            <p className="text-xs sm:text-sm text-slate-600">
+              Are you sure you want to delete this review? This action cannot be undone and should only be used for severe spam or illegal content.
+            </p>
+          </div>
         )}
         {actionError && (
           <p className="mt-3 rounded-lg bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700">

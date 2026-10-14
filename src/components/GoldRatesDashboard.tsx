@@ -9,9 +9,17 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  Legend,
 } from "recharts";
+import {
+  Sparkles,
+  Store,
+  BarChart3,
+  ListFilter,
+  RefreshCw,
+  AlertCircle,
+} from "lucide-react";
 import SubscribeLivePrice from "./SubscribeLivePrice";
+import { API_BASE_URL } from "../Config";
 
 type ShopRate = {
   id: string;
@@ -32,13 +40,9 @@ type IbjaRate = {
   source: string;
 };
 
-import { API_BASE_URL } from "../Config";
-const API_SHOPS =
-  `${API_BASE_URL}/product-service/all-different-gold-rates`;
-const API_IBJA =
-  `${API_BASE_URL}/oxybrick-service/getIbjGoldRates`;
+const API_SHOPS = `${API_BASE_URL}/product-service/all-different-gold-rates`;
+const API_IBJA = `${API_BASE_URL}/oxybrick-service/getIbjGoldRates`;
 
-/** last fallback only (keep yours if needed) */
 const HARDCODE_FALLBACK_TOKEN =
   "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4N2ZmMWE2My1jY2MyLTQ4MjQtOGQwMy1mMWEyYmVmODMzYjQiLCJpYXQiOjE3NzA4ODIyNjIsImV4cCI6MTc3MTc0NjI2Mn0.G-tBfedu0p0tsi9XVk6FQLT9xDqmpp4_Zkz0eT-lbad6_1OAXfUrrIMQ3d4vdEtkAbFjSr6GVlPOxvolAuoF0w";
 
@@ -63,56 +67,75 @@ const formatDateLabel = (s: string) => {
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 };
 
-const Tip = ({
-  label,
-  rows,
-}: {
-  label: string;
-  rows: { name: string; value: number; stroke: string }[];
-}) => {
-  return (
-    <div className="tip">
-      <div className="tipTitle">{label}</div>
-      <div className="tipRows">
-        {rows.map((r) => (
-          <div className="tipRow" key={r.name}>
-            <span className="dot" style={{ background: r.stroke }} />
-            <span className="k">{r.name}</span>
-            <span className="v">₹{formatINR(r.value)}</span>
-          </div>
-        ))}
-      </div>
-      <div className="tipFoot">OXYGOLD.AI • Gold Intelligence</div>
-    </div>
-  );
-};
-
-function GoldToggle({
-  left,
-  right,
+function PurityToggle({
   value,
   onChange,
 }: {
-  left: string;
-  right: string;
-  value: string;
-  onChange: (v: string) => void;
+  value: "24KT" | "22KT";
+  onChange: (v: "24KT" | "22KT") => void;
 }) {
   return (
-    <div className="goldSeg">
+    <div className="inline-flex p-0.5 rounded-xl bg-black/40 border border-white/10 backdrop-blur-sm">
       <button
         type="button"
-        className={value === left ? "on" : ""}
-        onClick={() => onChange(left)}
+        onClick={() => onChange("24KT")}
+        className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+          value === "24KT"
+            ? "bg-gradient-to-b from-[#F5D36C] to-[#D4AF37] text-[#1B053A] shadow-md scale-[1.02]"
+            : "text-white/70 hover:text-white hover:bg-white/5"
+        }`}
       >
-        {left}
+        24KT
       </button>
       <button
         type="button"
-        className={value === right ? "on" : ""}
-        onClick={() => onChange(right)}
+        onClick={() => onChange("22KT")}
+        className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+          value === "22KT"
+            ? "bg-gradient-to-b from-[#F5D36C] to-[#D4AF37] text-[#1B053A] shadow-md scale-[1.02]"
+            : "text-white/70 hover:text-white hover:bg-white/5"
+        }`}
       >
-        {right}
+        22KT
+      </button>
+    </div>
+  );
+}
+
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: "chart" | "table";
+  onChange: (v: "chart" | "table") => void;
+}) {
+  return (
+    <div className="inline-flex p-0.5 rounded-xl bg-black/40 border border-white/10 backdrop-blur-sm">
+      <button
+        type="button"
+        onClick={() => onChange("chart")}
+        title="Bar Chart View"
+        className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+          view === "chart"
+            ? "bg-gradient-to-b from-[#F5D36C] to-[#D4AF37] text-[#1B053A] shadow-md"
+            : "text-white/60 hover:text-white hover:bg-white/5"
+        }`}
+      >
+        <BarChart3 size={14} />
+        <span className="hidden sm:inline text-[11px]">Chart</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("table")}
+        title="Rankings List View"
+        className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+          view === "table"
+            ? "bg-gradient-to-b from-[#F5D36C] to-[#D4AF37] text-[#1B053A] shadow-md"
+            : "text-white/60 hover:text-white hover:bg-white/5"
+        }`}
+      >
+        <ListFilter size={14} />
+        <span className="hidden sm:inline text-[11px]">Ranking</span>
       </button>
     </div>
   );
@@ -126,20 +149,18 @@ export default function GoldRatesDashboard() {
 
   const [ibjaMode, setIbjaMode] = useState<"24KT" | "22KT">("24KT");
   const [shopsMode, setShopsMode] = useState<"24KT" | "22KT">("24KT");
+  const [shopsView, setShopsView] = useState<"chart" | "table">("chart");
 
   useEffect(() => {
     let alive = true;
 
     const getToken = () => {
-      // 1) sessionStorage (your app usually uses this)
       const s = sessionStorage.getItem("accessToken");
       if (s && s.trim()) return s.trim();
 
-      // 2) Vite env var (optional)
       const envTok = (import.meta as any)?.env?.VITE_OXY_ACCESS_TOKEN;
       if (typeof envTok === "string" && envTok.trim()) return envTok.trim();
 
-      // 3) hardcoded fallback (last)
       if (HARDCODE_FALLBACK_TOKEN && HARDCODE_FALLBACK_TOKEN.trim())
         return HARDCODE_FALLBACK_TOKEN.trim();
 
@@ -156,7 +177,6 @@ export default function GoldRatesDashboard() {
           Accept: "application/json",
         };
 
-        // Only attach Authorization if token exists
         if (token) headers.Authorization = `Bearer ${token}`;
 
         const [shopsRes, ibjaRes] = await Promise.all([
@@ -164,7 +184,6 @@ export default function GoldRatesDashboard() {
           fetch(API_IBJA, { headers }),
         ]);
 
-        // If either failed, show proper status
         if (!shopsRes.ok || !ibjaRes.ok) {
           const sMsg = !shopsRes.ok
             ? `Shops API failed (${shopsRes.status})`
@@ -182,7 +201,7 @@ export default function GoldRatesDashboard() {
         setIbja(Array.isArray(ibjaJson) ? ibjaJson : []);
       } catch (e: any) {
         if (!alive) return;
-        setErr(e?.message || "Something went wrong");
+        setErr(e?.message || "Unable to fetch live rates");
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -198,8 +217,11 @@ export default function GoldRatesDashboard() {
     const list = [...(ibja || [])].reverse();
     return list.map((r) => ({
       label: formatDateLabel(r.fetchDate),
+      fullDate: r.fetchDate,
       v999: safeNum(r.purity999),
       v916: safeNum(r.purity916),
+      v995: safeNum(r.purity995),
+      v750: safeNum(r.purity750),
     }));
   }, [ibja]);
 
@@ -209,572 +231,439 @@ export default function GoldRatesDashboard() {
       .map((d: any) => d[key])
       .filter((x: any) => typeof x === "number") as number[];
     const last = ibjaChartData[ibjaChartData.length - 1] as any;
+    const prev =
+      ibjaChartData.length > 1
+        ? (ibjaChartData[ibjaChartData.length - 2] as any)
+        : null;
+
     const current = last ? last[key] : null;
-    if (!values.length) return { current: null, min: null, max: null };
-    return { current, min: Math.min(...values), max: Math.max(...values) };
+    const previous = prev ? prev[key] : null;
+    const change = current && previous ? current - previous : 0;
+
+    if (!values.length) {
+      return {
+        current: null,
+        min: null,
+        max: null,
+        change: 0,
+        date: "",
+      };
+    }
+
+    return {
+      current,
+      min: Math.min(...values),
+      max: Math.max(...values),
+      change,
+      date: last?.label || "",
+    };
   }, [ibjaChartData, ibjaMode]);
 
   const shopsChartData = useMemo(() => {
     const key = shopsMode === "24KT" ? "rate24kt" : "rate22kt";
     const rows = (shops || [])
       .map((s) => ({
+        id: s.id,
         name: s.companyName,
-        v: safeNum((s as any)[key]),
+        rate: safeNum((s as any)[key]),
       }))
-      .filter((x) => typeof x.v === "number") as { name: string; v: number }[];
+      .filter(
+        (
+          x
+        ): x is {
+          id: string;
+          name: string;
+          rate: number;
+        } => typeof x.rate === "number"
+      );
 
-    rows.sort((a, b) => b.v - a.v);
-
-    return rows.map((r) => ({
-      name: r.name,
-      rate24: r.v,
-      rate22: r.v,
-    }));
+    // Sorted from most competitive (lowest) to highest
+    rows.sort((a, b) => a.rate - b.rate);
+    return rows;
   }, [shops, shopsMode]);
 
   const retry = () => window.location.reload();
 
   return (
-    <div className="grdRoot">
-      <div className="page">
-        <div className="panel">
-          <div className="topSpace" />
-
-          <div className="header">
-            <div className="headerContent">
-              <div>
-                <h1 className="headerTitle">
-                  Smart{" "}
-                  <span className="goldGradient">
-                    Gold Rate Analytics
-                  </span>
-                </h1>
-                <p className="headerSubtitle">
-                  Clean comparison of Shop rates vs IBJA trend intelligence.
-                </p>
-              </div>
-              <div className="subscribeWrapper">
-                <SubscribeLivePrice />
-              </div>
+    <div className="w-full py-6 sm:py-8 lg:py-10">
+      <div
+        className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 p-3.5 sm:p-6 lg:p-8"
+        style={{
+          background:
+            "radial-gradient(900px 420px at 20% 0%, rgba(91,46,255,0.22), transparent 55%), radial-gradient(700px 360px at 90% 20%, rgba(212,175,55,0.16), transparent 60%), linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
+        }}
+      >
+        {/* Header with Title and Live Subscribe Button */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#F5D36C] text-[10px] sm:text-[11px] font-semibold mb-2">
+              <Sparkles size={12} className="animate-pulse" />
+              <span>Live Market Intelligence</span>
             </div>
+            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-tight">
+              Smart{" "}
+              <span className="bg-gradient-to-r from-[#D4AF37] to-[#F5D36C] bg-clip-text text-transparent">
+                Gold Rate Analytics
+              </span>
+            </h2>
+            <p className="mt-1 text-xs sm:text-sm text-white/70">
+              Clean comparison of leading retail shops vs official IBJA benchmark rates.
+            </p>
           </div>
 
-          <div className="controls">
-            <div className="controlGroup">
-              <div className="controlLabel">IBJA</div>
-              <GoldToggle
-                left="24KT"
-                right="22KT"
-                value={ibjaMode}
-                onChange={(v) => setIbjaMode(v as any)}
-              />
-            </div>
-
-            <div className="controlGroup">
-              <div className="controlLabel">Shops</div>
-              <GoldToggle
-                left="24KT"
-                right="22KT"
-                value={shopsMode}
-                onChange={(v) => setShopsMode(v as any)}
-              />
-            </div>
+          <div className="shrink-0 self-start sm:self-center">
+            <SubscribeLivePrice />
           </div>
-
-          {loading && (
-            <div className="state">
-              <div className="spinner" />
-              <div className="meta">Fetching latest rates…</div>
-            </div>
-          )}
-
-          {!loading && err && (
-            <div className="state">
-              <div className="error">⚠ {err}</div>
-              <div className="meta">
-                If token is missing, set <b>sessionStorage.accessToken</b> or
-                add <b>VITE_OXY_ACCESS_TOKEN</b> in your Vite env.
-              </div>
-              <button className="retry" onClick={retry} type="button">
-                Retry
-              </button>
-            </div>
-          )}
-
-          {!loading && !err && (
-            <div className="grid">
-              <div className="card">
-                <div className="cardHead">
-                  <div>
-                    <div className="st">IBJA Trend</div>
-                    <div className="big">
-                      {ibjaStats.current !== null
-                        ? `₹${formatINR(ibjaStats.current)}`
-                        : "--"}
-                    </div>
-                    <div className="meta">
-                      Min:{" "}
-                      {ibjaStats.min !== null
-                        ? `₹${formatINR(ibjaStats.min)}`
-                        : "--"}{" "}
-                      • Max:{" "}
-                      {ibjaStats.max !== null
-                        ? `₹${formatINR(ibjaStats.max)}`
-                        : "--"}
-                    </div>
-                  </div>
-                  <div className="chip">
-                    {ibjaMode === "24KT" ? "24KT (999)" : "22KT (916)"}
-                  </div>
-                </div>
-
-                <div className="chart">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={ibjaChartData}>
-                      <defs>
-                        <linearGradient
-                          id="gPurple"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop offset="0%" stopColor="rgba(91,46,255,0.55)" />
-                          <stop
-                            offset="100%"
-                            stopColor="rgba(91,46,255,0.06)"
-                          />
-                        </linearGradient>
-                        <linearGradient id="gGold" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="rgba(212,175,55,0.50)" />
-                          <stop
-                            offset="100%"
-                            stopColor="rgba(212,175,55,0.06)"
-                          />
-                        </linearGradient>
-                      </defs>
-
-                      <CartesianGrid
-                        stroke="rgba(255,255,255,0.08)"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="label"
-                        tick={{
-                          fill: "rgba(255,255,255,0.55)",
-                          fontSize: 10,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                        minTickGap={10}
-                        angle={-20}
-                        textAnchor="end"
-                        height={40}
-                      />
-                      <YAxis
-                        tick={{
-                          fill: "rgba(255,255,255,0.55)",
-                          fontSize: 10,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={50}
-                      />
-                      <Tooltip
-                        content={({ active, label, payload }: any) => {
-                          if (!active || !payload?.length) return null;
-                          const rows = payload
-                            .filter((p: any) => typeof p.value === "number")
-                            .map((p: any) => ({
-                              name: p.name,
-                              value: p.value,
-                              stroke: p.stroke || p.color || "#fff",
-                            }));
-                          return <Tip label={label} rows={rows} />;
-                        }}
-                      />
-                      <Legend
-                        wrapperStyle={{
-                          color: "rgba(255,255,255,0.75)",
-                          fontWeight: 700,
-                        }}
-                      />
-
-                      <Area
-                        type="monotone"
-                        dataKey={ibjaMode === "24KT" ? "v999" : "v916"}
-                        name={ibjaMode === "24KT" ? "IBJA 999" : "IBJA 916"}
-                        stroke={ibjaMode === "24KT" ? "#D4AF37" : "#5B2EFF"}
-                        fill={
-                          ibjaMode === "24KT" ? "url(#gGold)" : "url(#gPurple)"
-                        }
-                        strokeWidth={3}
-                        dot={false}
-                        activeDot={{ r: 5 }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="card">
-                <div className="cardHead">
-                  <div>
-                    <div className="st">Shop Comparison</div>
-                    <div className="meta">
-                      Highest to lowest across selected shops.
-                    </div>
-                  </div>
-                  <div className="chip">{shopsMode}</div>
-                </div>
-
-                <div className="chart">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={shopsChartData}>
-                      <defs>
-                        <linearGradient
-                          id="barGold"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop offset="0%" stopColor="rgba(212,175,55,0.95)" />
-                          <stop
-                            offset="100%"
-                            stopColor="rgba(212,175,55,0.20)"
-                          />
-                        </linearGradient>
-                        <linearGradient
-                          id="barPurple"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop offset="0%" stopColor="rgba(91,46,255,0.95)" />
-                          <stop
-                            offset="100%"
-                            stopColor="rgba(91,46,255,0.22)"
-                          />
-                        </linearGradient>
-                      </defs>
-
-                      <CartesianGrid
-                        stroke="rgba(255,255,255,0.08)"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="name"
-                        tick={{
-                          fill: "rgba(255,255,255,0.55)",
-                          fontSize: 9,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                        interval={0}
-                        angle={-30}
-                        textAnchor="end"
-                        height={65}
-                      />
-                      <YAxis
-                        tick={{
-                          fill: "rgba(255,255,255,0.55)",
-                          fontSize: 10,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={50}
-                      />
-                      <Tooltip
-                        content={({ active, label, payload }: any) => {
-                          if (!active || !payload?.length) return null;
-                          const rows = payload
-                            .filter((p: any) => typeof p.value === "number")
-                            .map((p: any) => ({
-                              name: p.name,
-                              value: p.value,
-                              stroke: p.fill || p.color || "#fff",
-                            }));
-                          return <Tip label={label} rows={rows} />;
-                        }}
-                      />
-                      <Legend
-                        wrapperStyle={{
-                          color: "rgba(255,255,255,0.75)",
-                          fontWeight: 700,
-                        }}
-                      />
-
-                      <Bar
-                        dataKey="rate24"
-                        name={shopsMode === "24KT" ? "24KT" : "Selected"}
-                        fill="url(#barGold)"
-                        radius={[10, 10, 0, 0]}
-                        maxBarSize={34}
-                      />
-                      <Bar
-                        dataKey="rate22"
-                        name="22KT"
-                        fill="url(#barPurple)"
-                        radius={[10, 10, 0, 0]}
-                        maxBarSize={34}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="bottomSpace" />
         </div>
 
-        <style>{styles}</style>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <div className="w-10 h-10 rounded-full border-3 border-white/20 border-t-[#D4AF37] animate-spin" />
+            <p className="text-xs sm:text-sm text-white/70 font-medium">
+              Fetching real-time gold rates…
+            </p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {!loading && err && (
+          <div className="flex flex-col items-center justify-center py-14 gap-3 text-center p-4 rounded-2xl border border-rose-500/20 bg-rose-500/5">
+            <AlertCircle className="w-9 h-9 text-rose-400" />
+            <p className="text-sm font-semibold text-white/90">{err}</p>
+            <p className="text-xs text-white/50 max-w-md">
+              Please check your connection or retry fetching the latest data.
+            </p>
+            <button
+              onClick={retry}
+              type="button"
+              className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#5B2EFF] to-[#3D0B7A] text-white text-xs font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+            >
+              <RefreshCw size={14} /> Retry
+            </button>
+          </div>
+        )}
+
+        {/* Content Section */}
+        {!loading && !err && (
+          <>
+            {/* Analytics Cards Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+              {/* Card 1: IBJA Benchmark Trend */}
+              <div
+                className="rounded-2xl border border-white/10 p-4 sm:p-5 flex flex-col justify-between overflow-hidden shadow-lg backdrop-blur-md transition-all hover:border-white/20"
+                style={{
+                  background:
+                    "radial-gradient(700px 360px at 20% 10%, rgba(91,46,255,0.20), transparent 55%), radial-gradient(650px 300px at 90% 10%, rgba(212,175,55,0.12), transparent 60%), linear-gradient(180deg, rgba(15,8,28,0.7), rgba(10,5,20,0.85))",
+                }}
+              >
+                <div>
+                  {/* Card Header & Controls */}
+                  <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-[#F5D36C] shadow-[0_0_8px_#F5D36C]" />
+                        <h3 className="text-sm sm:text-base font-bold text-white tracking-wide">
+                          IBJA Benchmark Trend
+                        </h3>
+                      </div>
+                      <div className="mt-1 flex items-baseline gap-2">
+                        <span className="text-xl sm:text-2xl font-black text-[#F5D36C]">
+                          {ibjaStats.current !== null
+                            ? `₹${formatINR(ibjaStats.current)}`
+                            : "--"}
+                        </span>
+                        <span className="text-xs text-white/50">/ gram</span>
+                      </div>
+                      <p className="text-[10px] sm:text-[11px] text-white/50 mt-0.5">
+                        Min: ₹{formatINR(ibjaStats.min)} • Max: ₹{formatINR(ibjaStats.max)}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-white/60 hidden sm:inline font-semibold">
+                        Purity:
+                      </span>
+                      <PurityToggle value={ibjaMode} onChange={setIbjaMode} />
+                    </div>
+                  </div>
+
+                  {/* AreaChart */}
+                  <div className="h-[280px] sm:h-[320px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={ibjaChartData}
+                        margin={{ top: 10, right: 10, left: -15, bottom: 25 }}
+                      >
+                        <defs>
+                          <linearGradient id="areaGold" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#F5D36C" stopOpacity={0.45} />
+                            <stop offset="100%" stopColor="#D4AF37" stopOpacity={0.02} />
+                          </linearGradient>
+                          <linearGradient id="areaPurple" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#A78BFA" stopOpacity={0.45} />
+                            <stop offset="100%" stopColor="#6366F1" stopOpacity={0.02} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          stroke="rgba(255,255,255,0.06)"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="label"
+                          tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }}
+                          axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                          tickLine={false}
+                          minTickGap={15}
+                          angle={-25}
+                          textAnchor="end"
+                          height={40}
+                        />
+                        <YAxis
+                          tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                          domain={["dataMin - 150", "dataMax + 150"]}
+                          tickFormatter={(v) => `₹${formatINR(v)}`}
+                        />
+                        <Tooltip
+                          content={({ active, label, payload }: any) => {
+                            if (!active || !payload?.length) return null;
+                            const item = payload[0];
+                            const fullDate = item.payload.fullDate;
+                            return (
+                              <div className="rounded-xl border border-white/20 bg-[#0F081D]/95 backdrop-blur-md p-3 text-xs shadow-2xl min-w-[190px]">
+                                <div className="font-semibold text-white/80 border-b border-white/10 pb-1 mb-2 flex items-center justify-between">
+                                  <span>
+                                    {fullDate
+                                      ? new Date(fullDate).toLocaleDateString("en-IN", {
+                                          day: "numeric",
+                                          month: "short",
+                                          year: "numeric",
+                                        })
+                                      : label}
+                                  </span>
+                                  <span className="text-[10px] bg-white/10 text-[#F5D36C] px-1.5 py-0.5 rounded-full font-bold">
+                                    IBJA {ibjaMode}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between py-1">
+                                  <span className="text-white/70">Rate:</span>
+                                  <span className="font-bold text-[#F5D36C] text-sm">
+                                    ₹{formatINR(item.value)} / g
+                                  </span>
+                                </div>
+                                <div className="mt-1 text-[10px] text-white/50 text-right">
+                                  Official Benchmark
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey={ibjaMode === "24KT" ? "v999" : "v916"}
+                          name={ibjaMode === "24KT" ? "IBJA 24KT (999)" : "IBJA 22KT (916)"}
+                          stroke={ibjaMode === "24KT" ? "#F5D36C" : "#A78BFA"}
+                          strokeWidth={2.5}
+                          fill={ibjaMode === "24KT" ? "url(#areaGold)" : "url(#areaPurple)"}
+                          activeDot={{
+                            r: 5,
+                            fill: ibjaMode === "24KT" ? "#F5D36C" : "#A78BFA",
+                            stroke: "#fff",
+                            strokeWidth: 2,
+                          }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Retail Shops Rate Comparison */}
+              <div
+                className="rounded-2xl border border-white/10 p-4 sm:p-5 flex flex-col justify-between overflow-hidden shadow-lg backdrop-blur-md transition-all hover:border-white/20"
+                style={{
+                  background:
+                    "radial-gradient(700px 360px at 20% 10%, rgba(91,46,255,0.20), transparent 55%), radial-gradient(650px 300px at 90% 10%, rgba(212,175,55,0.12), transparent 60%), linear-gradient(180deg, rgba(15,8,28,0.7), rgba(10,5,20,0.85))",
+                }}
+              >
+                <div>
+                  {/* Card Header & Controls */}
+                  <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Store size={16} className="text-[#F5D36C]" />
+                        <h3 className="text-sm sm:text-base font-bold text-white tracking-wide">
+                          Shops Comparison
+                        </h3>
+                      </div>
+                      <p className="text-[10px] sm:text-[11px] text-white/50 mt-1">
+                        Ranked from lowest (best deal) to highest across retail shops
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <PurityToggle value={shopsMode} onChange={setShopsMode} />
+                      <ViewToggle view={shopsView} onChange={setShopsView} />
+                    </div>
+                  </div>
+
+                  {/* View A: Bar Chart */}
+                  {shopsView === "chart" ? (
+                    <div className="h-[280px] sm:h-[320px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={shopsChartData}
+                          margin={{ top: 10, right: 10, left: -15, bottom: 40 }}
+                        >
+                          <defs>
+                            <linearGradient id="barGold" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#F5D36C" />
+                              <stop offset="100%" stopColor="#C59B27" />
+                            </linearGradient>
+                            <linearGradient id="barPurple" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#A78BFA" />
+                              <stop offset="100%" stopColor="#6366F1" />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid
+                            stroke="rgba(255,255,255,0.06)"
+                            vertical={false}
+                          />
+                          <XAxis
+                            dataKey="name"
+                            tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 9 }}
+                            axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                            tickLine={false}
+                            interval={0}
+                            angle={-32}
+                            textAnchor="end"
+                            height={55}
+                          />
+                          <YAxis
+                            tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }}
+                            axisLine={false}
+                            tickLine={false}
+                            domain={["dataMin - 100", "dataMax + 100"]}
+                            tickFormatter={(v) => `₹${formatINR(v)}`}
+                          />
+                          <Tooltip
+                            content={({ active, payload }: any) => {
+                              if (!active || !payload?.length) return null;
+                              const data = payload[0].payload;
+                              return (
+                                <div className="rounded-xl border border-white/20 bg-[#0F081D]/95 backdrop-blur-md p-3 text-xs shadow-2xl min-w-[170px]">
+                                  <div className="font-bold text-white border-b border-white/10 pb-1.5 mb-2 flex items-center justify-between gap-2">
+                                    <span className="truncate max-w-[130px] font-semibold">
+                                      {data.name}
+                                    </span>
+                                    <span className="text-[10px] text-[#F5D36C] font-bold bg-[#D4AF37]/15 border border-[#D4AF37]/30 px-2 py-0.5 rounded-full shrink-0">
+                                      {shopsMode}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-1">
+                                    <span className="text-white/70 text-[11px]">{shopsMode} Rate:</span>
+                                    <span className="font-extrabold text-[#F5D36C] text-sm">
+                                      ₹{formatINR(data.rate)}
+                                      <span className="text-[10px] text-white/50 font-normal ml-0.5">/g</span>
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            }}
+                          />
+                          <Bar
+                            dataKey="rate"
+                            name={shopsMode}
+                            fill={
+                              shopsMode === "24KT"
+                                ? "url(#barGold)"
+                                : "url(#barPurple)"
+                            }
+                            radius={[6, 6, 0, 0]}
+                            maxBarSize={36}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    /* View B: Ranking List Table */
+                    <div className="h-[280px] sm:h-[320px] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
+                      {shopsChartData.map((shop, idx) => {
+                        const isBest = idx === 0;
+                        return (
+                          <div
+                            key={shop.id || shop.name}
+                            className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl border transition-all ${
+                              isBest
+                                ? "border-[#D4AF37]/50 bg-[#D4AF37]/10 shadow-[0_0_15px_rgba(212,175,55,0.12)]"
+                                : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                              <span
+                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                                  isBest
+                                    ? "bg-[#D4AF37] text-[#1B053A]"
+                                    : idx === 1
+                                    ? "bg-slate-300 text-slate-900"
+                                    : idx === 2
+                                    ? "bg-amber-700 text-amber-100"
+                                    : "bg-white/10 text-white/70"
+                                }`}
+                              >
+                                {idx + 1}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="font-bold text-white text-xs sm:text-sm truncate">
+                                  {shop.name}
+                                </div>
+                                <div className="text-[10px] text-white/50">
+                                  Rank #{idx + 1}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <div className="font-black text-[#F5D36C] text-xs sm:text-sm">
+                                ₹{formatINR(shop.rate)}
+                                <span className="text-[10px] text-white/50 font-normal ml-0.5">/g</span>
+                              </div>
+                              {isBest && (
+                                <div className="text-[10px] text-emerald-400 font-bold">
+                                  Best {shopsMode} Rate
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(212, 175, 55, 0.4);
+          border-radius: 999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(212, 175, 55, 0.7);
+        }
+      `}</style>
     </div>
   );
 }
-
-const styles = `
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
-
-.grdRoot{ width: 100%; padding: 24px 0; box-sizing: border-box; }
-.grdRoot .page{ width: 100%; padding: 0; }
-
-.grdRoot .panel{
-  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.10);
-  background:
-    radial-gradient(900px 420px at 20% 0%, rgba(91,46,255,0.22), transparent 55%),
-    radial-gradient(700px 360px at 90% 20%, rgba(212,175,55,0.16), transparent 60%),
-    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  padding: 12px;
-  overflow: hidden;
-}
-
-.grdRoot .topSpace{ height: 0; }
-.grdRoot .bottomSpace{ height: 0; }
-
-.grdRoot .header{
-  margin-bottom: 10px;
-}
-
-.grdRoot .headerContent{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.grdRoot .headerTitle{
-  margin: 0;
-  font-size: clamp(22px, 3.4vw, 44px);
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: 0.2px;
-  color: #ffffff;
-}
-
-.grdRoot .goldGradient{
-  background: linear-gradient(135deg, #D4AF37, #F5D36C);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.grdRoot .headerSubtitle{
-  margin: 4px 0 0 0;
-  font-size: 15px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.75);
-}
-
-.grdRoot .subscribeWrapper{
-  flex-shrink: 0;
-}
-
-.grdRoot .title{
-  margin: 0; font-size: 16px; font-weight: 900; letter-spacing: 0.2px;
-  color: rgba(255,255,255,0.94);
-}
-
-.grdRoot .subtitle{
-  margin: 3px 0 0 0; font-size: 11px; font-weight: 700;
-  color: rgba(255,255,255,0.62);
-}
-
-.grdRoot .rightPill{
-  display:flex; align-items:center; gap: 6px;
-  border: 1px solid rgba(255,255,255,0.10);
-  padding: 6px 10px; border-radius: 999px;
-  background: rgba(0,0,0,0.12);
-  color: rgba(255,255,255,0.82);
-  font-weight: 800; font-size: 10px; white-space: nowrap;
-}
-
-.grdRoot .pillDot{
-  width: 8px; height: 8px; border-radius: 999px;
-  background: rgba(212,175,55,0.95);
-  box-shadow: 0 0 0 3px rgba(83, 82, 78, 0.14);
-}
-
-.grdRoot .controls{
-  display:flex; align-items:center; justify-content:space-between;
-  gap: 8px; padding: 8px 0;
-  border-top: 1px solid rgba(255,255,255,0.08);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  margin-bottom: 10px; flex-wrap: wrap;
-}
-
-.grdRoot .controlGroup{ display:flex; align-items:center; gap: 8px; }
-.grdRoot .controlLabel{
-  font-size: 10px; font-weight: 900; letter-spacing: 0.5px;
-  color: rgba(255,255,255,0.70);
-}
-
-.grdRoot .goldSeg{
-  display:flex;
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 999px;
-  overflow:hidden;
-  background: rgba(0,0,0,0.18);
-}
-
-.grdRoot .goldSeg button{
-  appearance:none; border:0; background: transparent;
-  color: rgba(255,255,255,0.74);
-  font-weight: 900; font-size: 10px;
-  padding: 7px 10px; cursor:pointer;
-  transition: all .15s ease;
-}
-
-.grdRoot .goldSeg button.on{
-  background: linear-gradient(180deg, rgba(212,175,55,0.95), rgba(212,175,55,0.72));
-  color: rgba(43,10,89,0.98);
-}
-
-.grdRoot .state{
-  display:flex; align-items:center; justify-content:center;
-  flex-direction: column; gap: 8px; padding: 16px 0;
-}
-
-.grdRoot .spinner{
-  width: 34px; height: 34px; border-radius: 999px;
-  border: 3px solid rgba(255,255,255,0.15);
-  border-top-color: rgba(212,175,55,0.95);
-  animation: grdSpin 1s linear infinite;
-}
-
-@keyframes grdSpin{ to{ transform: rotate(360deg); } }
-
-.grdRoot .error{ color: rgba(255,255,255,0.90); font-weight: 900; }
-.grdRoot .retry{
-  border: 0; cursor: pointer; border-radius: 12px;
-  padding: 10px 14px; font-weight: 900;
-  background: linear-gradient(180deg, rgba(91,46,255,0.95), rgba(61,11,122,0.85));
-  color: rgba(255,255,255,0.92);
-  box-shadow: 0 14px 34px rgba(0,0,0,0.28);
-}
-
-.grdRoot .grid{ display:grid; grid-template-columns: 1fr; gap: 10px; }
-
-.grdRoot .card{
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.10);
-  background:
-    radial-gradient(700px 360px at 20% 10%, rgba(91,46,255,0.20), transparent 55%),
-    radial-gradient(650px 300px at 90% 10%, rgba(212,175,55,0.12), transparent 60%),
-    linear-gradient(180deg, rgba(0,0,0,0.18), rgba(255,255,255,0.03));
-  padding: 10px;
-  overflow:hidden;
-}
-
-.grdRoot .cardHead{
-  display:flex; align-items:flex-start; justify-content:space-between;
-  gap: 8px; margin-bottom: 8px; flex-wrap: wrap;
-}
-
-.grdRoot .st{
-  font-size: 10px; font-weight: 900;
-  color: rgba(255,255,255,0.70);
-  letter-spacing: 0.4px;
-}
-
-.grdRoot .big{
-  font-size: 16px; font-weight: 900;
-  color: rgba(255,255,255,0.94);
-  margin-top: 4px;
-}
-
-.grdRoot .meta{
-  margin-top: 4px; font-size: 10px; font-weight: 800;
-  color: rgba(255,255,255,0.60);
-}
-
-.grdRoot .chip{
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(0,0,0,0.16);
-  padding: 6px 8px; border-radius: 999px;
-  color: rgba(255,255,255,0.82);
-  font-weight: 900; font-size: 10px;
-  white-space: nowrap;
-}
-
-.grdRoot .chart{ height: 220px; }
-
-.grdRoot .tip{
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(10,8,22,0.92);
-  backdrop-filter: blur(10px);
-  padding: 10px 10px;
-  min-width: 210px;
-  color: #fff;
-  box-shadow: 0 18px 50px rgba(0,0,0,0.35);
-}
-
-.grdRoot .tipTitle{
-  font-weight: 900; font-size: 12px;
-  margin-bottom: 8px; color: rgba(255,255,255,0.92);
-}
-
-.grdRoot .tipRows{ display:flex; flex-direction: column; gap: 6px; }
-.grdRoot .tipRow{ display:flex; align-items:center; gap: 8px; }
-.grdRoot .tipRow .dot{ width: 10px; height: 10px; border-radius: 999px; }
-.grdRoot .tipRow .k{ flex: 1; font-weight: 800; font-size: 12px; color: rgba(255,255,255,0.70); }
-.grdRoot .tipRow .v{ font-weight: 900; font-size: 12px; color: rgba(255,255,255,0.92); }
-
-.grdRoot .tipFoot{
-  margin-top: 8px; padding-top: 8px;
-  border-top: 1px solid rgba(255,255,255,0.10);
-  font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.60);
-}
-
-@media (min-width: 640px){
-  .grdRoot{ padding: 32px 0; }
-  .grdRoot .panel{ padding: 14px; border-radius: 18px; }
-  .grdRoot .title{ font-size: 18px; }
-  .grdRoot .subtitle{ font-size: 12px; }
-  .grdRoot .big{ font-size: 18px; }
-  .grdRoot .chart{ height: 250px; }
-  .grdRoot .rightPill{ font-size: 11px; padding: 7px 11px; }
-  .grdRoot .controlLabel{ font-size: 11px; }
-  .grdRoot .goldSeg button{ font-size: 11px; padding: 8px 11px; }
-}
-
-@media (min-width: 1024px){
-  .grdRoot{ padding: 40px 0; }
-  .grdRoot .panel{ padding: 16px; border-radius: 20px; }
-  .grdRoot .title{ font-size: 20px; }
-  .grdRoot .subtitle{ font-size: 13px; }
-  .grdRoot .big{ font-size: 20px; }
-  .grdRoot .grid{ grid-template-columns: 1.1fr 1fr; }
-  .grdRoot .chart{ height: 280px; }
-  .grdRoot .rightPill{ font-size: 12px; padding: 8px 12px; }
-  .grdRoot .controlLabel{ font-size: 12px; }
-  .grdRoot .goldSeg button{ font-size: 12px; padding: 9px 12px; }
-}
-`;

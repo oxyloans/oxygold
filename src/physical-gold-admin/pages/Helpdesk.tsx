@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { HelpCircle, Search, X, Eye, CheckCircle, Paperclip, Upload, ImageIcon } from 'lucide-react';
+import { HelpCircle, Search, X, Eye, CheckCircle, Paperclip, Upload, ImageIcon, FileText, Loader2 } from 'lucide-react';
 import Table from '../components/ui/Table';
 import Pagination from '../components/ui/Pagination';
 import Modal from '../components/ui/Modal';
@@ -26,6 +26,13 @@ const getAdminId = (): number => {
 
 const STATUS_TABS = ['PENDING', 'COMPLETED', 'CANCELLED'];
 
+interface PreviewDoc {
+    url: string;
+    fileName: string;
+    isImage: boolean;
+    fileExtension: string;
+}
+
 const Helpdesk: React.FC = () => {
     const [queries, setQueries] = useState<HelpdeskQuery[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -46,6 +53,59 @@ const Helpdesk: React.FC = () => {
     const [isUploading, setIsUploading] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
     const searchWasActive = useRef(false);
+
+    // Document Preview Modal State
+    const [previewDoc, setPreviewDoc] = useState<PreviewDoc | null>(null);
+    const [isFrameLoading, setIsFrameLoading] = useState(true);
+
+    const openDocPreview = (
+        doc: {
+            filePath?: string | null;
+            adminUploadedFilePath?: string | null;
+            fileName?: string | null;
+            adminUploadedFileName?: string | null;
+            documentPath?: string | null;
+            documentName?: string | null;
+        },
+        event?: React.MouseEvent
+    ) => {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        const path = doc.filePath || doc.adminUploadedFilePath || doc.documentPath || '';
+        const name = doc.fileName || doc.adminUploadedFileName || doc.documentName || 'Document';
+        const resolvedUrl = resolveS3ImageUrl(path);
+        if (!resolvedUrl) return;
+
+        const extMatch = (name || path).match(/\.([a-z0-9]+)(?:[?#]|$)/i);
+        const ext = extMatch ? extMatch[1].toLowerCase() : '';
+        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'].includes(ext);
+
+        setIsFrameLoading(true);
+        setPreviewDoc({
+            url: resolvedUrl,
+            fileName: name,
+            isImage,
+            fileExtension: ext || (isImage ? 'image' : 'doc'),
+        });
+    };
+
+    const closeDocPreview = () => {
+        setPreviewDoc(null);
+        setIsFrameLoading(false);
+    };
+
+    useEffect(() => {
+        if (!previewDoc) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                closeDocPreview();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [previewDoc]);
 
     const loadQueries = useCallback(async (page = 0, status = statusFilter, size = pageSize) => {
         setIsLoading(true);
@@ -183,21 +243,27 @@ const Helpdesk: React.FC = () => {
                 <div className="min-w-[260px] space-y-2 text-left">
                     <p className="text-[13px] leading-relaxed text-slate-700 whitespace-pre-wrap">{item.query || '—'}</p>
                     {item.userDocuments?.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1.5 pt-1">
                             {item.userDocuments.map((doc) => {
-                                const resolvedUrl = resolveS3ImageUrl(doc.filePath || doc.adminUploadedFilePath || '');
+                                const fileName = doc.fileName || doc.adminUploadedFileName || 'Document';
+                                const filePath = doc.filePath || doc.adminUploadedFilePath || '';
+                                const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico|avif)/i.test(fileName || filePath);
                                 return (
-                                <a
-                                    key={doc.userDocumentId}
-                                    href={resolvedUrl || '#'}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={event => event.stopPropagation()}
-                                    className="inline-flex max-w-[180px] items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-emerald-700 hover:border-emerald-300"
-                                >
-                                    <Paperclip size={10} className="shrink-0" />
-                                    <span className="truncate">{doc.fileName || doc.adminUploadedFileName || 'Document'}</span>
-                                </a>
+                                    <button
+                                        key={doc.userDocumentId || filePath}
+                                        type="button"
+                                        onClick={(event) => openDocPreview(doc, event)}
+                                        title={`Click to preview: ${fileName}`}
+                                        className="inline-flex max-w-[190px] items-center gap-1.5 rounded-md border border-emerald-200/80 bg-emerald-50/70 px-2 py-1 text-[11px] font-medium text-emerald-800 transition-all hover:bg-emerald-100 hover:border-emerald-300 hover:shadow-xs group cursor-pointer"
+                                    >
+                                        {isImage ? (
+                                            <ImageIcon size={11} className="shrink-0 text-emerald-600 group-hover:scale-110 transition-transform" />
+                                        ) : (
+                                            <Paperclip size={11} className="shrink-0 text-emerald-600 group-hover:scale-110 transition-transform" />
+                                        )}
+                                        <span className="truncate">{fileName}</span>
+                                        <Eye size={10} className="shrink-0 text-emerald-500 opacity-60 group-hover:opacity-100 transition-opacity ml-0.5" />
+                                    </button>
                                 );
                             })}
                         </div>
@@ -381,34 +447,52 @@ const Helpdesk: React.FC = () => {
                                     {selectedQuery.userDocuments.map((doc) => {
                                         const filePath = doc.filePath || doc.adminUploadedFilePath || '';
                                         const resolvedUrl = resolveS3ImageUrl(filePath);
-                                        const isImage = /\.(jpg|jpeg|png|gif|webp|svg)/i.test(doc.fileName || '') || /\.(jpg|jpeg|png|gif|webp|svg)/i.test(filePath);
+                                        const fileName = doc.fileName || doc.adminUploadedFileName || 'Document';
+                                        const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico|avif)/i.test(fileName || filePath);
                                         return (
-                                            <a
-                                                key={doc.userDocumentId}
-                                                href={resolvedUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="group flex flex-col border border-slate-200 rounded-lg overflow-hidden hover:border-emerald-300 transition-all"
+                                            <div
+                                                key={doc.userDocumentId || filePath}
+                                                onClick={(e) => openDocPreview(doc, e)}
+                                                className="group relative flex flex-col border border-slate-200 rounded-lg overflow-hidden hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer bg-white"
+                                                title={`Click to preview: ${fileName}`}
                                             >
                                                 {isImage ? (
-                                                    <div className="aspect-video bg-slate-50 overflow-hidden">
+                                                    <div className="aspect-video bg-slate-50 overflow-hidden relative">
                                                         <img
                                                             src={resolvedUrl}
-                                                            alt={doc.fileName}
+                                                            alt={fileName}
                                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                                                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                                         />
+                                                        <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/20 transition-colors flex items-center justify-center">
+                                                            <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/95 backdrop-blur-xs text-slate-700 text-[11px] font-semibold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
+                                                                <Eye size={12} className="text-emerald-600" /> Preview
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="aspect-video bg-slate-50 flex items-center justify-center">
-                                                        <ImageIcon size={24} className="text-slate-300" />
+                                                    <div className="aspect-video bg-slate-50 flex flex-col items-center justify-center gap-1 relative group-hover:bg-emerald-50/40 transition-colors">
+                                                        <FileText size={26} className="text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                                                        <span className="text-[10px] uppercase font-bold text-slate-400 group-hover:text-emerald-700 tracking-wider">
+                                                            {(fileName.split('.').pop() || 'DOC').toUpperCase()}
+                                                        </span>
+                                                        <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 transition-colors flex items-center justify-center">
+                                                            <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/95 backdrop-blur-xs text-slate-700 text-[11px] font-semibold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
+                                                                <Eye size={12} className="text-emerald-600" /> Preview
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 )}
-                                                <div className="px-2 py-1.5 flex items-center gap-1.5 bg-white">
-                                                    <Paperclip size={10} className="text-slate-400 shrink-0" />
-                                                    <span className="text-[12px] text-slate-600 truncate">{doc.fileName}</span>
+                                                <div className="px-2.5 py-2 flex items-center justify-between gap-1.5 bg-white border-t border-slate-100">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <Paperclip size={11} className="text-slate-400 shrink-0" />
+                                                        <span className="text-[12px] font-medium text-slate-700 truncate">{fileName}</span>
+                                                    </div>
+                                                    <span className="text-[10px] text-emerald-600 font-semibold shrink-0 group-hover:underline">
+                                                        Preview
+                                                    </span>
                                                 </div>
-                                            </a>
+                                            </div>
                                         );
                                     })}
                                 </div>
@@ -467,6 +551,85 @@ const Helpdesk: React.FC = () => {
                     </div>
                 )}
             </Modal>
+
+            {/* Document Preview Modal */}
+            {previewDoc && (
+                <div
+                    className="fixed inset-0 z-[1100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-6 animate-in fade-in duration-200"
+                    onClick={closeDocPreview}
+                    role="dialog"
+                    aria-modal="true"
+                >
+                    <div
+                        className="relative flex flex-col w-full max-w-5xl h-[88vh] bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-100 bg-white shrink-0">
+                            <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                                <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 shrink-0">
+                                    {previewDoc.isImage ? <ImageIcon size={18} /> : <FileText size={18} />}
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-[14px] font-bold text-slate-800 truncate" title={previewDoc.fileName}>
+                                            {previewDoc.fileName}
+                                        </h3>
+                                        {/* <span className="shrink-0 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600">
+                                            {previewDoc.fileExtension.toUpperCase()}
+                                        </span> */}
+                                    </div>
+                                    
+                                </div>
+                            </div>
+
+                            {/* Header Actions */}
+                            <div className="flex items-center shrink-0">
+                                <button
+                                    onClick={closeDocPreview}
+                                    className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                                    title="Close preview (Esc)"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Modal Body / Viewer */}
+                        <div className="relative flex-1 bg-slate-100 overflow-hidden flex items-center justify-center min-h-0">
+                            {/* Loading Spinner */}
+                            {isFrameLoading && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/90 backdrop-blur-xs z-10 transition-opacity">
+                                    <Loader2 size={32} className="animate-spin text-emerald-600 mb-2" />
+                                    <p className="text-xs font-semibold text-slate-700">Loading document preview...</p>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">
+                                        {previewDoc.isImage ? 'Rendering image' : 'Connecting via Google Docs Viewer'}
+                                    </p>
+                                </div>
+                            )}
+
+                            {previewDoc.isImage ? (
+                                <div className="w-full h-full p-4 flex items-center justify-center bg-slate-900/90 overflow-auto">
+                                    <img
+                                        src={previewDoc.url}
+                                        alt={previewDoc.fileName}
+                                        className="max-w-full max-h-full object-contain rounded-lg shadow-lg select-none"
+                                        onLoad={() => setIsFrameLoading(false)}
+                                        onError={() => setIsFrameLoading(false)}
+                                    />
+                                </div>
+                            ) : (
+                                <iframe
+                                    src={`https://docs.google.com/gview?url=${encodeURIComponent(previewDoc.url)}&embedded=true`}
+                                    title={previewDoc.fileName}
+                                    className="w-full h-full border-0 bg-white"
+                                    onLoad={() => setIsFrameLoading(false)}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

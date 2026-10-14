@@ -56,6 +56,10 @@ const CatalogUpload: React.FC = () => {
     // Form State
     const [formData, setFormData] = useState<any>({});
 
+    const closeModal = () => {
+        setIsModalOpen(false);
+    };
+
     const fetchData = async () => {
         setIsLoading(true);
         try {
@@ -268,11 +272,38 @@ const CatalogUpload: React.FC = () => {
                 successMessage = "Price updated successfully";
             }
 
-            setIsModalOpen(false);
+            closeModal();
             fetchData();
             setToast({ message: successMessage, type: 'success' });
         } catch (error: any) {
-            setToast({ message: error.message || "Action failed", type: 'error' });
+            let errorMsg = error?.message;
+
+            const valErrors =
+                error?.validationErrors ||
+                error?.data?.validationErrors ||
+                error?.response?.data?.data?.validationErrors ||
+                error?.response?.data?.validationErrors ||
+                null;
+
+            if (valErrors && typeof valErrors === 'object') {
+                const errorList = Object.values(valErrors).filter(Boolean);
+                if (errorList.length > 0) {
+                    errorMsg = errorList.join(', ');
+                }
+            }
+
+            // Ensure "Validation failed" is never displayed to the user
+            if (!errorMsg || errorMsg === "Validation failed") {
+                if (valErrors?.name) {
+                    errorMsg = valErrors.name;
+                } else if (valErrors && Object.values(valErrors).length > 0) {
+                    errorMsg = Object.values(valErrors).join(', ');
+                } else {
+                    errorMsg = modalType === 'category' ? "Category name is required" : "Please check the required fields";
+                }
+            }
+
+            setToast({ message: errorMsg, type: 'error' });
         }
     };
 
@@ -539,12 +570,12 @@ const CatalogUpload: React.FC = () => {
             {/* Create / Edit Modal */}
             <Modal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={closeModal}
                 title={isEditing ? `Update ${modalType}` : modalType === 'price' ? 'Update Price' : `Create New ${modalType}`}
                 size="md"
                 footer={
                     <div className="flex gap-2">
-                        <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                        <Button variant="ghost" onClick={closeModal}>Cancel</Button>
                         <Button onClick={handleSubmit} disabled={isUploading}>
                             {modalType === 'price' ? 'Update' : (isEditing ? 'Save Changes' : 'Create')}
                         </Button>
@@ -555,25 +586,30 @@ const CatalogUpload: React.FC = () => {
                     {modalType === 'price' ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <Input
-                                label="New Price (₹)" type="number" min="0.01" step="0.01" value={formData.price ?? ''}
+                                label="New Price (₹)"
+                                type="number"
+                                step="0.01"
+                                value={formData.price ?? ''}
                                 onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
-                                required
                             />
                             <Input
-                                label="MRP (₹)" type="number" min="0" step="0.01" value={formData.mrp ?? ''}
+                                label="MRP (₹)"
+                                type="number"
+                                step="0.01"
+                                value={formData.mrp ?? ''}
                                 onChange={e => setFormData({ ...formData, mrp: Number(e.target.value) })}
-                                required
                             />
                         </div>
                     ) : modalType !== 'variant' ? (
                         <>
                             <Input
-                                label="Name" value={formData.name || ''}
+                                label="Name"
+                                value={formData.name || ''}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                required
                             />
                             <Textarea
-                                label="Description" value={formData.description || ''}
+                                label="Description"
+                                value={formData.description || ''}
                                 onChange={e => setFormData({ ...formData, description: e.target.value })}
                                 rows={3}
                             />
@@ -615,12 +651,8 @@ const CatalogUpload: React.FC = () => {
                                             onChange={e => setFormData({ ...formData, discountPercentage: Number(e.target.value) })}
                                         />
                                     </div>
-                                    {/* Base Price Discount Section */}
-                                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-                                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                                            Base Price Discount
-                                        </label>
-
+                                    {/* Base Price Discount Fields */}
+                                    <div className="space-y-4">
                                         {/* Row 1: Discount Type & Discount Value */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                                             <Select
@@ -754,14 +786,37 @@ const CatalogUpload: React.FC = () => {
                     ) : (
                         // Variant Form
                         <div className="space-y-4">
-                            <Input label="SKU" value={formData.sku || ''} onChange={e => setFormData({ ...formData, sku: e.target.value })} />
+                            <Input
+                                label="SKU"
+                                value={formData.sku || ''}
+                                onChange={e => setFormData({ ...formData, sku: e.target.value })}
+                            />
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Input label="Size" value={formData.size || ''} onChange={e => setFormData({ ...formData, size: e.target.value })} />
-                                <Input label="Purity" value={formData.purity || ''} placeholder="e.g. 22KT" onChange={e => setFormData({ ...formData, purity: e.target.value })} />
+                                <Input
+                                    label="Size"
+                                    value={formData.size || ''}
+                                    onChange={e => setFormData({ ...formData, size: e.target.value })}
+                                />
+                                <Input
+                                    label="Purity"
+                                    value={formData.purity || ''}
+                                    placeholder="e.g. 22KT"
+                                    onChange={e => setFormData({ ...formData, purity: e.target.value })}
+                                />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Input label="Weight (g)" type="number" value={formData.weight || 0} onChange={e => setFormData({ ...formData, weight: Number(e.target.value) })} />
-                                <Input label="MRP (₹)" type="number" value={formData.mrp || 0} onChange={e => setFormData({ ...formData, mrp: Number(e.target.value) })} />
+                                <Input
+                                    label="Weight (g)"
+                                    type="number"
+                                    value={formData.weight || 0}
+                                    onChange={e => setFormData({ ...formData, weight: Number(e.target.value) })}
+                                />
+                                <Input
+                                    label="MRP (₹)"
+                                    type="number"
+                                    value={formData.mrp || 0}
+                                    onChange={e => setFormData({ ...formData, mrp: Number(e.target.value) })}
+                                />
                             </div>
                         </div>
                     )}

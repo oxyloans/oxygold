@@ -93,9 +93,11 @@ export default function GoldProductsLanding() {
   const [breakupCache, setBreakupCache] = useState<Record<number, GoldSilverRateBreakdown>>({});
   const [loadingBreakupId, setLoadingBreakupId] = useState<number | null>(null);
   const [hoveredProductId, setHoveredProductId] = useState<number | null>(null);
+  const fetchingRef = useRef<Set<number>>(new Set());
 
   const fetchBreakupForProduct = useCallback(async (productId: number) => {
-    if (breakupCache[productId]) return;
+    if (fetchingRef.current.has(productId)) return;
+    fetchingRef.current.add(productId);
     setLoadingBreakupId(productId);
     try {
       const { variants } = await fetchProductVariants(String(productId));
@@ -109,7 +111,15 @@ export default function GoldProductsLanding() {
     } finally {
       setLoadingBreakupId(null);
     }
-  }, [breakupCache]);
+  }, []);
+
+  const hasOfferDiscount = useCallback((breakup?: GoldSilverRateBreakdown | null) => {
+    if (!breakup) return false;
+    return (
+      Number(breakup.discountPercentage || 0) > 0 ||
+      Number(breakup.discountAmount || 0) > 0
+    );
+  }, []);
 
   const handleMouseEnterBreakup = useCallback((productId: number) => {
     setHoveredProductId(productId);
@@ -190,6 +200,15 @@ export default function GoldProductsLanding() {
 
     return () => controller.abort();
   }, [retryKey]);
+
+  useEffect(() => {
+    if (!products.length) return;
+    products.forEach((product) => {
+      if (!fetchingRef.current.has(product.id)) {
+        fetchBreakupForProduct(product.id);
+      }
+    });
+  }, [products, fetchBreakupForProduct]);
 
   const categories = useMemo(
     () => [
@@ -534,90 +553,92 @@ export default function GoldProductsLanding() {
                           {currency.format(product.price)}
                         </p>
 
-                        {/* Price Breakup Hover Trigger & Popover */}
-                        <div
-                          className="relative"
-                          onMouseEnter={() => handleMouseEnterBreakup(product.id)}
-                          onMouseLeave={() => setHoveredProductId(null)}
-                        >
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              if (hoveredProductId === product.id) {
-                                setHoveredProductId(null);
-                              } else {
-                                handleMouseEnterBreakup(product.id);
-                              }
-                            }}
-                            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-[#F5D36C]/90 hover:text-[#F5D36C] bg-white/[0.08] hover:bg-white/[0.16] border border-[#D4AF37]/35 px-2 py-0.5 rounded-full transition cursor-pointer"
-                            title="View Offer"
+                        {/* Price Breakup Hover Trigger & Popover - Only displayed if discountPercentage > 0 or discountAmount > 0 */}
+                        {hasOfferDiscount(breakupCache[product.id]) && (
+                          <div
+                            className="relative"
+                            onMouseEnter={() => handleMouseEnterBreakup(product.id)}
+                            onMouseLeave={() => setHoveredProductId(null)}
                           >
-                            <Info size={11} className="shrink-0 text-[#F5D36C]" />
-                            <span>View Offer</span>
-                          </button>
-
-                          {/* Hover / Click Popover Tooltip */}
-                          {hoveredProductId === product.id && (
-                            <div
-                              onClick={(e) => e.stopPropagation()}
-                              className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 w-64 max-w-[85vw] sm:max-w-none z-50 rounded-xl border border-[#D4AF37]/50 bg-[#1A0B2E]/95 p-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl text-white transition-all duration-200"
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                if (hoveredProductId === product.id) {
+                                  setHoveredProductId(null);
+                                } else {
+                                  handleMouseEnterBreakup(product.id);
+                                }
+                              }}
+                              className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-[#F5D36C]/90 hover:text-[#F5D36C] bg-white/[0.08] hover:bg-white/[0.16] border border-[#D4AF37]/35 px-2 py-0.5 rounded-full transition cursor-pointer"
+                              title="View Offer"
                             >
-                              <div className="flex items-center justify-between border-b border-white/15 pb-2 mb-2">
-                                <div className="flex items-center gap-1.5">
-                                  <Tag size={12} className="text-[#F5D36C]" />
-                                  <span className="text-[12px] font-bold text-[#F5D36C]">View Offer</span>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setHoveredProductId(null);
-                                  }}
-                                  className="cursor-pointer text-white/50 hover:text-white rounded-full p-0.5"
-                                >
-                                  <X size={12} />
-                                </button>
-                              </div>
+                              <Info size={11} className="shrink-0 text-[#F5D36C]" />
+                              <span>View Offer</span>
+                            </button>
 
-                              {loadingBreakupId === product.id && !breakupCache[product.id] ? (
-                                <div className="flex flex-col items-center justify-center py-3 text-xs text-white/70 gap-1.5">
-                                  <Loader2 size={15} className="animate-spin text-[#F5D36C]" />
-                                  <span>Fetching breakup...</span>
+                            {/* Hover / Click Popover Tooltip */}
+                            {hoveredProductId === product.id && (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 w-64 max-w-[85vw] sm:max-w-none z-50 rounded-xl border border-[#D4AF37]/50 bg-[#1A0B2E]/95 p-3.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl text-white transition-all duration-200"
+                              >
+                                <div className="flex items-center justify-between border-b border-white/15 pb-2 mb-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <Tag size={12} className="text-[#F5D36C]" />
+                                    <span className="text-[12px] font-bold text-[#F5D36C]">View Offer</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setHoveredProductId(null);
+                                    }}
+                                    className="cursor-pointer text-white/50 hover:text-white rounded-full p-0.5"
+                                  >
+                                    <X size={12} />
+                                  </button>
                                 </div>
-                              ) : breakupCache[product.id] ? (
-                                <div className="space-y-1.5 text-[11px]">
-                                  <div className="flex justify-between text-white/75">
-                                    <span>Base Price:</span>
-                                    <span className="font-semibold text-white">₹{Number(breakupCache[product.id].variantPrice || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+
+                                {loadingBreakupId === product.id && !breakupCache[product.id] ? (
+                                  <div className="flex flex-col items-center justify-center py-3 text-xs text-white/70 gap-1.5">
+                                    <Loader2 size={15} className="animate-spin text-[#F5D36C]" />
+                                    <span>Fetching breakup...</span>
                                   </div>
-                                  <div className="flex justify-between text-white/75">
-                                    <span>Making ({breakupCache[product.id].makingPercentage || 0}%):</span>
-                                    <span className="font-semibold text-white">₹{Number(breakupCache[product.id].makingAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                  </div>
-                                  <div className="flex justify-between text-white/75">
-                                    <span>GST ({breakupCache[product.id].gstPercentage || 0}%):</span>
-                                    <span className="font-semibold text-white">₹{Number(breakupCache[product.id].gstAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                  </div>
-                                  {typeof breakupCache[product.id].discountAmount === 'number' && breakupCache[product.id].discountAmount > 0 && (
-                                    <div className="flex justify-between text-emerald-400">
-                                      <span>Discount ({breakupCache[product.id].discountPercentage}%):</span>
-                                      <span className="font-semibold">-₹{Number(breakupCache[product.id].discountAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                ) : breakupCache[product.id] ? (
+                                  <div className="space-y-1.5 text-[11px]">
+                                    <div className="flex justify-between text-white/75">
+                                      <span>Base Price:</span>
+                                      <span className="font-semibold text-white">₹{Number(breakupCache[product.id].variantPrice || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
-                                  )}
-                                  <div className="flex justify-between border-t border-white/20 pt-1.5 text-[12px] font-bold text-[#F5D36C]">
-                                    <span>Final Amount:</span>
-                                    <span>₹{Number(breakupCache[product.id].finalAmount || product.price).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <div className="flex justify-between text-white/75">
+                                      <span>Making ({breakupCache[product.id].makingPercentage || 0}%):</span>
+                                      <span className="font-semibold text-white">₹{Number(breakupCache[product.id].makingAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                    <div className="flex justify-between text-white/75">
+                                      <span>GST ({breakupCache[product.id].gstPercentage || 0}%):</span>
+                                      <span className="font-semibold text-white">₹{Number(breakupCache[product.id].gstAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                    {(Number(breakupCache[product.id].discountAmount || 0) > 0 || Number(breakupCache[product.id].discountPercentage || 0) > 0) && (
+                                      <div className="flex justify-between text-emerald-400">
+                                        <span>Discount {Number(breakupCache[product.id].discountPercentage || 0) > 0 ? `(${breakupCache[product.id].discountPercentage}%)` : ""}:</span>
+                                        <span className="font-semibold">-₹{Number(breakupCache[product.id].discountAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex justify-between border-t border-white/20 pt-1.5 text-[12px] font-bold text-[#F5D36C]">
+                                      <span>Final Amount:</span>
+                                      <span>₹{Number(breakupCache[product.id].finalAmount || product.price).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
                                   </div>
-                                </div>
-                              ) : (
-                                <div className="py-2 text-[11px] text-white/60 text-center">
-                                  Price details unavailable
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                                ) : (
+                                  <div className="py-2 text-[11px] text-white/60 text-center">
+                                    Price details unavailable
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <button

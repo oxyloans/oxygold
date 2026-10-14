@@ -104,6 +104,48 @@ const adminAuthenticatedFetch = async (
   return response;
 };
 
+/**
+ * Helper to process API error response and extract detailed validation messages
+ */
+const parseApiError = async (
+  responseOrError: Response | any,
+  defaultMessage: string,
+) => {
+  let err: any;
+  if (
+    typeof Response !== "undefined" &&
+    responseOrError instanceof Response
+  ) {
+    err = await responseOrError.json().catch(() => null);
+  } else {
+    err = responseOrError;
+  }
+
+  const validationErrors =
+    err?.data?.validationErrors ||
+    err?.validationErrors ||
+    undefined;
+
+  let message = err?.message;
+
+  if (validationErrors && typeof validationErrors === "object") {
+    const errorList = Object.values(validationErrors).filter(Boolean);
+    if (errorList.length > 0) {
+      // Instead of generic "Validation failed", show the actual validation error(s)
+      message = errorList.join(", ");
+    }
+  }
+
+  if (!message || message === "Validation failed") {
+    message = defaultMessage;
+  }
+
+  const error: any = new Error(message);
+  error.data = err?.data;
+  error.validationErrors = validationErrors;
+  throw error;
+};
+
 export interface DeliveryPricingConfiguration {
   ratePerKm: number;
   minimumFee: number;
@@ -124,7 +166,7 @@ export const fetchDeliveryPricing =
     );
     const result = await response.json().catch(() => null);
     if (!response.ok || result?.success === false) {
-      throw new Error(result?.message || "Unable to load delivery pricing.");
+      await parseApiError(result || response, "Unable to load delivery pricing.");
     }
     return result?.data ?? result;
   };
@@ -142,7 +184,7 @@ export const updateDeliveryPricing = async (
   );
   const result = await response.json().catch(() => null);
   if (!response.ok || result?.success === false) {
-    throw new Error(result?.message || "Unable to update delivery pricing.");
+    await parseApiError(result || response, "Unable to update delivery pricing.");
   }
   return result?.data ?? result;
 };
@@ -254,6 +296,7 @@ export const uploadImage = async (file: File) => {
   return response.json();
 };
 
+
 export const createCategory = async (data: any) => {
   const response = await adminAuthenticatedFetch(
     `${BASE_URL}/admin/categories/createCategory`,
@@ -263,8 +306,7 @@ export const createCategory = async (data: any) => {
     },
   );
   if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.message || "Failed to create category");
+    await parseApiError(response, "Category name is required");
   }
   return response.json();
 };
@@ -278,8 +320,7 @@ export const updateCategory = async (data: any) => {
     },
   );
   if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.message || "Failed to update category");
+    await parseApiError(response, "Failed to update category");
   }
   return response.json();
 };
@@ -319,8 +360,7 @@ export const createProduct = async (data: CreateProductPayload | any) => {
     },
   );
   if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.message || "Failed to create product");
+    await parseApiError(response, "Failed to create product");
   }
   return response.json();
 };
@@ -334,8 +374,7 @@ export const updateProduct = async (productId: number | string, data: CreateProd
     },
   );
   if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.message || "Failed to update product");
+    await parseApiError(response, "Failed to update product");
   }
   return response.json();
 };
@@ -355,8 +394,7 @@ export const updateProductStatus = async (
     },
   );
   if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.message || "Failed to update product status");
+    await parseApiError(response, "Failed to update product status");
   }
   return response.json();
 };
@@ -372,8 +410,7 @@ export const updateCategoryStatus = async (
     },
   );
   if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.message || "Failed to update category status");
+    await parseApiError(response, "Failed to update category status");
   }
   return response.json();
 };
@@ -402,8 +439,7 @@ export const addVariant = async (productId: number | string, data: any) => {
     },
   );
   if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.message || "Failed to add variant");
+    await parseApiError(response, "Failed to add variant");
   }
   return response.json();
 };
@@ -419,7 +455,9 @@ export const updateVariantStatus = async (
       body: JSON.stringify({ status }),
     },
   );
-  if (!response.ok) throw new Error("Failed to update status");
+  if (!response.ok) {
+    await parseApiError(response, "Failed to update status");
+  }
   return response.json();
 };
 
@@ -434,7 +472,9 @@ export const updateVariantQuantity = async (
       body: JSON.stringify({ stockQuantity }),
     },
   );
-  if (!response.ok) throw new Error("Failed to update quantity");
+  if (!response.ok) {
+    await parseApiError(response, "Failed to update quantity");
+  }
   return response.json();
 };
 
@@ -450,7 +490,9 @@ export const updateVariantPrice = async (
       body: JSON.stringify({ price, mrp }),
     },
   );
-  if (!response.ok) throw new Error("Failed to update price");
+  if (!response.ok) {
+    await parseApiError(response, "Failed to update price");
+  }
   return response.json();
 };
 
@@ -1203,7 +1245,7 @@ export const createCoupon = async (payload: CouponPayload): Promise<CouponData> 
   });
   const json = await response.json().catch(() => null);
   if (!response.ok || !json?.success) {
-    throw new Error(json?.message || "Failed to create coupon");
+    await parseApiError(json || response, "Failed to create coupon");
   }
   return json.data;
 };
@@ -1217,7 +1259,7 @@ export const updateCoupon = async (id: number | string, payload: CouponPayload):
   });
   const json = await response.json().catch(() => null);
   if (!response.ok || !json?.success) {
-    throw new Error(json?.message || "Failed to update coupon");
+    await parseApiError(json || response, "Failed to update coupon");
   }
   return json.data;
 };
@@ -1229,7 +1271,7 @@ export const updateCouponStatus = async (id: number | string, active: boolean): 
   });
   const json = await response.json().catch(() => null);
   if (!response.ok || !json?.success) {
-    throw new Error(json?.message || "Failed to update coupon status");
+    await parseApiError(json || response, "Failed to update coupon status");
   }
   return json.data;
 };
@@ -1241,7 +1283,7 @@ export const fetchCouponUsers = async (id: number | string): Promise<CouponUsers
   });
   const json = await response.json().catch(() => null);
   if (!response.ok || !json?.success) {
-    throw new Error(json?.message || "Failed to fetch coupon users");
+    await parseApiError(json || response, "Failed to fetch coupon users");
   }
   return json.data;
 };

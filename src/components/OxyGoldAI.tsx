@@ -9,6 +9,7 @@ import {
   Wallet,
   Landmark,
   Scale,
+  CheckCircle2,
 } from "lucide-react";
 import { ArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -75,22 +76,30 @@ const provideCards = [
   {
     title: "FRACTIONAL DIGITAL GOLD",
     desc: "Start small. Grow securely with transparent pricing.",
-    icon: <Wallet className="h-6 w-6" />,
+    icon: <Wallet className="h-5 w-5 sm:h-6 sm:w-6" />,
+    hoverBorder: "hover:border-[#D4AF37]/50",
+    iconBg: "from-[#D4AF37]/20 to-[#D4AF37]/5 text-[#F5D36C] border-[#D4AF37]/40",
   },
   {
     title: "AI-DRIVEN TRUST LAYER",
     desc: "Track & trace readiness, audit-friendly records, compliance focus.",
-    icon: <ShieldCheck className="h-6 w-6" />,
+    icon: <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6" />,
+    hoverBorder: "hover:border-[#8A5BFF]/50",
+    iconBg: "from-[#8A5BFF]/20 to-[#8A5BFF]/5 text-[#A78BFA] border-[#8A5BFF]/40",
   },
   {
     title: "SECURE VAULTING",
     desc: "Vault-grade security aligned with wealth authority.",
-    icon: <Lock className="h-6 w-6" />,
+    icon: <Lock className="h-5 w-5 sm:h-6 sm:w-6" />,
+    hoverBorder: "hover:border-[#D4AF37]/50",
+    iconBg: "from-[#D4AF37]/20 to-[#D4AF37]/5 text-[#F5D36C] border-[#D4AF37]/40",
   },
   {
     title: "INSTANT LIQUIDITY",
     desc: "Buy/Sell anytime with smooth settlement flow.",
-    icon: <Sparkles className="h-6 w-6" />,
+    icon: <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />,
+    hoverBorder: "hover:border-emerald-400/50",
+    iconBg: "from-emerald-400/20 to-emerald-400/5 text-emerald-400 border-emerald-400/40",
   },
 ];
 
@@ -519,8 +528,12 @@ export default function OxyGoldLandingPage({ assets }: Props) {
               {/* What We Provide */}
               <section
                 id="provide"
-                className="py-2 sm:py-10"
+                className="relative py-4 sm:py-12"
               >
+                {/* Background Ambient Glows */}
+                <div className="pointer-events-none absolute -top-12 left-1/4 -z-10 h-72 w-72 rounded-full bg-[#5B2EFF]/15 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-12 right-1/4 -z-10 h-72 w-72 rounded-full bg-[#D4AF37]/15 blur-3xl" />
+
                 <SectionHeader
                   kicker=""
                   title="What We Provide"
@@ -529,11 +542,11 @@ export default function OxyGoldLandingPage({ assets }: Props) {
 
                 <div
                   className="
-                    mt-6
+                    mt-8
                     grid
                     grid-cols-1
                     gap-4
-                    sm:mt-8
+                    sm:mt-10
                     sm:grid-cols-2
                     sm:gap-5
                     lg:grid-cols-4
@@ -542,73 +555,83 @@ export default function OxyGoldLandingPage({ assets }: Props) {
                   {provideCards.map((c) => (
                     <div
                       key={c.title}
-                      className="
+                      className={`
+                        group
                         relative
+                        flex
+                        flex-col
+                        justify-between
                         overflow-hidden
                         rounded-2xl
                         border
                         border-white/10
-                        bg-white/[0.045]
-                        p-4
-                        transition
-                        duration-200
-                        hover:-translate-y-0.5
-                        hover:border-[#D4AF37]/30
-                        hover:bg-white/[0.065]
-                        sm:p-5
-                      "
+                        bg-gradient-to-b
+                        from-white/[0.06]
+                        to-white/[0.02]
+                        p-5
+                        sm:p-6
+                        backdrop-blur-md
+                        transition-all
+                        duration-300
+                        hover:-translate-y-1.5
+                        hover:shadow-[0_12px_32px_rgba(0,0,0,0.35)]
+                        ${c.hoverBorder}
+                      `}
                     >
-                      <div className="flex items-start gap-3 sm:gap-4">
+                      {/* Top Accent Gradient Line */}
+                      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37]/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                        {/* Icon */}
+                      {/* Content */}
+                      <div>
+                        {/* Glowing Icon Container */}
                         <div
-                          className="
+                          className={`
                             grid
-                            h-10
-                            w-10
-                            shrink-0
+                            h-12
+                            w-12
                             place-items-center
                             rounded-xl
                             border
-                            border-yellow-400/30
-                            bg-white/[0.035]
-                            text-yellow-400
-                            sm:h-12
-                            sm:w-12
+                            bg-gradient-to-br
+                            shadow-sm
+                            transition-all
+                            duration-300
+                            group-hover:scale-105
+                            ${c.iconBg}
+                          `}
+                        >
+                          {c.icon}
+                        </div>
+
+                        {/* Title */}
+                        <h3
+                          className="
+                            mt-4
+                            text-sm
+                            font-bold
+                            tracking-wide
+                            text-white
+                            transition-colors
+                            duration-200
+                            group-hover:text-[#F5D36C]
+                            sm:text-base
                           "
                         >
-                          <div className="scale-95 sm:scale-100">
-                            {c.icon}
-                          </div>
-                        </div>
+                          {c.title}
+                        </h3>
 
-                        {/* Content */}
-                        <div className="min-w-0 flex-1">
-
-                          <h3
-                            className="
-                              text-sm
-                              font-semibold
-                              text-white
-                              sm:text-base
-                            "
-                          >
-                            {c.title}
-                          </h3>
-
-                          <p
-                            className="
-                              mt-2
-                              text-xs
-                              leading-relaxed
-                              text-white/70
-                              sm:text-sm
-                            "
-                          >
-                            {c.desc}
-                          </p>
-
-                        </div>
+                        {/* Description */}
+                        <p
+                          className="
+                            mt-2
+                            text-xs
+                            leading-relaxed
+                            text-white/70
+                            sm:text-sm
+                          "
+                        >
+                          {c.desc}
+                        </p>
                       </div>
                     </div>
                   ))}
