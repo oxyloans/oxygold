@@ -176,15 +176,65 @@ interface PageState {
 /* ────────────────────────────────────────────────────────── */
 /*  Helpers                                                   */
 /* ────────────────────────────────────────────────────────── */
-const formatDate = (dateString: string) => {
+const parseToDate = (dateString?: string | number | Date | null): Date | null => {
+    if (!dateString) return null;
+    if (dateString instanceof Date) return isNaN(dateString.getTime()) ? null : dateString;
+    if (typeof dateString === "number") {
+        const d = new Date(dateString);
+        return isNaN(d.getTime()) ? null : d;
+    }
+    const raw = String(dateString).trim();
+    if (!raw) return null;
+    if (/^\d+$/.test(raw)) {
+        const d = new Date(Number(raw));
+        return isNaN(d.getTime()) ? null : d;
+    }
+    let parseable = raw;
+    if (
+        raw.includes("T") &&
+        !raw.endsWith("Z") &&
+        !raw.includes("+") &&
+        !raw.slice(10).includes("-")
+    ) {
+        parseable = raw + "Z";
+    } else if (
+        /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw) &&
+        !raw.includes("+") &&
+        !raw.slice(10).includes("-") &&
+        !raw.endsWith("Z")
+    ) {
+        parseable = raw.replace(" ", "T") + "Z";
+    }
+    const d = new Date(parseable);
+    if (!isNaN(d.getTime())) return d;
+    const fallback = new Date(raw);
+    return isNaN(fallback.getTime()) ? null : fallback;
+};
+
+const formatISTDateTime = (dateString?: string | number | Date | null, includeSuffix = false): string => {
     if (!dateString) return "—";
-    return new Date(dateString).toLocaleDateString("en-IN", {
+    const d = parseToDate(dateString);
+    if (!d) return String(dateString);
+
+    const formatted = d.toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
         day: "numeric",
         month: "short",
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
+        hour12: true,
     });
+
+    return includeSuffix ? `${formatted}` : formatted;
+};
+
+const formatDate = (dateString: string) => {
+    return formatISTDateTime(dateString, false);
+};
+
+const formatTimelineDate = (dateString: string) => {
+    return formatISTDateTime(dateString, true);
 };
 
 const getStatusColor = (status?: string | null) => {
@@ -2220,7 +2270,7 @@ const ProfilePage: React.FC = () => {
                                                                                                         )}
                                                                                                         {step.timestamp && (
                                                                                                             <p className="text-[10px] text-[#8A8A8A] font-medium mt-0.5">
-                                                                                                                {formatDate(step.timestamp)}
+                                                                                                                {formatTimelineDate(step.timestamp)}
                                                                                                             </p>
                                                                                                         )}
                                                                                                     </div>

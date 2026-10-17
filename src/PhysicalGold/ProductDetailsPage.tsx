@@ -20,7 +20,7 @@ import {
   Gem,
   PartyPopper,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import LoadingSpinner from "./components/LoadingSpinner";
 import Toast from "./components/Toast";
 
@@ -52,6 +52,65 @@ function displayPrice(value: unknown): string {
   const high = match[2] ? Number(match[2]) : low;
   return low === high ? format(low) : `${format(low)} – ${format(high)}`;
 }
+
+const parseToDate = (dateString?: string | number | Date | null): Date | null => {
+  if (!dateString) return null;
+  if (dateString instanceof Date) return isNaN(dateString.getTime()) ? null : dateString;
+  if (typeof dateString === "number") {
+    const d = new Date(dateString);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const raw = String(dateString).trim();
+  if (!raw) return null;
+  if (/^\d+$/.test(raw)) {
+    const d = new Date(Number(raw));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  let parseable = raw;
+  if (
+    raw.includes("T") &&
+    !raw.endsWith("Z") &&
+    !raw.includes("+") &&
+    !raw.slice(10).includes("-")
+  ) {
+    parseable = raw + "Z";
+  } else if (
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw) &&
+    !raw.includes("+") &&
+    !raw.slice(10).includes("-") &&
+    !raw.endsWith("Z")
+  ) {
+    parseable = raw.replace(" ", "T") + "Z";
+  }
+  const d = new Date(parseable);
+  if (!isNaN(d.getTime())) return d;
+  const fallback = new Date(raw);
+  return isNaN(fallback.getTime()) ? null : fallback;
+};
+
+const formatTimeAgo = (dateStr?: string | number | Date | null): string => {
+  if (!dateStr) return "Recently";
+  const date = parseToDate(dateStr);
+  if (!date) return "Recently";
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  if (diffMs < 0) return "Just now";
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  const diffMonths = Math.floor(diffDays / 30);
+  const diffYears = Math.floor(diffDays / 365);
+
+  if (diffYears > 0) return `${diffYears} year${diffYears > 1 ? "s" : ""} ago`;
+  if (diffMonths > 0) return `${diffMonths} month${diffMonths > 1 ? "s" : ""} ago`;
+  if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+  if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffMins > 0) return `${diffMins} min${diffMins > 1 ? "s" : ""} ago`;
+  return "Just now";
+};
+
+
 
 const CompactProductCard: React.FC<{
   product: PhysicalGoldProduct;
@@ -196,6 +255,25 @@ const ProductDetailsPage: React.FC = () => {
   const [priceBreakdownLoading, setPriceBreakdownLoading] = useState(false);
   const [priceBreakdownError, setPriceBreakdownError] = useState<string | null>(null);
   const priceBreakdownRef = React.useRef<HTMLDivElement>(null);
+  const [isPriceBreakupOpen, setIsPriceBreakupOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isPriceBreakupOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isPriceBreakupOpen]);
 
   // Virtual Try-On states
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
@@ -239,6 +317,33 @@ const ProductDetailsPage: React.FC = () => {
     ? Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) * 10) / 10
     : 0;
   const reviewCount = reviewsTotalElements;
+  const [showAllReviews, setShowAllReviews] = useState(false);
+
+  const displayRating = reviews.length > 0 && rating > 0 ? rating.toFixed(1) : "—";
+  const numericRating = reviews.length > 0 && rating > 0 ? rating : 0;
+
+  const displayedReviews = useMemo(() => {
+    if (reviews && reviews.length > 0) {
+      return reviews.map((r) => ({
+        id: r.id?.toString() || Math.random().toString(),
+        userFullName: r.userFullName || "Customer",
+        location: (r as any).location || (r as any).city || "",
+        rating: r.rating || 5,
+        timeAgo: formatTimeAgo(r.createdAt),
+        verifiedPurchase: r.verifiedPurchase !== false,
+        reviewText: r.reviewText || r.title || "",
+        media: r.media || [],
+      }));
+    }
+    return [];
+  }, [reviews]);
+
+  const visibleReviews = useMemo(() => {
+    if (showAllReviews) {
+      return displayedReviews;
+    }
+    return displayedReviews.slice(0, 2);
+  }, [showAllReviews, displayedReviews]);
 
   const loadReviews = useCallback(async (page = 0, ratingFilter?: number, append = false) => {
     if (!id) return;
@@ -869,7 +974,7 @@ const ProductDetailsPage: React.FC = () => {
 
               {/* Thumbnails */}
               {productImages.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1 justify-start">
+                <div className="flex gap-2 overflow-x-auto pb-1 justify-start scrollbar-hide no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden touch-pan-x">
                   {productImages.map((img, i) => (
                     <button
                       key={i}
@@ -901,22 +1006,39 @@ const ProductDetailsPage: React.FC = () => {
                 <h1 className="text-2xl md:text-[28px] font-bold text-[#1A1A1A] leading-snug mb-1.5">
                   {product.productName}
                 </h1>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-0.5">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star
-                        key={s}
-                        size={12}
-                        fill={s <= Math.round(rating) ? "#C29B27" : "none"}
-                        stroke={s <= Math.round(rating) ? "#C29B27" : "#D1C7BB"}
-                        strokeWidth={1}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-xs text-[#8A8A8A]">
-                    {reviewCount > 0 ? `${rating} (${reviewCount} reviews)` : "No reviews yet"}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("reviews");
+                    const el = document.getElementById("product-tabs-section");
+                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                  className="flex items-center gap-2 group text-left cursor-pointer focus:outline-none"
+                  title="View reviews and ratings"
+                >
+                  {reviewCount > 0 && (
+                    <>
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            size={13}
+                            className="text-[#16a34a]"
+                            fill={s <= Math.round(numericRating) ? "#16a34a" : "none"}
+                            stroke="#16a34a"
+                            strokeWidth={1.5}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs font-bold text-[#16a34a]">
+                        {displayRating}
+                      </span>
+                    </>
+                  )}
+                  <span className="text-xs text-[#8A8A8A] group-hover:text-[#C29B27] group-hover:underline transition-colors">
+                    ({reviewCount > 0 ? `${reviewCount} ${reviewCount === 1 ? "review" : "reviews"}` : "No reviews yet"})
                   </span>
-                </div>
+                </button>
               </div>
 
               {/* Price */}
@@ -968,13 +1090,10 @@ const ProductDetailsPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => {
-                  setShowDiscountModal(true);
-                  priceBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
+                onClick={() => setIsPriceBreakupOpen(true)}
                 className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[#C29B27]/35 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-[#9B7416] transition-colors hover:bg-amber-100 cursor-pointer"
               >
-                View Price Breakdown ↓
+                View Price Breakup <ChevronRight size={13} className="text-[#9B7416]" />
               </button>
 
               {/* Inline badges */}
@@ -1413,21 +1532,25 @@ const ProductDetailsPage: React.FC = () => {
           </div>
 
           {/* ── Tabs ── */}
-          <div className="mt-6">
-            <div className="flex border-b border-[#E8E2D8] gap-6 overflow-x-auto no-scrollbar">
-              {["Product Details", "Reviews", "Shipping & Returns"].map((label) => {
-                const tabId = label.toLowerCase().split(" ")[0];
-                const isActive = activeTab === tabId;
+          <div id="product-tabs-section" className="mt-8 pt-2 max-w-full">
+            <div className="flex border-b border-[#E8E2D8] gap-4 sm:gap-6 overflow-x-auto scrollbar-hide no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden touch-pan-x">
+              {[
+                { id: "product", label: "Product Details" },
+                { id: "reviews", label: "Review & Rating" },
+                { id: "shipping", label: "Shipping & Returns" },
+              ].map((tab) => {
+                const isActive = activeTab === tab.id;
                 return (
                   <button
-                    key={label}
-                    onClick={() => setActiveTab(tabId)}
-                    className={`pb-2.5 pt-3 text-xs font-semibold uppercase tracking-wide relative whitespace-nowrap transition-colors ${isActive ? "text-[#1A1A1A]" : "text-[#8A8A8A] hover:text-[#1A1A1A]"
-                      }`}
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`pb-2.5 pt-3 text-xs sm:text-[13px] font-semibold uppercase tracking-wider relative whitespace-nowrap transition-colors ${
+                      isActive ? "text-[#1A1A1A]" : "text-[#8A8A8A] hover:text-[#1A1A1A]"
+                    }`}
                   >
-                    {label}
+                    {tab.label}
                     {isActive && (
-                      <span className="absolute bottom-0 left-0 w-full h-[2px] bg-[#C29B27] rounded-t" />
+                      <span className="absolute bottom-0 left-0 w-full h-[2.5px] bg-[#C29B27] rounded-t" />
                     )}
                   </button>
                 );
@@ -1465,92 +1588,182 @@ const ProductDetailsPage: React.FC = () => {
               )}
 
               {activeTab === "reviews" && (
-                <div className="max-w-xl">
-                  {/* Summary */}
-                  <div className="inline-flex items-center gap-3 mb-5 p-3.5 bg-white rounded-xl border border-[#F0EBE1]">
-                    <div className="text-2xl font-bold text-[#1A1A1A]">{rating || "—"}</div>
-                    <div>
-                      <div className="flex gap-0.5 mb-1">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} size={11} fill={s <= Math.round(rating) ? "#C29B27" : "none"} stroke={s <= Math.round(rating) ? "#C29B27" : "#D1C7BB"} />
-                        ))}
-                      </div>
-                      <p className="text-xs font-bold text-[#8A8A8A] uppercase tracking-widest">
-                        Based on {reviewCount} reviews
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Rating filter */}
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {[undefined, 5, 4, 3, 2, 1].map((r) => (
-                      <button
-                        key={r ?? "all"}
-                        onClick={() => {
-                          setReviewsRatingFilter(r);
-                          loadReviews(0, r);
-                        }}
-                        className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${reviewsRatingFilter === r
-                          ? "bg-[#C29B27] text-white border-[#C29B27]"
-                          : "bg-white text-[#6B6B6B] border-[#E8E2D8] hover:border-[#C29B27]/50"
-                          }`}
-                      >
-                        {r === undefined ? "All" : `${r} ★`}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Reviews list */}
+                <div className="w-full max-w-2xl py-2 sm:py-3">
+                  {/* Loading State */}
                   {reviewsLoading && reviews.length === 0 ? (
                     <div className="flex items-center gap-2 py-8 text-[#8A8A8A]">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
-                      <span className="text-[12px]">Loading reviews...</span>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      <span className="text-xs">Loading reviews...</span>
                     </div>
-                  ) : reviews.length === 0 ? (
-                    <p className="text-[12px] text-[#8A8A8A] py-8">No reviews yet for this product.</p>
+                  ) : displayedReviews.length === 0 ? (
+                    <div className="py-6 text-left">
+                      <p className="text-sm font-medium text-[#6B6B6B]">No reviews yet for this product.</p>
+                      <p className="text-xs text-[#8A8A8A] mt-1">Be the first to share your experience!</p>
+                    </div>
                   ) : (
-                    <div className="space-y-4">
-                      {reviews.map((review) => (
-                        <div key={review.id} className="pb-4 border-b border-[#F0EBE1]">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-[#1A1A1A] text-[12px]">{review.userFullName || "Customer"}</span>
-                              {review.verifiedPurchase && (
-                                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Verified</span>
+                    <>
+                      {/* Rating score & stars */}
+                      <div className="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-5">
+                        <span className="text-2xl sm:text-[28px] font-bold text-[#111827] tracking-tight leading-none">
+                          {displayRating}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((s) => {
+                            const isFilled = s <= Math.round(numericRating);
+                            return (
+                              <Star
+                                key={s}
+                                size={18}
+                                className="text-[#16a34a]"
+                                fill={isFilled ? "#16a34a" : "none"}
+                                stroke="#16a34a"
+                                strokeWidth={1.75}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Subtitle: Top Reviews */}
+                      <h4 className="text-[16px] sm:text-[17px] font-bold text-[#111827] mb-3 sm:mb-4">
+                        Top Reviews
+                      </h4>
+
+                      {/* Reviews List */}
+                      <div className="divide-y divide-[#EBE6DE]">
+                        {visibleReviews.map((rev) => (
+                          <div key={rev.id} className="py-3.5 sm:py-4.5 first:pt-0 last:pb-1">
+                            {/* Header: Name + Location (left), Verified buyer (right) */}
+                            <div className="flex items-start justify-between gap-3 mb-1">
+                              <div className="min-w-0 pr-2">
+                                <span className="font-semibold text-[14px] sm:text-[15px] text-[#1F2937] break-words">
+                                  {rev.userFullName}
+                                  {rev.location ? `, ${rev.location}` : ""}
+                                </span>
+                              </div>
+                              {rev.verifiedPurchase && (
+                                <div className="inline-flex items-center gap-1.5 text-[#64748B] shrink-0 text-xs sm:text-[13px]">
+                                  <CheckCircle2 size={14} className="text-[#64748B] shrink-0" strokeWidth={1.75} />
+                                  <span className="font-medium">Verified buyer</span>
+                                </div>
                               )}
                             </div>
-                            <span className="text-xs text-[#8A8A8A]">
-                              {review.createdAt ? new Date(review.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : ""}
-                            </span>
+
+                            {/* Stars + Time Ago */}
+                            <div className="flex items-center gap-2 mb-1.5 text-xs sm:text-[13px] text-[#64748B] font-normal">
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                {[1, 2, 3, 4, 5].map((s) => {
+                                  const isFilled = s <= Math.round(rev.rating);
+                                  return (
+                                    <Star
+                                      key={s}
+                                      size={15}
+                                      className="text-[#16a34a]"
+                                      fill={isFilled ? "#16a34a" : "none"}
+                                      stroke="#16a34a"
+                                      strokeWidth={1.75}
+                                    />
+                                  );
+                                })}
+                              </div>
+                              <span className="text-[#64748B] select-none">•</span>
+                              <span>{rev.timeAgo}</span>
+                            </div>
+
+                            {/* Review text */}
+                            <p className="text-[14px] sm:text-[15px] text-[#374151] font-normal leading-relaxed">
+                              {rev.reviewText}
+                            </p>
+
+                            {/* Review media if any */}
+                            {rev.media && rev.media.length > 0 && (
+                              <div className="flex gap-2 mt-2.5 flex-wrap">
+                                {rev.media.map((m: any) =>
+                                  m.mediaType === "IMAGE" ? (
+                                    <img
+                                      key={m.id}
+                                      src={m.mediaUrl}
+                                      alt="Customer photo"
+                                      className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg object-cover border border-[#E8E2D8]"
+                                    />
+                                  ) : null
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <div className="flex gap-0.5 mb-1">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <Star key={s} size={10} fill={s <= review.rating ? "#C29B27" : "none"} stroke={s <= review.rating ? "#C29B27" : "#D1C7BB"} />
+                        ))}
+                      </div>
+
+                      {/* View All Reviews Button */}
+                      {displayedReviews.length > 2 && (
+                        <div className="mt-4 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setShowAllReviews((prev) => !prev)}
+                            className="group inline-flex items-center gap-1 text-[14px] sm:text-[15px] font-bold text-[#EA580C] hover:text-[#C2410C] transition-colors cursor-pointer"
+                          >
+                            <span>{showAllReviews ? "Show Top Reviews" : "View All Reviews"}</span>
+                            <ChevronRight
+                              size={17}
+                              strokeWidth={2.5}
+                              className={`transition-transform duration-200 ${
+                                showAllReviews ? "-rotate-90 text-[#EA580C]" : "group-hover:translate-x-0.5"
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Expanded Filter & Pagination if showAllReviews is active */}
+                      {showAllReviews && (
+                        <div className="mt-5 pt-4 border-t border-[#F0ECE6]">
+                          <div className="flex flex-wrap items-center gap-2 mb-4">
+                            <span className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-wider mr-1">
+                              Filter by rating:
+                            </span>
+                            {[undefined, 5, 4, 3, 2, 1].map((r) => (
+                              <button
+                                key={r ?? "all"}
+                                onClick={() => {
+                                  setReviewsRatingFilter(r);
+                                  loadReviews(0, r);
+                                }}
+                                className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${
+                                  reviewsRatingFilter === r
+                                    ? "bg-[#EA580C] text-white border-[#EA580C]"
+                                    : "bg-white text-[#6B6B6B] border-[#E8E2D8] hover:border-[#EA580C]/50"
+                                }`}
+                              >
+                                {r === undefined ? "All" : `${r} ★`}
+                              </button>
                             ))}
                           </div>
-                          {review.title && <p className="text-[12px] font-semibold text-[#1A1A1A] mb-0.5">{review.title}</p>}
-                          <p className="text-xs text-[#6B6B6B] leading-relaxed">{review.reviewText}</p>
-                          {review.media?.length > 0 && (
-                            <div className="flex gap-2 mt-2 flex-wrap">
-                              {review.media.map((m: any) => (
-                                m.mediaType === "IMAGE" ? (
-                                  <img key={m.id} src={m.mediaUrl} alt="review" className="h-16 w-16 rounded-lg object-cover border border-[#E8E2D8]" />
-                                ) : null
-                              ))}
+
+                          {reviewsLoading && (
+                            <div className="flex items-center gap-2 py-4 text-[#8A8A8A]">
+                              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                              </svg>
+                              <span className="text-xs">Loading reviews...</span>
                             </div>
                           )}
+
+                          {!reviewsLast && (
+                            <button
+                              onClick={() => loadReviews(reviewsPage + 1, reviewsRatingFilter, true)}
+                              disabled={reviewsLoading}
+                              className="mt-2 px-5 py-2 rounded-lg border border-[#E8E2D8] text-xs font-bold text-[#EA580C] hover:bg-orange-50 transition disabled:opacity-50"
+                            >
+                              {reviewsLoading ? "Loading..." : "Load more reviews"}
+                            </button>
+                          )}
                         </div>
-                      ))}
-                      {!reviewsLast && (
-                        <button
-                          onClick={() => loadReviews(reviewsPage + 1, reviewsRatingFilter, true)}
-                          disabled={reviewsLoading}
-                          className="mt-2 px-5 py-2 rounded-lg border border-[#E8E2D8] text-xs font-bold text-[#C29B27] hover:bg-amber-50 transition disabled:opacity-50"
-                        >
-                          {reviewsLoading ? "Loading..." : "Load more reviews"}
-                        </button>
                       )}
-                    </div>
+                    </>
                   )}
                 </div>
               )}
@@ -1575,84 +1788,203 @@ const ProductDetailsPage: React.FC = () => {
             </div>
           </div>
 
-          <section ref={priceBreakdownRef} className="mx-auto mt-6 w-full max-w-3xl scroll-mt-24 rounded-2xl border border-[#E8E2D8] bg-white shadow-sm">
-            <div className={`flex items-start border-b px-5 py-4 ${isSilverProduct ? "border-slate-200 bg-slate-50" : "border-amber-200 bg-amber-50"}`}>
-              <div className="flex items-center gap-3">
-                <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${isSilverProduct ? "bg-slate-200 text-slate-700" : "bg-amber-100 text-[#9B7416]"}`}>
-                  <Gem size={20} />
-                </span>
-                <div>
-                  <h2 id="price-breakdown-title" className="text-base font-bold text-[#1A1A1A]">Price Breakup</h2>
-                  <p className="text-xs text-[#6B6B6B]">{metalName} · {selectedVariant.purity} · {selectedVariant.weight}g</p>
-                </div>
-              </div>
-            </div>
+      {/* ── Price Breakup Drawer (Right Drawer on Desktop/Tablet, Bottom Sheet on Mobile) ── */}
+      <AnimatePresence>
+        {isPriceBreakupOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-end md:items-stretch justify-end"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="price-breakdown-title"
+          >
+            {/* Backdrop overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              onClick={() => setIsPriceBreakupOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
+            />
 
-            <div className="p-4 sm:p-5">
-              {priceBreakdownLoading ? (
-                <p className="py-8 text-center text-sm text-[#6B6B6B]">Loading price breakdown…</p>
-              ) : priceBreakdown ? (
-                <div>
-                  <div className="flex items-center justify-end gap-1 pb-1.5 text-[11px] text-[#8A8A8A] sm:hidden">
-                    <span>Swipe horizontally to view full table</span>
-                    <span className="font-semibold text-[#8B6914]">→</span>
+            {/* Drawer Container */}
+            <motion.div
+              initial={isMobile ? { y: "100%" } : { x: "100%" }}
+              animate={isMobile ? { y: 0 } : { x: 0 }}
+              exit={isMobile ? { y: "100%" } : { x: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 280 }}
+              className="relative z-10 flex flex-col bg-white shadow-2xl w-full max-md:max-h-[88vh] max-md:rounded-t-3xl max-md:bottom-0 md:w-[540px] md:h-full md:max-h-screen md:rounded-l-2xl md:rounded-r-none overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Mobile Drag Indicator */}
+              <div className="mx-auto w-12 h-1.5 bg-gray-300 rounded-full mt-2.5 mb-1 md:hidden" />
+
+              {/* Header */}
+              <div
+                className={`flex items-center justify-between border-b px-5 py-4 shrink-0 ${
+                  isSilverProduct ? "border-slate-200 bg-slate-50" : "border-amber-200 bg-amber-50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                      isSilverProduct ? "bg-slate-200 text-slate-700" : "bg-amber-100 text-[#9B7416]"
+                    }`}
+                  >
+                    <Gem size={20} />
+                  </span>
+                  <div>
+                    <h2 id="price-breakdown-title" className="text-base font-bold text-[#1A1A1A]">
+                      Price Breakup
+                    </h2>
+                    <p className="text-xs text-[#6B6B6B]">
+                      {metalName} · {selectedVariant.purity} · {selectedVariant.weight}g
+                    </p>
                   </div>
-                  <div className="overflow-x-auto rounded-xl border border-[#E8E2D8] [scrollbar-width:thin] [scrollbar-color:#D1C7BB_transparent] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-[#F5F2EE] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D1C7BB] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#8B6914]">
-                    <table className="w-full min-w-[500px] text-sm">
-                      <thead className="bg-[#F9F7F4] text-left text-[11px] font-bold uppercase tracking-wide text-[#4A4A4A]">
-                        <tr>
-                          <th className="whitespace-nowrap px-3 py-3">Component</th>
-                          <th className="whitespace-nowrap px-3 py-3 text-center">Rate / Gram</th>
-                          <th className="whitespace-nowrap px-3 py-3 text-center">Weight</th>
-                          <th className="whitespace-nowrap px-3 py-3 text-center">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-[#4A4A4A]">
-                        <tr className="border-t border-[#F0EBE1]">
-                          <td className="whitespace-nowrap px-3 py-3 font-semibold">{metalName} ({selectedVariant.purity})</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-center">{selectedVariant.weight > 0 ? `₹${(priceBreakdown.variantPrice / selectedVariant.weight).toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "—"}</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-center">{selectedVariant.weight}g</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-center font-semibold">₹{priceBreakdown.variantPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        
-                        <tr className="border-t border-[#F0EBE1]">
-                          <td className="whitespace-nowrap px-3 py-3">Making charges ({priceBreakdown.makingPercentage}%)</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-center">−</td><td className="whitespace-nowrap px-3 py-3 text-center">−</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-center">₹{priceBreakdown.makingAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr className="border-t border-[#F0EBE1]">
-                          <td className="whitespace-nowrap px-3 py-3">GST ({priceBreakdown.gstPercentage}%)</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-center">−</td><td className="whitespace-nowrap px-3 py-3 text-center">−</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-center">₹{priceBreakdown.gstAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        {priceBreakdown.discountAmount > 0 && (
-                          <tr className="border-t border-[#F0EBE1] bg-emerald-50/60 text-emerald-700">
-                            <td className="whitespace-nowrap px-3 py-3 font-semibold flex items-center gap-1.5">
-                              <Tag size={13} className="inline-block" />
-                              Discount
-                            {/* {priceBreakdown.discountPercentage > 0 ? ` (${priceBreakdown.discountPercentage}%)` : ""} */}
+                </div>
+
+                {/* Close Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsPriceBreakupOpen(false)}
+                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/80 hover:bg-white text-gray-500 hover:text-gray-800 transition-colors border border-[#E8E2D8] shadow-2xs"
+                  aria-label="Close Price Breakup"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="p-4 sm:p-5 overflow-y-auto flex-1">
+                {priceBreakdownLoading ? (
+                  <p className="py-8 text-center text-sm text-[#6B6B6B]">Loading price breakdown…</p>
+                ) : priceBreakdown ? (
+                  <div>
+                    <div className="flex items-center justify-end gap-1 pb-1.5 text-[11px] text-[#8A8A8A] sm:hidden">
+                      <span>Swipe horizontally to view full table</span>
+                      <span className="font-semibold text-[#8B6914]">→</span>
+                    </div>
+                    <div className="overflow-x-auto rounded-xl border border-[#E8E2D8] [scrollbar-width:thin] [scrollbar-color:#D1C7BB_transparent] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-[#F5F2EE] [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D1C7BB] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#8B6914]">
+                      <table className="w-full min-w-[480px] text-sm">
+                        <thead className="bg-[#F9F7F4] text-left text-[11px] font-bold uppercase tracking-wide text-[#4A4A4A]">
+                          <tr>
+                            <th className="whitespace-nowrap px-3 py-3">Component</th>
+                            <th className="whitespace-nowrap px-3 py-3 text-center">Rate / Gram</th>
+                            <th className="whitespace-nowrap px-3 py-3 text-center">Weight</th>
+                            <th className="whitespace-nowrap px-3 py-3 text-center">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-[#4A4A4A]">
+                          <tr className="border-t border-[#F0EBE1]">
+                            <td className="whitespace-nowrap px-3 py-3 font-semibold">
+                              {metalName} ({selectedVariant.purity})
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-center">
+                              {selectedVariant.weight > 0
+                                ? `₹${(priceBreakdown.variantPrice / selectedVariant.weight).toLocaleString("en-IN", {
+                                    maximumFractionDigits: 2,
+                                  })}`
+                                : "—"}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-center">{selectedVariant.weight}g</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-center font-semibold">
+                              ₹{priceBreakdown.variantPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+
+                          <tr className="border-t border-[#F0EBE1]">
+                            <td className="whitespace-nowrap px-3 py-3">
+                              Making charges ({priceBreakdown.makingPercentage}%)
                             </td>
                             <td className="whitespace-nowrap px-3 py-3 text-center">−</td>
                             <td className="whitespace-nowrap px-3 py-3 text-center">−</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-center font-semibold text-emerald-700">−₹{priceBreakdown.discountAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-center">
+                              ₹{priceBreakdown.makingAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                            </td>
                           </tr>
-                        )}
-                      </tbody>
-                      <tfoot className={isSilverProduct ? "bg-slate-50" : "bg-amber-50"}>
-                        <tr>
-                          <td className="whitespace-nowrap px-3 py-3 text-base font-bold text-[#1A1A1A]" colSpan={3}>Grand Total</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-center text-base font-bold text-[#1A1A1A]">₹{Number((priceBreakdown?.finalAmount && priceBreakdown.finalAmount > 0) ? priceBreakdown.finalAmount : ((priceBreakdown?.totalAmount || 0) - (priceBreakdown?.discountAmount || 0))).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
+                          <tr className="border-t border-[#F0EBE1]">
+                            <td className="whitespace-nowrap px-3 py-3">
+                              GST ({priceBreakdown.gstPercentage}%)
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-center">−</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-center">−</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-center">
+                              ₹{priceBreakdown.gstAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                          {priceBreakdown.discountAmount > 0 && (
+                            <tr className="border-t border-[#F0EBE1] bg-emerald-50/60 text-emerald-700">
+                              <td className="whitespace-nowrap px-3 py-3 font-semibold flex items-center gap-1.5">
+                                <Tag size={13} className="inline-block" />
+                                Discount
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-3 text-center">−</td>
+                              <td className="whitespace-nowrap px-3 py-3 text-center">−</td>
+                              <td className="whitespace-nowrap px-3 py-3 text-center font-semibold text-emerald-700">
+                                −₹{priceBreakdown.discountAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                        <tfoot className={isSilverProduct ? "bg-slate-50" : "bg-amber-50"}>
+                          <tr>
+                            <td className="whitespace-nowrap px-3 py-3 text-base font-bold text-[#1A1A1A]" colSpan={3}>
+                              Grand Total
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-center text-base font-bold text-[#1A1A1A]">
+                              ₹
+                              {Number(
+                                priceBreakdown?.finalAmount && priceBreakdown.finalAmount > 0
+                                  ? priceBreakdown.finalAmount
+                                  : (priceBreakdown?.totalAmount || 0) - (priceBreakdown?.discountAmount || 0)
+                              ).toLocaleString("en-IN", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
                   </div>
+                ) : (
+                  <p className="py-8 text-center text-sm text-rose-600">
+                    {priceBreakdownError || "Unable to load price breakdown."}
+                  </p>
+                )}
+                <p className="mt-3 text-xs leading-relaxed text-[#4A4A4A]">
+                  Price breakup is loaded from the Gold and Silver live rates.
+                </p>
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="border-t border-[#E8E2D8] p-4 bg-[#FDFAF4] shrink-0 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider font-semibold text-[#8A8A8A]">Grand Total</p>
+                  <p className="text-lg font-bold text-[#C29B27]">
+                    ₹
+                    {Number(
+                      priceBreakdown?.finalAmount && priceBreakdown.finalAmount > 0
+                        ? priceBreakdown.finalAmount
+                        : (priceBreakdown?.totalAmount || 0) - (priceBreakdown?.discountAmount || 0)
+                    ).toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
                 </div>
-              ) : (
-                <p className="py-8 text-center text-sm text-rose-600">{priceBreakdownError || "Unable to load price breakdown."}</p>
-              )}
-              <p className="mt-3 text-xs leading-relaxed text-[#4A4A4A]">Price breakup is loaded from the Gold and Silver live rates.</p>
-            </div>
-          </section>
+                <button
+                  type="button"
+                  onClick={() => setIsPriceBreakupOpen(false)}
+                  className="px-5 py-2.5 rounded-lg bg-[#C29B27] hover:bg-[#A88820] text-white text-xs font-semibold uppercase tracking-wider transition-colors shadow-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
           {/* ── Similar Products ── */}
           {similarProducts.length > 0 && (
