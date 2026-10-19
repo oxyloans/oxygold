@@ -590,7 +590,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     return (
         <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-0 sm:p-4 md:p-6 animate-in fade-in duration-200">
             {/* Main Responsive Container: Fullscreen on mobile, centered modal on tablet & desktop */}
-            <div className="relative w-full h-full sm:h-[88vh] sm:max-h-[780px] sm:max-w-xl md:max-w-2xl sm:rounded-3xl bg-white shadow-2xl overflow-hidden flex flex-col font-sans transition-all">
+            <div className="relative w-full h-full sm:h-[86vh] sm:max-h-[720px] sm:max-w-xl md:max-w-2xl sm:rounded-3xl bg-white shadow-2xl overflow-hidden flex flex-col font-sans transition-all">
                 <style>{`
                     .leaflet-control-attribution {
                         display: none !important;
@@ -688,14 +688,14 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
                 {/* ── MAP CONTAINER ── */}
                 <div
-                    className="relative flex-1 w-full bg-[#f4f3f0] overflow-hidden min-h-[380px] sm:min-h-[440px]"
+                    className="relative flex-1 w-full bg-[#f4f3f0] overflow-hidden min-h-[200px] sm:min-h-[260px]"
                     onClick={() => setIsSearchFocused(false)}
                 >
                     {/* Leaflet map DOM node with explicit styling */}
                     <div
                         ref={mapContainerRef}
                         className="w-full h-full"
-                        style={{ minHeight: "380px", height: "100%", width: "100%", zIndex: 1 }}
+                        style={{ height: "100%", width: "100%", zIndex: 1 }}
                     />
 
                     {isMapLoading && (
@@ -766,7 +766,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                     </div>
 
                     {/* ── DESKTOP/TABLET ZOOM CONTROLS (+ / -) ── */}
-                    <div className="hidden sm:flex absolute right-4 bottom-18 z-[1000] flex-col rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden divide-y divide-gray-100">
+                    <div className="hidden sm:flex absolute right-4 bottom-14 sm:bottom-16 z-[1000] flex-col rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden divide-y divide-gray-100">
                         <button
                             type="button"
                             onClick={handleZoomIn}
@@ -806,7 +806,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                 </div>
 
                 {/* ── BOTTOM CONFIRMATION SHEET (COMPACT FOR MAXIMUM MAP DISPLAY & UX) ── */}
-                <div className="relative z-[1010] bg-white rounded-t-2xl sm:rounded-t-3xl border-t border-gray-100 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] px-4 py-3 sm:px-5 sm:py-4">
+                <div className="relative z-[1010] shrink-0 bg-white rounded-t-2xl sm:rounded-t-3xl border-t border-gray-100 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] px-4 py-3 sm:px-5 sm:py-3.5">
                     {/* Header Label: DELIVER TO (Clean, no extra subtitle) */}
                     <div className="mb-1.5">
                         <span className="text-[10px] sm:text-[11px] font-black text-gray-500 tracking-wider uppercase">

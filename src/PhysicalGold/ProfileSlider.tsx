@@ -411,8 +411,7 @@ const ProfilePage: React.FC = () => {
                 });
             }
         } else if (shouldAddAddress) {
-            patch({ activeTab: "address", isAddingAddress: true });
-            setShowLocationPicker(true);
+            patch({ activeTab: "address", isAddingAddress: true, editingAddress: null, addrErrors: {} });
         } else if (tab && tab !== s.activeTab) {
             patch({ activeTab: tab, isAddingAddress: false, isEditingProfile: tab === "info" && !s.profileForm.firstName.trim() });
         }
@@ -1604,7 +1603,6 @@ const ProfilePage: React.FC = () => {
                                     <button
                                         onClick={() => {
                                             patch({ isAddingAddress: true, editingAddress: null, addrErrors: {} });
-                                            setShowLocationPicker(true);
                                         }}
                                         className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8B6914] text-white text-[14px] font-medium hover:bg-[#7A5C10] transition shadow-xs cursor-pointer"
                                     >
