@@ -1097,7 +1097,7 @@ const ProductDetailsPage: React.FC = () => {
               </button>
 
               {/* Inline badges */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C29B27] bg-amber-50 border border-[#C29B27]/25 px-2.5 py-1 rounded-md">
                   <span className="w-2.5 h-2.5 rounded-full border border-[#C29B27] inline-flex items-center justify-center flex-shrink-0">
                     <span className="w-1 h-1 bg-[#C29B27] rounded-full block" />
@@ -1109,6 +1109,17 @@ const ProductDetailsPage: React.FC = () => {
                 <span className="text-xs font-semibold text-[#6B6B6B] bg-[#F5F0E8] px-2.5 py-1 rounded-md border border-[#E8E2D8]">
                   Weight: {selectedVariant.weight}g
                 </span>
+                {Number(selectedVariant.stockQuantity) > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                    In Stock
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
+                    <span className="w-1.5 h-1.5 bg-rose-500 rounded-full" />
+                    Out of Stock
+                  </span>
+                )}
               </div>
 
               {/* Variant selectors — compact spacing, matching the badges above */}
@@ -1207,16 +1218,16 @@ const ProductDetailsPage: React.FC = () => {
                   <div className="flex gap-2.5">
                     <button
                       onClick={handleAddToCart}
-                      disabled={selectedVariant.stockQuantity === 0}
-                      className="flex-1 h-[46px] flex items-center justify-center gap-2 rounded-lg text-[13px] font-semibold uppercase tracking-[0.08em] bg-[#C29B27] hover:bg-[#A88820] disabled:opacity-50 text-white transition-all transform active:scale-[0.98]"
+                      disabled={Number(selectedVariant.stockQuantity) <= 0}
+                      className="flex-1 h-[46px] flex items-center justify-center gap-2 rounded-lg text-[13px] font-semibold uppercase tracking-[0.08em] bg-[#C29B27] hover:bg-[#A88820] disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all transform active:scale-[0.98]"
                     >
                       <ShoppingCart size={15} />
-                      Add to Cart
+                      {Number(selectedVariant.stockQuantity) <= 0 ? "Out of Stock" : "Add to Cart"}
                     </button>
                     <button
                       onClick={handleBuyNow}
-                      disabled={selectedVariant.stockQuantity === 0}
-                      className="flex-1 h-[46px] flex items-center justify-center rounded-lg text-[13px] font-semibold uppercase tracking-[0.08em] border border-[#C29B27] text-[#C29B27] bg-white hover:bg-amber-50 transition-all transform active:scale-[0.98]"
+                      disabled={Number(selectedVariant.stockQuantity) <= 0}
+                      className="flex-1 h-[46px] flex items-center justify-center rounded-lg text-[13px] font-semibold uppercase tracking-[0.08em] border border-[#C29B27] text-[#C29B27] bg-white hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-[0.98]"
                     >
                       Buy Now
                     </button>

@@ -807,17 +807,36 @@ export const getAllOrders = async (): Promise<AdminOrder[]> => {
   return data.data || [];
 };
 
-// -- Delivery Management API --
+// -- Delivery Management Enums & Types --
+export type DeliveryBoyStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
+export type DeliveryBoyAvailabilityStatus = "AVAILABLE" | "BUSY" | "OFFLINE";
 
 export interface DeliveryBoy {
   id: number;
-  status: "ACTIVE" | "INACTIVE";
+  status: DeliveryBoyStatus;
+  availabilityStatus?: DeliveryBoyAvailabilityStatus;
   firstName: string;
   lastName: string;
-  userId: number;
+  userId?: number;
   email: string;
   phone: string;
   alternateMobileNumber: string | null;
+  vehicleNumber?: string;
+  vehicleType?: string;
+  totalDeliveries?: number;
+  rating?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DeliveryBoyPayload {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  alternateMobileNumber?: string;
+  email: string;
+  vehicleNumber?: string;
+  vehicleType?: string;
 }
 
 export interface AssignDeliveryPayload {
@@ -916,15 +935,54 @@ export const fetchAdminDeliveryBoys = async (): Promise<DeliveryBoy[]> => {
   );
 };
 
+export const createAdminDeliveryBoy = async (
+  payload: DeliveryBoyPayload,
+): Promise<DeliveryBoy> => {
+  const response = await adminAuthenticatedFetch(
+    `${BASE_URL}/delivery/insertDeliveryBoys`,
+    {
+      method: "POST",
+      headers: { Accept: "*/*", "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+  return readDeliveryResponse<DeliveryBoy>(
+    response,
+    "Failed to insert delivery boy",
+  );
+};
+
+export const updateAdminDeliveryBoy = async (
+  id: number,
+  payload: DeliveryBoyPayload,
+): Promise<DeliveryBoy> => {
+  const response = await adminAuthenticatedFetch(
+    `${BASE_URL}/delivery/${id}`,
+    {
+      method: "PUT",
+      headers: { Accept: "*/*", "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+  return readDeliveryResponse<DeliveryBoy>(
+    response,
+    "Failed to update delivery boy",
+  );
+};
+
 export const updateAdminDeliveryBoyStatus = async (
   id: number,
-  status: "ACTIVE" | "INACTIVE",
-) => {
+  status: DeliveryBoyStatus,
+): Promise<DeliveryBoy> => {
   const response = await adminAuthenticatedFetch(
-    `${BASE_URL}/admin/delivery/${id}/status?status=${status}`,
-    { method: "PUT", headers: { Accept: "*/*" } },
+    `${BASE_URL}/delivery/${id}/status`,
+    {
+      method: "PATCH",
+      headers: { Accept: "*/*", "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    },
   );
-  return readDeliveryResponse<string>(
+  return readDeliveryResponse<DeliveryBoy>(
     response,
     "Failed to update delivery-boy status",
   );

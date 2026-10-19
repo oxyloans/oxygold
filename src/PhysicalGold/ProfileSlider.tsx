@@ -9,6 +9,7 @@ import {
     LogOut,
     MapPin,
     MapPinned,
+    Map as MapIcon,
     Pencil,
     Plus,
     Minus,
@@ -68,6 +69,8 @@ import { type Order, type OrderItem, resolveS3ImageUrl } from "./physicalGoldDat
 import PhysicalGoldHeader from "./components/Header";
 import Toast, { ToastType } from "./components/Toast";
 import Dropdown from "./components/Dropdown";
+import LocationPickerModal, { LocationPickerResult } from "./components/LocationPickerModal";
+import { FaLocationCrosshairs } from "react-icons/fa6";
 import TokenManager from "../utils/tokenManager";
 import { validateEmail, validateMobileNumber, formatMobileNumber, validatePincode, getPincodeError, formatPincode } from "./utils/validations";
 
@@ -312,6 +315,7 @@ const ProfilePage: React.FC = () => {
     const [locationSuggestions, setLocationSuggestions] = useState<{ description: string; place_id: string }[]>([]);
     const [isSearchingLocation, setIsSearchingLocation] = useState(false);
     const locationSearchDebounce = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [showLocationPicker, setShowLocationPicker] = useState(false);
 
     const [s, setS] = useState<PageState>({
         activeTab: initialTab,
@@ -408,6 +412,7 @@ const ProfilePage: React.FC = () => {
             }
         } else if (shouldAddAddress) {
             patch({ activeTab: "address", isAddingAddress: true });
+            setShowLocationPicker(true);
         } else if (tab && tab !== s.activeTab) {
             patch({ activeTab: tab, isAddingAddress: false, isEditingProfile: tab === "info" && !s.profileForm.firstName.trim() });
         }
@@ -979,9 +984,33 @@ const ProfilePage: React.FC = () => {
         finally { setIsSearchingLocation(false); }
     };
 
+    const handleLocationPicked = (result: LocationPickerResult) => {
+        patchAddrForm({
+            latitude: result.latitude,
+            longitude: result.longitude,
+            ...(result.flatNo ? { flatNo: result.flatNo } : {}),
+            ...(result.landMark ? { landMark: result.landMark } : {}),
+            ...(result.fullAddress ? { address: result.fullAddress } : {}),
+            ...(result.pinCode ? { pinCode: result.pinCode } : {}),
+            ...(result.state ? { state: result.state } : {}),
+        });
+        setS((prev) => ({
+            ...prev,
+            isAddingAddress: true,
+            addrErrors: Object.fromEntries(
+                Object.entries(prev.addrErrors).filter(
+                    ([k]) => !["flatNo", "landMark", "address", "pinCode", "state", "latitude", "longitude"].includes(k)
+                )
+            ),
+            toast: { message: "Location pinned from map! Please verify house/flat details.", type: "success" },
+        }));
+        setShowLocationPicker(false);
+    };
+
     const cancelAddrForm = () => {
         setLocationSearch("");
         setLocationSuggestions([]);
+        setShowLocationPicker(false);
         patch({
             isAddingAddress: false, editingAddress: null, addrErrors: {},
             isFetchingLocation: false, locationError: "",
@@ -1572,7 +1601,13 @@ const ProfilePage: React.FC = () => {
                             <div className="flex items-center justify-between mb-5">
                                 <h3 className="text-[18px] font-semibold text-[#1A1A1A]">Saved Address</h3>
                                 {!s.isAddingAddress && (
-                                    <button onClick={() => patch({ isAddingAddress: true, editingAddress: null, addrErrors: {} })} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8B6914] text-white text-[14px] font-medium hover:bg-[#7A5C10] transition">
+                                    <button
+                                        onClick={() => {
+                                            patch({ isAddingAddress: true, editingAddress: null, addrErrors: {} });
+                                            setShowLocationPicker(true);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8B6914] text-white text-[14px] font-medium hover:bg-[#7A5C10] transition shadow-xs cursor-pointer"
+                                    >
                                         <Plus className="h-3 w-3" strokeWidth={2.5} /> Add New Address
                                     </button>
                                 )}
@@ -1581,26 +1616,71 @@ const ProfilePage: React.FC = () => {
                             {s.isAddingAddress && (
                                 <div className="border border-[#E8E0D5] rounded-xl p-4 sm:p-5 mb-5 space-y-4 bg-[#FAFAF8]">
                                     <div className="space-y-1">
-                                        <h4 className="text-[12px] font-semibold text-[#1A1A1A]">{s.editingAddress ? "Edit Address" : "Add New Address"}</h4>
+                                        <h4 className="text-[14px] font-bold text-[#1A1A1A]">
+                                            {s.editingAddress ? "Edit Address" : "Add New Address"}
+                                        </h4>
+                                    </div>
+
+                                    {/* Location Preview Card if latitude/longitude is set (Project Theme Gold) */}
+                                    {s.addrForm.latitude && s.addrForm.longitude && (
+                                        <div className="flex items-start justify-between p-3 rounded-xl bg-[#FAF7F0] border border-[#E8E0D5] shadow-2xs">
+                                            <div className="flex items-start gap-2.5 min-w-0">
+                                                <div className="w-8 h-8 rounded-full bg-[#F5EDD6] border border-[#E8E0D5] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
+                                                    <MapPin className="w-3.5 h-3.5 text-[#8B6914]" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[12px] font-bold text-gray-900 truncate">
+                                                        {s.addrForm.landMark || s.addrForm.state || "Location pinned on map"}
+                                                    </p>
+                                                    <p className="text-[11px] text-gray-500 line-clamp-2 mt-0.5 leading-snug">
+                                                        {s.addrForm.address}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowLocationPicker(true)}
+                                                className="text-[11px] font-bold text-[#8B6914] hover:text-[#7A5C10] hover:underline shrink-0 ml-3 cursor-pointer"
+                                            >
+                                                Adjust Pin
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Two Action Buttons (Existing Theme Colors with Reduced Font Size) */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+                                        {/* Button 1: Use your current location */}
                                         <button
                                             type="button"
                                             onClick={fetchCurrentLocation}
                                             disabled={s.isFetchingLocation}
-                                            className="inline-flex items-center gap-1.5  pt-4 text-[14px] font-medium text-[#8B6914] hover:text-[#7A5C10] transition disabled:opacity-60"
+                                            className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-[#E8E0D5] bg-white hover:bg-[#FAF7F0] hover:border-[#8B6914]/40 active:scale-[0.99] text-[#8B6914] text-[12px] sm:text-[13px] font-semibold transition-all shadow-2xs cursor-pointer disabled:opacity-60"
                                         >
                                             {s.isFetchingLocation ? (
-                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#8B6914]" />
                                             ) : (
-                                                <MapPinned className="h-3 w-3" />
+                                                <FaLocationCrosshairs className="w-3.5 h-3.5 text-[#8B6914]" />
                                             )}
-                                            {s.isFetchingLocation ? "Detecting your location..." : "Use my current location >"}
+                                            <span>{s.isFetchingLocation ? "Detecting location..." : "Use your current location"}</span>
+                                        </button>
+
+                                        {/* Button 2: Select location on Map */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowLocationPicker(true)}
+                                            className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-[#E8E0D5] bg-white hover:bg-[#FAF7F0] hover:border-[#8B6914]/40 active:scale-[0.99] text-[#8B6914] text-[12px] sm:text-[13px] font-semibold transition-all shadow-2xs cursor-pointer"
+                                        >
+                                            <MapIcon className="w-3.5 h-3.5 text-[#8B6914]" />
+                                            <span>Select location on Map</span>
                                         </button>
                                     </div>
-                                    {/* <div className="flex items-center gap-2">
-                                        <div className="flex-1 h-px bg-[#E8E0D5]" />
-                                        <span className="text-[14px] text-[#BEB5AA] font-medium">OR</span>
-                                        <div className="flex-1 h-px bg-[#E8E0D5]" />
-                                    </div> */}
+
+                                    {/* OR Divider */}
+                                    <div className="flex items-center gap-3 my-1.5">
+                                        <div className="flex-1 h-px bg-gray-200" />
+                                        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">OR</span>
+                                        <div className="flex-1 h-px bg-gray-200" />
+                                    </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className={labelCls}>Flat No<span className="text-rose-500 ml-1">*</span></label>
@@ -2817,6 +2897,19 @@ const ProfilePage: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* ── MYNTRA / FLIPKART STYLE LOCATION PICKER MODAL ── */}
+            {showLocationPicker && (
+                <LocationPickerModal
+                    isOpen={showLocationPicker}
+                    onClose={() => setShowLocationPicker(false)}
+                    onConfirm={handleLocationPicked}
+                    initialLat={s.addrForm.latitude}
+                    initialLng={s.addrForm.longitude}
+                    initialAddress={s.addrForm.address}
+                    googleApiKey={GOOGLE_API_KEY}
+                />
             )}
         </div>
     );
