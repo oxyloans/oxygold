@@ -565,29 +565,114 @@ export const logout = async () => {
 
 export interface OrderItem {
   price: number;
-  productId: number;
+  productId?: number;
   quantity: number;
-  subtotal: number;
+  subtotal?: number;
   productName?: string;
+  category?: string;
   variant?: string;
+  rating?: number;
+  reviewTitle?: string;
+  reviewText?: string;
+  reviewed?: boolean;
+  canReview?: boolean;
+  canEditReview?: boolean;
   orderItemId?: number;
 }
 
-export interface AdminOrder {
+export interface OrderDetailsSection {
   orderId: number;
   orderNumber: string;
+  createdAt: string;
   orderStatus: string;
-  paymentExpiry: string;
-  paymentMode: string;
-  paymentSessionId: string | null;
-  paymentStatus: string;
+  totalItems: number;
+}
+
+export interface UserDetailsSection {
+  userId: number;
+  userName: string;
+  userEmail: string;
   phoneNumber: string;
+}
+
+export interface DeliveryDetailsSection {
+  delivery?: DeliveryTracking | null;
+  flatNo?: string | null;
+  address?: string | null;
+  landMark?: string | null;
+  state?: string | null;
+  pinCode?: string | null;
+  longitude?: string | number | null;
+  latitude?: string | number | null;
+  deliveryId?: number | null;
+  trackingNumber?: string | null;
+  deliveryStatus?: string | null;
+  deliveryBoyName?: string | null;
+  deliveryBoyPhone?: string | null;
+  acceptedAt?: string | null;
+  assignedAt?: string | null;
+  pickedUpAt?: string | null;
+  outForDeliveryAt?: string | null;
+  deliveredAt?: string | null;
+  expectedDeliveryTime?: string | null;
+}
+
+export interface PaymentDetailsSection {
+  paymentStatus: string;
+  paymentMode: string;
+  paymentModeDisplay?: string | null;
+  paymentMethod?: string | null;
+  paymentSessionId?: string | null;
+  txnId?: string | null;
+  paymentExpiry?: string | null;
+  gatewayEnvironment?: string | null;
+}
+
+export interface PricingDetailsSection {
+  totalAmount: number;
+  totalDiscountAmount?: number;
+  deliveryFee?: number | null;
+  deliveryDistanceKm?: number | null;
+  couponCode?: string | null;
+  couponDiscountAmount?: number;
+  couponEligibleAmount?: number;
+}
+
+export interface AdminOrder {
+  orderDetails?: OrderDetailsSection;
+  userDetails?: UserDetailsSection;
+  deliveryDetails?: DeliveryDetailsSection;
+  paymentDetails?: PaymentDetailsSection;
+  pricingDetails?: PricingDetailsSection;
+  id?: number;
+  orderId?: number;
+  orderNumber: string;
+  orderStatus: string;
+  paymentExpiry?: string;
+  paymentMode: string;
+  paymentMethod?: string | null;
+  paymentModeDisplay?: string | null;
+  paymentSessionId?: string | null;
+  totalDiscountAmount?: number;
+  deliveryFee?: number;
+  deliveryDistanceKm?: number;
+  couponCode?: string | null;
+  couponDiscountAmount?: number | null;
+  couponEligibleAmount?: number | null;
+  gatewayEnvironment?: string | null;
+  acceptedAt?: string | null;
+  assignedAt?: string | null;
+  pickedUpAt?: string | null;
+  outForDeliveryAt?: string | null;
+  deliveredAt?: string | null;
+  paymentStatus: string;
+  phoneNumber?: string;
   totalAmount: number;
   totalItems: number;
-  txnId: string | null;
-  userEmail: string | null;
-  userId: number;
-  userName: string | null;
+  txnId?: string | null;
+  userEmail?: string | null;
+  userId?: number;
+  userName?: string | null;
   createdAt?: string;
   flatNo?: string | null;
   address?: string | null;
@@ -645,15 +730,276 @@ export interface PaymentModeSummary {
   allModes: PaymentModeSummaryItem[];
 }
 
+export const normalizeAdminOrder = (raw: any): AdminOrder => {
+  if (!raw) return raw;
+  const od = raw.orderDetails || {};
+  const ud = raw.userDetails || {};
+  const dd = raw.deliveryDetails || {};
+  const pd = raw.paymentDetails || {};
+  const prd = raw.pricingDetails || {};
+
+  const orderId = Number(od.orderId ?? raw.orderId ?? raw.id ?? 0);
+  const orderNumber = String(od.orderNumber ?? raw.orderNumber ?? "");
+  const createdAt = od.createdAt ?? raw.createdAt ?? "";
+  const orderStatus = od.orderStatus ?? raw.orderStatus ?? "CREATED";
+  const totalItems = Number(od.totalItems ?? raw.totalItems ?? (raw.items ? raw.items.length : 0));
+
+  const userId = ud.userId ?? raw.userId;
+  const userName = ud.userName ?? raw.userName ?? "";
+  const userEmail = ud.userEmail ?? raw.userEmail ?? "";
+  const phoneNumber = ud.phoneNumber ?? raw.phoneNumber ?? "";
+
+  const flatNo = dd.flatNo ?? raw.flatNo ?? null;
+  const address = dd.address ?? raw.address ?? null;
+  const landMark = dd.landMark ?? raw.landMark ?? null;
+  const state = dd.state ?? raw.state ?? null;
+  const pinCode = dd.pinCode ?? raw.pinCode ?? null;
+  const longitude = dd.longitude ?? raw.longitude ?? null;
+  const latitude = dd.latitude ?? raw.latitude ?? null;
+  const deliveryId = dd.deliveryId ?? raw.deliveryId ?? null;
+  const trackingNumber = dd.trackingNumber ?? raw.trackingNumber ?? null;
+  const deliveryStatus = dd.deliveryStatus ?? raw.deliveryStatus ?? null;
+  const deliveryBoyName = dd.deliveryBoyName ?? raw.deliveryBoyName ?? null;
+  const deliveryBoyPhone = dd.deliveryBoyPhone ?? raw.deliveryBoyPhone ?? null;
+  const acceptedAt = dd.acceptedAt ?? raw.acceptedAt ?? null;
+  const assignedAt = dd.assignedAt ?? raw.assignedAt ?? null;
+  const pickedUpAt = dd.pickedUpAt ?? raw.pickedUpAt ?? null;
+  const outForDeliveryAt = dd.outForDeliveryAt ?? raw.outForDeliveryAt ?? null;
+  const deliveredAt = dd.deliveredAt ?? raw.deliveredAt ?? null;
+  const expectedDeliveryTime = dd.expectedDeliveryTime ?? raw.expectedDeliveryTime ?? raw.delivery?.expectedDeliveryTime ?? null;
+  const delivery = dd.delivery ?? raw.delivery ?? null;
+
+  const paymentStatus = pd.paymentStatus ?? raw.paymentStatus ?? "PENDING";
+  const paymentMode = pd.paymentMode ?? raw.paymentMode ?? "";
+  const paymentModeDisplay = pd.paymentModeDisplay ?? raw.paymentModeDisplay ?? "";
+  const paymentMethod = pd.paymentMethod ?? raw.paymentMethod ?? null;
+  const paymentSessionId = pd.paymentSessionId ?? raw.paymentSessionId ?? null;
+  const txnId = pd.txnId ?? raw.txnId ?? null;
+  const paymentExpiry = pd.paymentExpiry ?? raw.paymentExpiry ?? null;
+  const gatewayEnvironment = pd.gatewayEnvironment ?? raw.gatewayEnvironment ?? null;
+
+  const totalAmount = Number(prd.totalAmount ?? raw.totalAmount ?? 0);
+  const totalDiscountAmount = Number(prd.totalDiscountAmount ?? raw.totalDiscountAmount ?? 0);
+  const deliveryFee = prd.deliveryFee != null ? Number(prd.deliveryFee) : (raw.deliveryFee != null ? Number(raw.deliveryFee) : null);
+  const deliveryDistanceKm = prd.deliveryDistanceKm != null ? Number(prd.deliveryDistanceKm) : (raw.deliveryDistanceKm != null ? Number(raw.deliveryDistanceKm) : null);
+  const couponCode = prd.couponCode ?? raw.couponCode ?? null;
+  const couponDiscountAmount = Number(prd.couponDiscountAmount ?? raw.couponDiscountAmount ?? 0);
+  const couponEligibleAmount = Number(prd.couponEligibleAmount ?? raw.couponEligibleAmount ?? 0);
+
+  return {
+    ...raw,
+    orderDetails: {
+      orderId,
+      orderNumber,
+      createdAt,
+      orderStatus,
+      totalItems,
+      ...raw.orderDetails,
+    },
+    userDetails: {
+      userId: userId ?? 0,
+      userName,
+      userEmail,
+      phoneNumber,
+      ...raw.userDetails,
+    },
+    deliveryDetails: {
+      delivery,
+      flatNo,
+      address,
+      landMark,
+      state,
+      pinCode,
+      longitude,
+      latitude,
+      deliveryId,
+      trackingNumber,
+      deliveryStatus,
+      deliveryBoyName,
+      deliveryBoyPhone,
+      acceptedAt,
+      assignedAt,
+      pickedUpAt,
+      outForDeliveryAt,
+      deliveredAt,
+      expectedDeliveryTime,
+      ...raw.deliveryDetails,
+    },
+    paymentDetails: {
+      paymentStatus,
+      paymentMode,
+      paymentModeDisplay,
+      paymentMethod,
+      paymentSessionId,
+      txnId,
+      paymentExpiry,
+      gatewayEnvironment,
+      ...raw.paymentDetails,
+    },
+    pricingDetails: {
+      totalAmount,
+      totalDiscountAmount,
+      deliveryFee,
+      deliveryDistanceKm,
+      couponCode,
+      couponDiscountAmount,
+      couponEligibleAmount,
+      ...raw.pricingDetails,
+    },
+    id: orderId,
+    orderId,
+    orderNumber,
+    createdAt,
+    orderStatus,
+    totalItems,
+    userId,
+    userName,
+    userEmail,
+    phoneNumber,
+    delivery,
+    flatNo,
+    address,
+    landMark,
+    state,
+    pinCode,
+    longitude,
+    latitude,
+    deliveryId,
+    trackingNumber,
+    deliveryStatus,
+    deliveryBoyName,
+    deliveryBoyPhone,
+    acceptedAt,
+    assignedAt,
+    pickedUpAt,
+    outForDeliveryAt,
+    deliveredAt,
+    expectedDeliveryTime,
+    paymentStatus,
+    paymentMode,
+    paymentModeDisplay,
+    paymentMethod,
+    paymentSessionId,
+    txnId,
+    paymentExpiry,
+    gatewayEnvironment,
+    totalAmount,
+    totalDiscountAmount,
+    deliveryFee,
+    deliveryDistanceKm,
+    couponCode,
+    couponDiscountAmount,
+    couponEligibleAmount,
+    items: raw.items || [],
+  };
+};
+
+export const normalizePaginatedOrders = (data: any): PaginatedOrders => {
+  const pageData = data?.data ?? data ?? {};
+  const rawList = Array.isArray(pageData)
+    ? pageData
+    : Array.isArray(pageData.content)
+      ? pageData.content
+      : [];
+  const normalizedContent = rawList.map(normalizeAdminOrder);
+
+  return {
+    content: normalizedContent,
+    totalElements: pageData.totalElements ?? normalizedContent.length,
+    totalPages: pageData.totalPages ?? (normalizedContent.length > 0 ? 1 : 0),
+    number: pageData.number ?? pageData.pageable?.pageNumber ?? 0,
+    size: pageData.size ?? pageData.pageable?.pageSize ?? normalizedContent.length,
+    first: pageData.first ?? true,
+    last: pageData.last ?? true,
+    empty: pageData.empty ?? (normalizedContent.length === 0),
+  };
+};
+
+export const fetchTodayOrders = async (
+  page = 0,
+  size = 10,
+): Promise<PaginatedOrders> => {
+  const response = await adminAuthenticatedFetch(
+    `${BASE_URL}/order/today?page=${page}&size=${size}`,
+    {
+      headers: {
+        Accept: "*/*",
+      },
+    },
+  );
+  if (!response.ok) throw new Error("Failed to fetch today's orders");
+  const data = await response.json();
+  return normalizePaginatedOrders(data);
+};
+
 export const fetchActiveOrders = async (
   page = 0,
   size = 10,
 ): Promise<PaginatedOrders> => {
   const response = await adminAuthenticatedFetch(
     `${BASE_URL}/order/active-orders?page=${page}&size=${size}`,
+    {
+      headers: {
+        Accept: "*/*",
+      },
+    },
   );
   if (!response.ok) throw new Error("Failed to fetch active orders");
+  const activeOrderJson = await response.json();
+  return normalizePaginatedOrders(activeOrderJson);
+
   return response.json();
+};
+
+export const fetchAssignedOrders = async (
+  page = 0,
+  size = 10,
+): Promise<PaginatedOrders> => {
+  const response = await adminAuthenticatedFetch(
+    `${BASE_URL}/order/orders/by-status?status=ASSIGNED&page=${page}&size=${size}`,
+    {
+      headers: {
+        Accept: "*/*",
+      },
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch assigned orders (${response.status})`);
+  }
+  const assignedJson = await response.json();
+  return normalizePaginatedOrders(assignedJson);
+ {
+  }
+  const result = await response.json();
+  return result?.data ? result.data : result;
+};
+
+export const fetchOrdersByStatus = async (
+  status = "ASSIGNED",
+  page = 0,
+  size = 10,
+): Promise<PaginatedOrders> => {
+  const statusParam =
+    status && status !== "ALL"
+      ? `status=${encodeURIComponent(status)}&`
+      : "";
+  const response = await adminAuthenticatedFetch(
+    `${BASE_URL}/order/orders/by-status?${statusParam}page=${page}&size=${size}`,
+    {
+      headers: {
+        Accept: "*/*",
+      },
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch orders by status (${response.status})`);
+  }
+  const byStatusJson = await response.json();
+  return normalizePaginatedOrders(byStatusJson);
+ {
+  }
+  const result = await response.json();
+  return result?.data ? result.data : result;
 };
 
 const readAdminApiData = async <T>(response: Response): Promise<T> => {
@@ -804,33 +1150,56 @@ export const getAllOrders = async (): Promise<AdminOrder[]> => {
   );
   if (!response.ok) throw new Error("Failed to fetch all orders");
   const data = await response.json();
-  return data.data || [];
+  return (data.data || []).map(normalizeAdminOrder);
 };
 
-// -- Delivery Management API --
+// -- Delivery Management Enums & Types --
+export type DeliveryBoyStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
+export type DeliveryBoyAvailabilityStatus = "AVAILABLE" | "BUSY" | "OFFLINE";
 
 export interface DeliveryBoy {
   id: number;
-  status: "ACTIVE" | "INACTIVE";
+  status: DeliveryBoyStatus;
+  availabilityStatus?: DeliveryBoyAvailabilityStatus;
   firstName: string;
   lastName: string;
-  userId: number;
+  userId?: number;
   email: string;
   phone: string;
   alternateMobileNumber: string | null;
+  vehicleNumber?: string;
+  vehicleType?: string;
+  totalDeliveries?: number;
+  rating?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DeliveryBoyPayload {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  alternateMobileNumber?: string;
+  email: string;
+  vehicleNumber?: string;
+  vehicleType?: string;
 }
 
 export interface AssignDeliveryPayload {
   orderId: number;
   orderNumber: string;
   deliveryBoyId: number;
-  userId: number;
-  customerName: string;
-  customerPhone: string;
-  deliveryAddress: string;
-  customerLatitude: number;
-  customerLongitude: number;
-  notes: string;
+  userId?: number;
+  customerName?: string;
+  customerPhone?: string;
+  deliveryBoyName?: string;
+  deliveryBoyPhone?: string;
+  otp?: string;
+  expectedDeliveryTime?: string;
+  deliveryAddress?: string;
+  customerLatitude?: number;
+  customerLongitude?: number;
+  notes?: string;
 }
 
 export interface ReassignDeliveryPayload {
@@ -842,36 +1211,44 @@ export interface ReassignDeliveryPayload {
 export interface DeliveryTracking {
   deliveryId?: number;
   id?: number;
-  trackingNumber: string;
-  orderNumber: string;
-  orderId: number;
-  status: string;
-  statusLabel: string;
-  statusDescription: string;
-  deliveryBoy: {
+  trackingNumber?: string;
+  orderNumber?: string;
+  orderId?: number;
+  status?: string;
+  currentStatus?: string;
+  statusLabel?: string;
+  statusDescription?: string;
+  deliveryBoy?: {
     id: number;
     firstName: string;
     lastName: string;
     phone: string;
-    vehicleNumber: string;
-    vehicleType: string;
+    vehicleNumber?: string;
+    vehicleType?: string;
   } | null;
-  liveLocation: {
+  liveLocation?: {
     latitude: number;
     longitude: number;
     updatedAt: string;
   } | null;
-  deliveryAddress: string;
-  assignedAt: string | null;
-  acceptedAt: string | null;
-  pickedUpAt: string | null;
-  outForDeliveryAt: string | null;
-  deliveredAt: string | null;
-  timeline: Array<{
-    status: string;
-    statusLabel: string;
-    description: string;
-    timestamp: string;
+  deliveryBoyName?: string;
+  deliveryBoyPhone?: string;
+  otp?: string;
+  expectedDeliveryTime?: string;
+  deliveryAddress?: string;
+  assignedAt?: string | null;
+  acceptedAt?: string | null;
+  pickedUpAt?: string | null;
+  outForDeliveryAt?: string | null;
+  deliveredAt?: string | null;
+  timeline?: Array<{
+    status?: string;
+    label?: string;
+    statusLabel?: string;
+    description?: string;
+    time?: string;
+    timestamp?: string;
+    completed?: boolean;
   }>;
 }
 
@@ -891,6 +1268,44 @@ export interface AdminDeliveryAssignment {
   acceptedAt: string | null;
   pickedUpAt: string | null;
   outForDeliveryAt: string | null;
+}
+
+export interface DeliveryBoyOrder {
+  deliveryId: number;
+  trackingNumber: string;
+  status: string;
+  statusLabel?: string;
+  orderId: number;
+  orderNumber: string;
+  customerName: string;
+  customerPhone: string;
+  deliveryAddress: string;
+  assignedAt: string | null;
+  acceptedAt?: string | null;
+  pickedUpAt?: string | null;
+  outForDeliveryAt?: string | null;
+  deliveredAt?: string | null;
+}
+
+export interface DeliveryBoyOrdersPageData {
+  content: DeliveryBoyOrder[];
+  pageable?: {
+    pageNumber: number;
+    pageSize: number;
+    sort?: any;
+    offset?: number;
+    paged?: boolean;
+    unpaged?: boolean;
+  };
+  last: boolean;
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  sort?: any;
+  first: boolean;
+  numberOfElements: number;
+  empty: boolean;
 }
 
 const readDeliveryResponse = async <T>(
@@ -916,15 +1331,54 @@ export const fetchAdminDeliveryBoys = async (): Promise<DeliveryBoy[]> => {
   );
 };
 
+export const createAdminDeliveryBoy = async (
+  payload: DeliveryBoyPayload,
+): Promise<DeliveryBoy> => {
+  const response = await adminAuthenticatedFetch(
+    `${BASE_URL}/delivery/insertDeliveryBoys`,
+    {
+      method: "POST",
+      headers: { Accept: "*/*", "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+  return readDeliveryResponse<DeliveryBoy>(
+    response,
+    "Failed to insert delivery boy",
+  );
+};
+
+export const updateAdminDeliveryBoy = async (
+  id: number,
+  payload: DeliveryBoyPayload,
+): Promise<DeliveryBoy> => {
+  const response = await adminAuthenticatedFetch(
+    `${BASE_URL}/delivery/${id}`,
+    {
+      method: "PUT",
+      headers: { Accept: "*/*", "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+  return readDeliveryResponse<DeliveryBoy>(
+    response,
+    "Failed to update delivery boy",
+  );
+};
+
 export const updateAdminDeliveryBoyStatus = async (
   id: number,
-  status: "ACTIVE" | "INACTIVE",
-) => {
+  status: DeliveryBoyStatus,
+): Promise<DeliveryBoy> => {
   const response = await adminAuthenticatedFetch(
-    `${BASE_URL}/admin/delivery/${id}/status?status=${status}`,
-    { method: "PUT", headers: { Accept: "*/*" } },
+    `${BASE_URL}/delivery/${id}/status`,
+    {
+      method: "PATCH",
+      headers: { Accept: "*/*", "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    },
   );
-  return readDeliveryResponse<string>(
+  return readDeliveryResponse<DeliveryBoy>(
     response,
     "Failed to update delivery-boy status",
   );
@@ -998,6 +1452,25 @@ export const fetchAdminAssignedDeliveries = async (
   return readDeliveryResponse<AdminDeliveryAssignment[]>(
     response,
     "Failed to fetch assigned deliveries",
+  );
+};
+
+export const fetchDeliveryBoyOrders = async (
+  deliveryBoyId: number | string,
+  status: string = "ASSIGNED",
+  page: number = 0,
+  size: number = 10,
+): Promise<DeliveryBoyOrdersPageData> => {
+  let url = `${BASE_URL}/delivery/boy/${deliveryBoyId}/orders?page=${page}&size=${size}`;
+  if (status && status !== "ALL") {
+    url += `&status=${encodeURIComponent(status)}`;
+  }
+  const response = await adminAuthenticatedFetch(url, {
+    headers: { Accept: "*/*" },
+  });
+  return readDeliveryResponse<DeliveryBoyOrdersPageData>(
+    response,
+    "Failed to fetch delivery boy orders",
   );
 };
 

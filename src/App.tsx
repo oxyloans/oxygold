@@ -79,6 +79,7 @@ const CookiePolicy = lazy(() => import('./PhysicalGold/CookiePolicy'));
 const CancellationPolicy = lazy(() => import('./PhysicalGold/CancellationPolicy'));
 const AdminLayout = lazy(() => import('./physical-gold-admin/components/layout/AdminLayout'));
 const AdminLogin = lazy(() => import('./physical-gold-admin/pages/AdminLogin'));
+const AllOrders = lazy(() => import('./physical-gold-admin/pages/AllOrders'));
 const PartnerLayout = lazy(() => import('./physical-gold-partner/components/layout/PartnerLayout'));
 const PartnerLogin = lazy(() => import('./physical-gold-partner/pages/PartnerLogin'));
 const PartnerRegister = lazy(() => import('./physical-gold-partner/pages/PartnerRegister'));
@@ -324,6 +325,10 @@ function AppContent() {
             {/* Admin */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/*" element={<AdminLayout />} />
+            <Route path="/physical-gold-admin/all-orders" element={<AllOrders />} />
+            <Route path="/physical-gold-admin/active-orders" element={<Navigate to="/admin/active-orders" replace />} />
+            <Route path="/physical-gold-admin/assigned-orders" element={<Navigate to="/admin/assigned-orders" replace />} />
+            <Route path="/physical-gold-admin/*" element={<Navigate to="/admin/dashboard" replace />} />
 
             {/* Partner */}
             <Route path="/partner/login" element={<PartnerLogin />} />

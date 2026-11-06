@@ -52,6 +52,16 @@ html {
   background-color: #0B021D;
 }
 
+/* Hide Leaflet watermark and attribution everywhere */
+.leaflet-control-attribution,
+.leaflet-bottom.leaflet-right,
+.leaflet-bottom.leaflet-left {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

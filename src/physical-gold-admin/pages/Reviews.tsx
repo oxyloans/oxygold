@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Clock3,
+  type LucideIcon,
   MessageSquareText,
   RefreshCw,
   Search,
@@ -24,7 +25,7 @@ import {
   type AdminReview,
 } from "../services/adminService";
 
-const statusStyle: Record<string, { bg: string; text: string; border: string; icon: React.FC<{ size?: number; className?: string }> }> = {
+const statusStyle: Record<string, { bg: string; text: string; border: string; icon: LucideIcon }> = {
   PENDING: {
     bg: "bg-amber-50",
     text: "text-amber-700",
@@ -55,7 +56,7 @@ const Reviews: React.FC = () => {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ALL");
   const [selected, setSelected] = useState<AdminReview | null>(null);
-  const [action, setAction] = useState<"reject" | "delete" | null>(null);
+  const [action, setAction] = useState<"approve" | "reject" | "delete" | null>(null);
   const [reason, setReason] = useState("");
   const [actionError, setActionError] = useState("");
   const [working, setWorking] = useState<number | null>(null);
@@ -130,26 +131,14 @@ const Reviews: React.FC = () => {
     setActionError("");
   };
 
-  const approve = async (review: AdminReview) => {
-    setWorking(review.id);
-    setActionError("");
-    try {
-      replaceReview(await adminApproveReview(review.id));
-    } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : "Unable to approve review.",
-      );
-    } finally {
-      setWorking(null);
-    }
-  };
-
   const confirmAction = async () => {
     if (!selected || !action) return;
     setWorking(selected.id);
     setActionError("");
     try {
-      if (action === "reject") {
+      if (action === "approve") {
+        replaceReview(await adminApproveReview(selected.id));
+      } else if (action === "reject") {
         replaceReview(await adminRejectReview(selected.id, reason));
       } else {
         await adminDeleteReview(selected.id);
@@ -395,8 +384,11 @@ const Reviews: React.FC = () => {
                       {review.moderationStatus !== "APPROVED" && (
                         <button
                           type="button"
-                          disabled={working === review.id}
-                          onClick={() => approve(review)}
+                          onClick={() => {
+                            setSelected(review);
+                            setAction("approve");
+                            setActionError("");
+                          }}
                           className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50 cursor-pointer"
                         >
                           <CheckCircle2 size={14} />
@@ -448,12 +440,16 @@ const Reviews: React.FC = () => {
         />
       </div>
 
-      {/* Action Dialog Modal (Reject / Delete) */}
+      {/* Action Dialog Modal (Approve / Reject / Delete) */}
       <Modal
         isOpen={!!selected && !!action}
         onClose={closeModal}
         title={
-          action === "delete" ? "Delete Review?" : "Reject Customer Review"
+          action === "approve"
+            ? "Approve Customer Review"
+            : action === "delete"
+              ? "Delete Review?"
+              : "Reject Customer Review"
         }
         footer={
           <>
@@ -466,19 +462,41 @@ const Reviews: React.FC = () => {
             </Button>
             <Button
               variant={action === "delete" ? "danger" : "primary"}
+              className={action === "approve" ? "!bg-emerald-600 hover:!bg-emerald-700 text-white" : ""}
               onClick={confirmAction}
               disabled={!!working}
             >
               {working
                 ? "Processing…"
-                : action === "delete"
-                  ? "Delete Review"
-                  : "Reject Review"}
+                : action === "approve"
+                  ? "Approve Review"
+                  : action === "delete"
+                    ? "Delete Review"
+                    : "Reject Review"}
             </Button>
           </>
         }
       >
-        {action === "reject" ? (
+        {action === "approve" ? (
+          <div className="space-y-3">
+            {selected && (
+              <div className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-600 border border-slate-100">
+                <p className="font-semibold text-slate-800">{selected.productName}</p>
+                <p className="truncate mt-0.5 text-slate-500">
+                  By {selected.userFullName || "Anonymous"} &bull; {selected.rating}★
+                </p>
+                {selected.reviewText && (
+                  <p className="mt-1.5 text-slate-600 line-clamp-3 italic">
+                    "{selected.reviewText}"
+                  </p>
+                )}
+              </div>
+            )}
+            <p className="text-xs sm:text-sm text-slate-600">
+              Are you sure you want to approve this customer review? Once approved, it will be publicly visible to all shoppers on the product page.
+            </p>
+          </div>
+        ) : action === "reject" ? (
           <div className="space-y-3">
             {selected && (
               <div className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-600 border border-slate-100">

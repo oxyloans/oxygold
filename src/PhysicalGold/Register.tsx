@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginOrRegister, createRole } from './physicalGoldService';
@@ -11,6 +12,7 @@ const Register = () => {
   const [sessionId, setSessionId] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -47,9 +49,10 @@ const Register = () => {
     }
   };
 
-  const handleVerifyOtp = async () => {
+  const handleVerifyOtp = async (customOtp?: string) => {
+    if (loading) return;
     setError('');
-    const otpValue = otp.join('');
+    const otpValue = typeof customOtp === 'string' ? customOtp : otp.join('');
     if (otpValue.length < 6) { setError('Enter the 6-digit OTP'); return; }
     setLoading(true);
     try {
@@ -79,7 +82,10 @@ const Register = () => {
         // We might still proceed if user is already registered or role exists
       }
 
-      navigate('/physical-gold');
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/physical-gold');
+      }, 1000);
     } catch (err: any) {
       setError(err.message || 'Verification failed. Please try again.');
     } finally {
@@ -88,18 +94,69 @@ const Register = () => {
   };
 
   const handleOtpChange = (i: number, val: string) => {
+    const cleanDigits = val.replace(/\D/g, '');
+    if (cleanDigits.length > 1) {
+      const next = [...otp];
+      const digits = cleanDigits.slice(0, 6).split('');
+      digits.forEach((d, idx) => {
+        if (idx < 6) next[idx] = d;
+      });
+      setOtp(next);
+      setError('');
+      const focusIdx = Math.min(digits.length, 5);
+      otpRefs.current[focusIdx]?.focus();
+      const fullOtp = next.join('');
+      if (fullOtp.length === 6 && next.every(d => d !== '')) {
+        void handleVerifyOtp(fullOtp);
+      }
+      return;
+    }
+
     if (!/^\d?$/.test(val)) return;
-    const next = [...otp]; next[i] = val; setOtp(next); setError('');
-    if (val && i < 5) otpRefs.current[i + 1]?.focus();
+    const next = [...otp];
+    next[i] = val;
+    setOtp(next);
+    setError('');
+
+    if (val && i < 5) {
+      otpRefs.current[i + 1]?.focus();
+    }
+
+    const fullOtp = next.join('');
+    if (fullOtp.length === 6 && next.every(d => d !== '')) {
+      void handleVerifyOtp(fullOtp);
+    }
   };
+
   const handleOtpKeyDown = (i: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const currentOtp = otp.join('');
+      void handleVerifyOtp(currentOtp);
+      return;
+    }
+    if (e.key === 'Backspace' && !otp[i] && i > 0) {
+      otpRefs.current[i - 1]?.focus();
+    }
   };
+
   const handleOtpPaste = (e: React.ClipboardEvent) => {
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length === 6) { setOtp(pasted.split('')); otpRefs.current[5]?.focus(); }
     e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    const next = [...otp];
+    pasted.split('').forEach((ch, idx) => {
+      if (idx < 6) next[idx] = ch;
+    });
+    setOtp(next);
+    setError('');
+    const focusIdx = Math.min(pasted.length, 5);
+    otpRefs.current[focusIdx]?.focus();
+    if (next.every(d => d !== '') && next.join('').length === 6) {
+      void handleVerifyOtp(next.join(''));
+    }
   };
+
   const handleResend = () => { setOtp(['', '', '', '', '', '']); setError(''); handleSendOtp(); };
 
   return (
@@ -388,6 +445,34 @@ const Register = () => {
           margin-bottom: 12px;
         }
 
+        .rg-success {
+          font-size: 0.74rem;
+          color: #15803d;
+          padding: 9px 12px;
+          border-radius: 8px;
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          font-weight: 500;
+          animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        .rg-success-icon {
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: #16a34a;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: 700;
+          flex-shrink: 0;
+        }
+
         .rg-btn {
           width: 100%;
           padding: 11px;
@@ -527,11 +612,18 @@ const Register = () => {
                     <span className="rg-phone-prefix">+91</span>
                     <input
                       className="rg-phone-input"
-                      type="number"
+                      type="tel"
+                      inputMode="numeric"
                       placeholder="98765 43210"
+                      maxLength={10}
                       value={phone}
-                      onChange={(e) => { setPhone(e.target.value.slice(0, 10)); setError(''); }}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSendOtp()}
+                      onChange={(e) => { setPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setError(''); }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleSendOtp();
+                        }
+                      }}
                     />
                   </div>
                 </div>
@@ -559,11 +651,19 @@ const Register = () => {
 
             {/* STEP 2 — OTP */}
             {step === 'otp' && (
-              <div className="rg-animate">
+              <div
+                className="rg-animate"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void handleVerifyOtp();
+                  }
+                }}
+              >
                 <div className="rg-form-title">Verify OTP</div>
                 <div className="rg-form-sub">Code sent to your mobile</div>
 
-                <button className="rg-change-phone" onClick={() => { setStep('phone'); setOtp(['', '', '', '', '', '']); setError(''); }}>
+                <button className="rg-change-phone" onClick={() => { setStep('phone'); setOtp(['', '', '', '', '', '']); setError(''); setSuccess(false); }}>
                   ← +91 {phone}
                 </button>
 
@@ -575,11 +675,12 @@ const Register = () => {
                         key={i}
                         ref={el => { otpRefs.current[i] = el; }}
                         className={`rg-otp-box ${d ? 'filled' : ''}`}
-                        type="number"
+                        type="text"
                         inputMode="numeric"
+                        autoComplete={i === 0 ? 'one-time-code' : 'off'}
                         maxLength={1}
                         value={d}
-                        onChange={e => handleOtpChange(i, e.target.value.slice(-1))}
+                        onChange={e => handleOtpChange(i, e.target.value)}
                         onKeyDown={e => handleOtpKeyDown(i, e)}
                       />
                     ))}
@@ -593,14 +694,21 @@ const Register = () => {
                   </div>
                 </div>
 
+                {success && (
+                  <div className="rg-success">
+                    <span className="rg-success-icon">✓</span>
+                    Registration successful! Redirecting...
+                  </div>
+                )}
+
                 {error && <div className="rg-error">{error}</div>}
 
                 <button
                   className="rg-btn"
-                  onClick={handleVerifyOtp}
-                  disabled={loading || otp.join('').length < 6}
+                  onClick={() => handleVerifyOtp()}
+                  disabled={loading || otp.join('').length < 6 || success}
                 >
-                  {loading ? <span className="rg-spin" /> : 'Verify & Continue →'}
+                  {loading ? <span className="rg-spin" /> : success ? '✓ Success!' : 'Verify & Continue →'}
                 </button>
               </div>
             )}

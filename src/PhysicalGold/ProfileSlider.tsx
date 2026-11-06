@@ -9,6 +9,7 @@ import {
     LogOut,
     MapPin,
     MapPinned,
+    Map as MapIcon,
     Pencil,
     Plus,
     Minus,
@@ -68,6 +69,8 @@ import { type Order, type OrderItem, resolveS3ImageUrl } from "./physicalGoldDat
 import PhysicalGoldHeader from "./components/Header";
 import Toast, { ToastType } from "./components/Toast";
 import Dropdown from "./components/Dropdown";
+import LocationPickerModal, { LocationPickerResult } from "./components/LocationPickerModal";
+import { FaLocationCrosshairs } from "react-icons/fa6";
 import TokenManager from "../utils/tokenManager";
 import { validateEmail, validateMobileNumber, formatMobileNumber, validatePincode, getPincodeError, formatPincode } from "./utils/validations";
 
@@ -176,15 +179,65 @@ interface PageState {
 /* ────────────────────────────────────────────────────────── */
 /*  Helpers                                                   */
 /* ────────────────────────────────────────────────────────── */
-const formatDate = (dateString: string) => {
+const parseToDate = (dateString?: string | number | Date | null): Date | null => {
+    if (!dateString) return null;
+    if (dateString instanceof Date) return isNaN(dateString.getTime()) ? null : dateString;
+    if (typeof dateString === "number") {
+        const d = new Date(dateString);
+        return isNaN(d.getTime()) ? null : d;
+    }
+    const raw = String(dateString).trim();
+    if (!raw) return null;
+    if (/^\d+$/.test(raw)) {
+        const d = new Date(Number(raw));
+        return isNaN(d.getTime()) ? null : d;
+    }
+    let parseable = raw;
+    if (
+        raw.includes("T") &&
+        !raw.endsWith("Z") &&
+        !raw.includes("+") &&
+        !raw.slice(10).includes("-")
+    ) {
+        parseable = raw + "Z";
+    } else if (
+        /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw) &&
+        !raw.includes("+") &&
+        !raw.slice(10).includes("-") &&
+        !raw.endsWith("Z")
+    ) {
+        parseable = raw.replace(" ", "T") + "Z";
+    }
+    const d = new Date(parseable);
+    if (!isNaN(d.getTime())) return d;
+    const fallback = new Date(raw);
+    return isNaN(fallback.getTime()) ? null : fallback;
+};
+
+const formatISTDateTime = (dateString?: string | number | Date | null, includeSuffix = false): string => {
     if (!dateString) return "—";
-    return new Date(dateString).toLocaleDateString("en-IN", {
+    const d = parseToDate(dateString);
+    if (!d) return String(dateString);
+
+    const formatted = d.toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
         day: "numeric",
         month: "short",
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
+        hour12: true,
     });
+
+    return includeSuffix ? `${formatted}` : formatted;
+};
+
+const formatDate = (dateString: string) => {
+    return formatISTDateTime(dateString, false);
+};
+
+const formatTimelineDate = (dateString: string) => {
+    return formatISTDateTime(dateString, true);
 };
 
 const getStatusColor = (status?: string | null) => {
@@ -262,6 +315,7 @@ const ProfilePage: React.FC = () => {
     const [locationSuggestions, setLocationSuggestions] = useState<{ description: string; place_id: string }[]>([]);
     const [isSearchingLocation, setIsSearchingLocation] = useState(false);
     const locationSearchDebounce = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [showLocationPicker, setShowLocationPicker] = useState(false);
 
     const [s, setS] = useState<PageState>({
         activeTab: initialTab,
@@ -357,7 +411,7 @@ const ProfilePage: React.FC = () => {
                 });
             }
         } else if (shouldAddAddress) {
-            patch({ activeTab: "address", isAddingAddress: true });
+            patch({ activeTab: "address", isAddingAddress: true, editingAddress: null, addrErrors: {} });
         } else if (tab && tab !== s.activeTab) {
             patch({ activeTab: tab, isAddingAddress: false, isEditingProfile: tab === "info" && !s.profileForm.firstName.trim() });
         }
@@ -929,9 +983,33 @@ const ProfilePage: React.FC = () => {
         finally { setIsSearchingLocation(false); }
     };
 
+    const handleLocationPicked = (result: LocationPickerResult) => {
+        patchAddrForm({
+            latitude: result.latitude,
+            longitude: result.longitude,
+            ...(result.flatNo ? { flatNo: result.flatNo } : {}),
+            ...(result.landMark ? { landMark: result.landMark } : {}),
+            ...(result.fullAddress ? { address: result.fullAddress } : {}),
+            ...(result.pinCode ? { pinCode: result.pinCode } : {}),
+            ...(result.state ? { state: result.state } : {}),
+        });
+        setS((prev) => ({
+            ...prev,
+            isAddingAddress: true,
+            addrErrors: Object.fromEntries(
+                Object.entries(prev.addrErrors).filter(
+                    ([k]) => !["flatNo", "landMark", "address", "pinCode", "state", "latitude", "longitude"].includes(k)
+                )
+            ),
+            toast: { message: "Location pinned from map! Please verify house/flat details.", type: "success" },
+        }));
+        setShowLocationPicker(false);
+    };
+
     const cancelAddrForm = () => {
         setLocationSearch("");
         setLocationSuggestions([]);
+        setShowLocationPicker(false);
         patch({
             isAddingAddress: false, editingAddress: null, addrErrors: {},
             isFetchingLocation: false, locationError: "",
@@ -1522,7 +1600,12 @@ const ProfilePage: React.FC = () => {
                             <div className="flex items-center justify-between mb-5">
                                 <h3 className="text-[18px] font-semibold text-[#1A1A1A]">Saved Address</h3>
                                 {!s.isAddingAddress && (
-                                    <button onClick={() => patch({ isAddingAddress: true, editingAddress: null, addrErrors: {} })} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8B6914] text-white text-[14px] font-medium hover:bg-[#7A5C10] transition">
+                                    <button
+                                        onClick={() => {
+                                            patch({ isAddingAddress: true, editingAddress: null, addrErrors: {} });
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8B6914] text-white text-[14px] font-medium hover:bg-[#7A5C10] transition shadow-xs cursor-pointer"
+                                    >
                                         <Plus className="h-3 w-3" strokeWidth={2.5} /> Add New Address
                                     </button>
                                 )}
@@ -1531,26 +1614,71 @@ const ProfilePage: React.FC = () => {
                             {s.isAddingAddress && (
                                 <div className="border border-[#E8E0D5] rounded-xl p-4 sm:p-5 mb-5 space-y-4 bg-[#FAFAF8]">
                                     <div className="space-y-1">
-                                        <h4 className="text-[12px] font-semibold text-[#1A1A1A]">{s.editingAddress ? "Edit Address" : "Add New Address"}</h4>
+                                        <h4 className="text-[14px] font-bold text-[#1A1A1A]">
+                                            {s.editingAddress ? "Edit Address" : "Add New Address"}
+                                        </h4>
+                                    </div>
+
+                                    {/* Location Preview Card if latitude/longitude is set (Project Theme Gold) */}
+                                    {s.addrForm.latitude && s.addrForm.longitude && (
+                                        <div className="flex items-start justify-between p-3 rounded-xl bg-[#FAF7F0] border border-[#E8E0D5] shadow-2xs">
+                                            <div className="flex items-start gap-2.5 min-w-0">
+                                                <div className="w-8 h-8 rounded-full bg-[#F5EDD6] border border-[#E8E0D5] flex items-center justify-center text-[#8B6914] shrink-0 mt-0.5">
+                                                    <MapPin className="w-3.5 h-3.5 text-[#8B6914]" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[12px] font-bold text-gray-900 truncate">
+                                                        {s.addrForm.landMark || s.addrForm.state || "Location pinned on map"}
+                                                    </p>
+                                                    <p className="text-[11px] text-gray-500 line-clamp-2 mt-0.5 leading-snug">
+                                                        {s.addrForm.address}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowLocationPicker(true)}
+                                                className="text-[11px] font-bold text-[#8B6914] hover:text-[#7A5C10] hover:underline shrink-0 ml-3 cursor-pointer"
+                                            >
+                                                Adjust Pin
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Two Action Buttons (Existing Theme Colors with Reduced Font Size) */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+                                        {/* Button 1: Use your current location */}
                                         <button
                                             type="button"
                                             onClick={fetchCurrentLocation}
                                             disabled={s.isFetchingLocation}
-                                            className="inline-flex items-center gap-1.5  pt-4 text-[14px] font-medium text-[#8B6914] hover:text-[#7A5C10] transition disabled:opacity-60"
+                                            className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-[#E8E0D5] bg-white hover:bg-[#FAF7F0] hover:border-[#8B6914]/40 active:scale-[0.99] text-[#8B6914] text-[12px] sm:text-[13px] font-semibold transition-all shadow-2xs cursor-pointer disabled:opacity-60"
                                         >
                                             {s.isFetchingLocation ? (
-                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#8B6914]" />
                                             ) : (
-                                                <MapPinned className="h-3 w-3" />
+                                                <FaLocationCrosshairs className="w-3.5 h-3.5 text-[#8B6914]" />
                                             )}
-                                            {s.isFetchingLocation ? "Detecting your location..." : "Use my current location >"}
+                                            <span>{s.isFetchingLocation ? "Detecting location..." : "Use your current location"}</span>
+                                        </button>
+
+                                        {/* Button 2: Select location on Map */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowLocationPicker(true)}
+                                            className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-[#E8E0D5] bg-white hover:bg-[#FAF7F0] hover:border-[#8B6914]/40 active:scale-[0.99] text-[#8B6914] text-[12px] sm:text-[13px] font-semibold transition-all shadow-2xs cursor-pointer"
+                                        >
+                                            <MapIcon className="w-3.5 h-3.5 text-[#8B6914]" />
+                                            <span>Select location on Map</span>
                                         </button>
                                     </div>
-                                    {/* <div className="flex items-center gap-2">
-                                        <div className="flex-1 h-px bg-[#E8E0D5]" />
-                                        <span className="text-[14px] text-[#BEB5AA] font-medium">OR</span>
-                                        <div className="flex-1 h-px bg-[#E8E0D5]" />
-                                    </div> */}
+
+                                    {/* OR Divider */}
+                                    <div className="flex items-center gap-3 my-1.5">
+                                        <div className="flex-1 h-px bg-gray-200" />
+                                        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">OR</span>
+                                        <div className="flex-1 h-px bg-gray-200" />
+                                    </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className={labelCls}>Flat No<span className="text-rose-500 ml-1">*</span></label>
@@ -2094,83 +2222,24 @@ const ProfilePage: React.FC = () => {
                                                                         </div>
 
                                                                         {/* Timeline */}
+                                                                        {/* Timeline - Display strictly the actual events returned from the API */}
                                                                         {(() => {
-                                                                            const DELIVERY_STEPS = [
-                                                                                { status: "ASSIGNED", label: "Order Assigned", defaultDesc: "Order assigned to agent" },
-                                                                                { status: "ACCEPTED", label: "Delivery Accepted", defaultDesc: "Delivery accepted by agent" },
-                                                                                { status: "PICKED_UP", label: "Order Picked Up", defaultDesc: "Order picked up from store/warehouse" },
-                                                                                { status: "OUT_FOR_DELIVERY", label: "Out for Delivery", defaultDesc: "Order is out for delivery, on the way to customer" },
-                                                                                { status: "DELIVERED", label: "Delivered", defaultDesc: "Delivered successfully" },
-                                                                            ];
+                                                                            const timelineEvents = tracking.timeline || [];
+                                                                            if (!timelineEvents.length) return null;
 
                                                                             const currentStatus = (tracking.status || order.orderStatus || "").toUpperCase();
                                                                             const isOrderDelivered = currentStatus === "DELIVERED" || currentStatus === "COMPLETED";
-                                                                            const timelineEvents = tracking.timeline || [];
 
-                                                                            const timelineByStatus = new Map<string, any>();
-                                                                            timelineEvents.forEach((ev: any) => {
-                                                                                if (ev?.status) {
-                                                                                    timelineByStatus.set(ev.status.toUpperCase(), ev);
-                                                                                }
-                                                                            });
-
-                                                                            let currentStepIdx = -1;
-                                                                            DELIVERY_STEPS.forEach((step, idx) => {
-                                                                                if (timelineByStatus.has(step.status) || currentStatus === step.status) {
-                                                                                    currentStepIdx = Math.max(currentStepIdx, idx);
-                                                                                }
-                                                                            });
-                                                                            if (isOrderDelivered) {
-                                                                                currentStepIdx = DELIVERY_STEPS.length - 1;
-                                                                            }
-
-                                                                            const stepsToRender: Array<{
-                                                                                status: string;
-                                                                                statusLabel: string;
-                                                                                description?: string;
-                                                                                timestamp?: string;
-                                                                                isCompleted: boolean;
-                                                                                isCurrent: boolean;
-                                                                            }> = [];
-
-                                                                            DELIVERY_STEPS.forEach((step, idx) => {
-                                                                                const ev = timelineByStatus.get(step.status);
-                                                                                const isCompleted = isOrderDelivered || idx <= currentStepIdx || !!ev;
-                                                                                const isCurrent = !isOrderDelivered && idx === currentStepIdx;
-
-                                                                                if (ev) {
-                                                                                    stepsToRender.push({
-                                                                                        status: ev.status,
-                                                                                        statusLabel: ev.statusLabel || step.label,
-                                                                                        description: ev.description || step.defaultDesc,
-                                                                                        timestamp: ev.timestamp,
-                                                                                        isCompleted: true,
-                                                                                        isCurrent,
-                                                                                    });
-                                                                                } else if (!isOrderDelivered && idx > currentStepIdx) {
-                                                                                    stepsToRender.push({
-                                                                                        status: step.status,
-                                                                                        statusLabel: step.label,
-                                                                                        description: step.defaultDesc,
-                                                                                        timestamp: undefined,
-                                                                                        isCompleted: false,
-                                                                                        isCurrent: false,
-                                                                                    });
-                                                                                }
-                                                                            });
-
-                                                                            timelineEvents.forEach((ev: any) => {
-                                                                                const statusKey = ev.status?.toUpperCase();
-                                                                                if (!DELIVERY_STEPS.some(s => s.status === statusKey) && !stepsToRender.some(s => s.status === ev.status)) {
-                                                                                    stepsToRender.push({
-                                                                                        status: ev.status,
-                                                                                        statusLabel: ev.statusLabel || ev.status,
-                                                                                        description: ev.description,
-                                                                                        timestamp: ev.timestamp,
-                                                                                        isCompleted: true,
-                                                                                        isCurrent: false,
-                                                                                    });
-                                                                                }
+                                                                            const stepsToRender = timelineEvents.map((ev: any, idx: number) => {
+                                                                                const isLastEvent = idx === timelineEvents.length - 1;
+                                                                                return {
+                                                                                    status: ev.status || `STEP_${idx}`,
+                                                                                    statusLabel: ev.statusLabel || ev.status || "Status Update",
+                                                                                    description: ev.description || "",
+                                                                                    timestamp: ev.timestamp,
+                                                                                    isCompleted: true,
+                                                                                    isCurrent: isLastEvent && !isOrderDelivered,
+                                                                                };
                                                                             });
 
                                                                             if (!stepsToRender.length) return null;
@@ -2183,28 +2252,27 @@ const ProfilePage: React.FC = () => {
                                                                                     <ol className="space-y-0">
                                                                                         {stepsToRender.map((step, index) => {
                                                                                             const isLast = index === stepsToRender.length - 1;
-                                                                                            const nextStep = !isLast ? stepsToRender[index + 1] : null;
-                                                                                            const lineCompleted = step.isCompleted && nextStep?.isCompleted;
+                                                                                            const isFailed = step.status?.toUpperCase() === "CANCELLED" || step.status?.toUpperCase() === "FAILED";
 
                                                                                             return (
                                                                                                 <li key={`${step.status}-${index}`} className="relative flex gap-3">
                                                                                                     <div className="flex flex-col items-center">
-                                                                                                        {step.isCompleted ? (
+                                                                                                        {isFailed ? (
+                                                                                                            <div className="h-5 w-5 rounded-full flex items-center justify-center shrink-0 z-10 mt-0.5 bg-rose-500 text-white shadow-2xs">
+                                                                                                                <X className="h-3 w-3 stroke-[2.5]" />
+                                                                                                            </div>
+                                                                                                        ) : (
                                                                                                             <div className="h-5 w-5 rounded-full flex items-center justify-center shrink-0 z-10 mt-0.5 bg-emerald-500 text-white shadow-2xs">
                                                                                                                 <Check className="h-3 w-3 stroke-[2.5]" />
                                                                                                             </div>
-                                                                                                        ) : (
-                                                                                                            <div className="h-5 w-5 rounded-full border border-[#D1C7BB] bg-white flex items-center justify-center shrink-0 z-10 mt-0.5">
-                                                                                                                <span className="h-1.5 w-1.5 rounded-full bg-[#BEB5AA]" />
-                                                                                                            </div>
                                                                                                         )}
                                                                                                         {!isLast && (
-                                                                                                            <span className={`w-0.5 flex-1 my-1 transition-colors ${lineCompleted ? "bg-emerald-500" : "bg-[#E8E0D5]"}`} />
+                                                                                                            <span className="w-0.5 flex-1 my-1 bg-emerald-500" />
                                                                                                         )}
                                                                                                     </div>
                                                                                                     <div className={`pb-3.5 min-w-0 ${isLast ? "pb-0" : ""}`}>
                                                                                                         <div className="flex items-center gap-2">
-                                                                                                            <p className={`text-[12px] font-semibold ${step.isCompleted ? "text-[#1A1A1A]" : "text-[#8A8A8A]"}`}>
+                                                                                                            <p className="text-[12px] font-semibold text-[#1A1A1A]">
                                                                                                                 {step.statusLabel}
                                                                                                             </p>
                                                                                                             {step.isCurrent && (
@@ -2214,13 +2282,13 @@ const ProfilePage: React.FC = () => {
                                                                                                             )}
                                                                                                         </div>
                                                                                                         {step.description && (
-                                                                                                            <p className={`text-[11px] mt-0.5 leading-4 ${step.isCompleted ? "text-[#555]" : "text-[#999]"}`}>
+                                                                                                            <p className="text-[11px] mt-0.5 leading-4 text-[#555]">
                                                                                                                 {step.description}
                                                                                                             </p>
                                                                                                         )}
                                                                                                         {step.timestamp && (
                                                                                                             <p className="text-[10px] text-[#8A8A8A] font-medium mt-0.5">
-                                                                                                                {formatDate(step.timestamp)}
+                                                                                                                {formatTimelineDate(step.timestamp)}
                                                                                                             </p>
                                                                                                         )}
                                                                                                     </div>
@@ -2767,6 +2835,19 @@ const ProfilePage: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* ── MYNTRA / FLIPKART STYLE LOCATION PICKER MODAL ── */}
+            {showLocationPicker && (
+                <LocationPickerModal
+                    isOpen={showLocationPicker}
+                    onClose={() => setShowLocationPicker(false)}
+                    onConfirm={handleLocationPicked}
+                    initialLat={s.addrForm.latitude}
+                    initialLng={s.addrForm.longitude}
+                    initialAddress={s.addrForm.address}
+                    googleApiKey={GOOGLE_API_KEY}
+                />
             )}
         </div>
     );

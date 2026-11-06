@@ -26,12 +26,14 @@ import {
     Calendar,
     Layers,
     ShoppingCart,
+    Heart,
 } from "lucide-react";
 
 import { motion } from "framer-motion";
 import { load } from "@cashfreepayments/cashfree-js";
 import { QuantitySelector } from "./components/ui/QuantitySelector";
 import { useCart } from "./CartContext";
+import { useWishlist } from "./WishlistContext";
 import {
     fetchAddresses,
     createOrder,
@@ -276,6 +278,8 @@ const CartPage: React.FC = () => {
         applyCoupon,
         removeAppliedCoupon,
     } = useCart();
+
+    const { isInWishlist, toggleWishlist } = useWishlist();
 
     const [couponInput, setCouponInput] = useState("");
     const [couponError, setCouponError] = useState("");
@@ -1160,13 +1164,37 @@ const CartPage: React.FC = () => {
                                                                 {product.productName}
                                                             </h3>
                                                         </button>
-                                                        <button
-                                                            onClick={() => requestRemove(variant.id)}
-                                                            className="shrink-0 p-1 text-[#D1C7BB] hover:text-rose-500 transition opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
-                                                            title="Remove item"
-                                                        >
-                                                            <Trash2 size={15} />
-                                                        </button>
+                                                        <div className="flex items-center gap-1 shrink-0">
+                                                            <button
+                                                                type="button"
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    await toggleWishlist(product, variant.id);
+                                                                }}
+                                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                                                    isInWishlist(product.id)
+                                                                        ? "text-[#8B6914] bg-[#F5EDD6]/60 hover:bg-[#F5EDD6]"
+                                                                        : "text-[#8A8A8A] hover:text-[#8B6914] hover:bg-[#F5F2EE]"
+                                                                }`}
+                                                                title={isInWishlist(product.id) ? "Remove from wishlist" : "Add to wishlist"}
+                                                                aria-label="Wishlist"
+                                                            >
+                                                                <Heart
+                                                                    size={16}
+                                                                    fill={isInWishlist(product.id) ? "currentColor" : "none"}
+                                                                    strokeWidth={1.75}
+                                                                />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => requestRemove(variant.id)}
+                                                                className="p-1.5 text-[#8A8A8A] hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                                                title="Remove item"
+                                                                aria-label="Remove item"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                     <p className="text-[11px] text-[#8A8A8A] mt-0.5">
                                                         {variant.purity} {variant.weight}g

@@ -18,7 +18,11 @@ interface Props {
 }
 
 const AssignDeliveryModal: React.FC<Props> = ({ order, isOpen, onClose, onSuccess }) => {
-    const existingDeliveryId = order?.deliveryId || order?.delivery?.deliveryId || order?.delivery?.id;
+    const existingDeliveryId =
+        order?.deliveryId ||
+        order?.deliveryDetails?.deliveryId ||
+        order?.delivery?.deliveryId ||
+        order?.delivery?.id;
     const [boys, setBoys] = useState<DeliveryBoy[]>([]);
     const [boyId, setBoyId] = useState('');
     const [notes, setNotes] = useState('');
@@ -43,10 +47,24 @@ const AssignDeliveryModal: React.FC<Props> = ({ order, isOpen, onClose, onSucces
             setError('Select a delivery person.');
             return;
         }
-        const deliveryAddress = [order.flatNo, order.address, order.landMark, order.state, order.pinCode]
-            .filter(Boolean).join(', ') || 'Address unavailable';
-        const lat = order.latitude == null || order.latitude === '' ? 0 : Number(order.latitude);
-        const lng = order.longitude == null || order.longitude === '' ? 0 : Number(order.longitude);
+        const resolvedOrderId = order.orderId ?? order.orderDetails?.orderId ?? order.id;
+        if (!resolvedOrderId) {
+            setError('Invalid order ID.');
+            return;
+        }
+        const deliveryAddress = [
+            order.flatNo || order.deliveryDetails?.flatNo,
+            order.address || order.deliveryDetails?.address,
+            order.landMark || order.deliveryDetails?.landMark,
+            order.state || order.deliveryDetails?.state,
+            order.pinCode || order.deliveryDetails?.pinCode,
+        ].filter(Boolean).join(', ') || 'Address unavailable';
+
+        const latVal = order.latitude ?? order.deliveryDetails?.latitude;
+        const lngVal = order.longitude ?? order.deliveryDetails?.longitude;
+        const lat = latVal == null || latVal === '' ? 0 : Number(latVal);
+        const lng = lngVal == null || lngVal === '' ? 0 : Number(lngVal);
+
         if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
             setError('Latitude must be between -90 and 90; longitude between -180 and 180.');
             return;
@@ -54,23 +72,26 @@ const AssignDeliveryModal: React.FC<Props> = ({ order, isOpen, onClose, onSucces
         setSubmitting(true);
         setError('');
         try {
-            if (existingDeliveryId) await reassignAdminDelivery({
-                deliveryId: existingDeliveryId,
-                newDeliveryBoyId: Number(boyId),
-                reason: notes.trim() || 'Reassigned by admin',
-            });
-            else await assignAdminDelivery({
-                orderId: order.orderId,
-                orderNumber: order.orderNumber,
-                deliveryBoyId: Number(boyId),
-                userId: order.userId,
-                customerName: order.userName || 'Customer',
-                customerPhone: order.phoneNumber,
-                deliveryAddress,
-                customerLatitude: lat,
-                customerLongitude: lng,
-                notes: notes.trim(),
-            });
+            if (existingDeliveryId) {
+                await reassignAdminDelivery({
+                    deliveryId: existingDeliveryId,
+                    newDeliveryBoyId: Number(boyId),
+                    reason: notes.trim() || 'Reassigned by admin',
+                });
+            } else {
+                await assignAdminDelivery({
+                    orderId: resolvedOrderId,
+                    orderNumber: order.orderNumber || order.orderDetails?.orderNumber || '',
+                    deliveryBoyId: Number(boyId),
+                    userId: order.userId ?? order.userDetails?.userId ?? 0,
+                    customerName: order.userName || order.userDetails?.userName || 'Customer',
+                    customerPhone: order.phoneNumber || order.userDetails?.phoneNumber || '',
+                    deliveryAddress,
+                    customerLatitude: lat,
+                    customerLongitude: lng,
+                    notes: notes.trim(),
+                });
+            }
             onSuccess();
             onClose();
         } catch (err: any) {
@@ -80,24 +101,63 @@ const AssignDeliveryModal: React.FC<Props> = ({ order, isOpen, onClose, onSucces
         }
     };
 
+    const orderNum = order?.orderNumber || order?.orderDetails?.orderNumber || '';
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`${existingDeliveryId ? 'Reassign' : 'Assign'} delivery — ${order?.orderNumber || ''}`} size="md"
-            footer={<div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={submit} isLoading={submitting} disabled={loading || !boys.length}>{existingDeliveryId ? 'Reassign delivery' : 'Assign delivery'}</Button></div>}>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={`${existingDeliveryId ? 'Reassign' : 'Assign'} delivery — ${orderNum}`}
+            size="md"
+            footer={
+                <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={onClose}>
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={submit}
+                        isLoading={submitting}
+                        disabled={loading || !boys.length}
+                    >
+                        {existingDeliveryId ? 'Reassign delivery' : 'Assign delivery'}
+                    </Button>
+                </div>
+            }
+        >
             <div className="space-y-4">
-                {error && <div className="rounded-lg border border-rose-100 bg-rose-50 p-3 text-xs font-semibold text-rose-700">{error}</div>}
+                {error && (
+                    <div className="rounded-lg border border-rose-100 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
+                        {error}
+                    </div>
+                )}
                 <div>
-                    <label className="mb-1 block text-xs font-bold text-slate-600">Delivery person *</label>
-                    <select value={boyId} onChange={e => setBoyId(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500">
+                    <label className="mb-1 block text-xs font-bold text-slate-600">
+                        Delivery person *
+                    </label>
+                    <select
+                        value={boyId}
+                        onChange={e => setBoyId(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                    >
                         <option value="">{loading ? 'Loading…' : 'Select active delivery person'}</option>
-                        {boys.map(boy => <option key={boy.id} value={boy.id}>{boy.firstName} {boy.lastName} — {boy.phone}</option>)}
+                        {boys.map(boy => (
+                            <option key={boy.id} value={boy.id}>
+                                {boy.firstName} {boy.lastName} — {boy.phone}
+                            </option>
+                        ))}
                     </select>
                 </div>
-                {!existingDeliveryId && (
+                {/* {!existingDeliveryId && (
                     <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2.5 text-[11px] leading-5 text-emerald-700">
                         The customer delivery location will be taken automatically from the order.
                     </div>
-                )}
-                <Input label={existingDeliveryId ? 'Reassignment reason' : 'Assignment notes (optional)'} value={notes} onChange={e => setNotes(e.target.value)} placeholder={existingDeliveryId ? 'Reason for changing delivery person' : 'Optional instructions'} />
+                )} */}
+                <Input
+                    label={existingDeliveryId ? 'Reassignment reason' : 'Assignment notes (optional)'}
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                    placeholder={existingDeliveryId ? 'Reason for changing delivery person' : 'Optional instructions'}
+                />
             </div>
         </Modal>
     );

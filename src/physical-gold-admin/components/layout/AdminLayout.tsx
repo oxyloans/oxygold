@@ -5,12 +5,16 @@ import Header from './Header';
 import { isAdminLoggedIn } from '../../services/adminService';
 import Dashboard from '../../pages/Dashboard';
 import Orders from '../../pages/Orders';
+import ActiveOrders from '../../pages/ActiveOrders';
+import AllOrders from '../../pages/AllOrders';
+import AssignedOrders from '../../pages/AssignedOrders';
 import CatalogUpload from '../../pages/CatalogUpload';
 import Products from '../../pages/Products';
 import Settings from '../../pages/Settings';
 import Users from '../../pages/Users';
 import Helpdesk from '../../pages/Helpdesk';
 import DeliveryTeam from '../../pages/DeliveryTeam';
+import DeliveryBoyOrders from '../../pages/DeliveryBoyOrders';
 import Reviews from '../../pages/Reviews';
 import DeliveryPricing from '../../pages/DeliveryPricing';
 import Coupons from '../../pages/Coupons';
@@ -38,12 +42,16 @@ const AdminLayout: React.FC = () => {
             <Routes>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="orders" element={<Orders />} />
+              <Route path="active-orders" element={<ActiveOrders />} />
+              <Route path="assigned-orders" element={<AssignedOrders />} />
+              <Route path="all-orders" element={<AllOrders />} />
               <Route path="catalog-upload" element={<CatalogUpload />} />
               <Route path="products" element={<Products />} />
               <Route path="settings" element={<Settings />} />
               <Route path="users" element={<Users />} />
               <Route path="helpdesk" element={<Helpdesk />} />
               <Route path="delivery" element={<DeliveryTeam />} />
+              <Route path="delivery/:boyId/orders" element={<DeliveryBoyOrders />} />
               <Route path="delivery-pricing" element={<DeliveryPricing />} />
               <Route path="reviews" element={<Reviews />} />
               <Route path="coupons" element={<Coupons />} />

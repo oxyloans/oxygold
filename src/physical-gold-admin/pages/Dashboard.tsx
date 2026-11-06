@@ -764,7 +764,7 @@ const Dashboard: React.FC = () => {
                                                 </td>
                                                 <td className="px-4 py-2.5 text-center font-semibold text-slate-700">{item.quantity}</td>
                                                 <td className="px-4 py-2.5 text-right text-slate-600">{formatCurrency(item.price)}</td>
-                                                <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatCurrency(item.subtotal)}</td>
+                                                <td className="px-4 py-2.5 text-right font-bold text-slate-800">{formatCurrency(item.subtotal ?? (item.price * item.quantity))}</td>
                                             </tr>
                                         ))}
                                     </tbody>

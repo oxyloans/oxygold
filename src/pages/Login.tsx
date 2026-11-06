@@ -114,11 +114,11 @@ const Login = () => {
     }
   };
 
-  const handleVerifyOtp = async () => {
+  const handleVerifyOtp = async (customOtp?: string) => {
     if (loading || showSuccess) return;
 
     setError('');
-    const otpValue = otp.join('');
+    const otpValue = typeof customOtp === 'string' ? customOtp : otp.join('');
     if (otpValue.length < 6) { setError('Enter the 6-digit OTP'); return; }
     setLoading(true);
     try {
@@ -164,11 +164,13 @@ const Login = () => {
 
       setShowSuccess(true);
 
-      clearSavedRedirect();
-      navigate(redirectPath, {
-        replace: true,
-        state: redirectState,
-      });
+      setTimeout(() => {
+        clearSavedRedirect();
+        navigate(redirectPath, {
+          replace: true,
+          state: redirectState,
+        });
+      }, 1000);
 
       // Refresh account data in the background; these requests must never
       // delay or block navigation after successful OTP verification.
@@ -181,16 +183,42 @@ const Login = () => {
   };
 
   const handleOtpChange = (i: number, val: string) => {
+    const cleanDigits = val.replace(/\D/g, '');
+    if (cleanDigits.length > 1) {
+      const next = [...otp];
+      const digits = cleanDigits.slice(0, 6).split('');
+      digits.forEach((d, idx) => {
+        if (idx < 6) next[idx] = d;
+      });
+      setOtp(next);
+      setError('');
+      const focusIdx = Math.min(digits.length, 5);
+      otpRefs.current[focusIdx]?.focus();
+      const fullOtp = next.join('');
+      if (fullOtp.length === 6 && next.every(d => d !== '')) {
+        void handleVerifyOtp(fullOtp);
+      }
+      return;
+    }
+
     if (!/^\d?$/.test(val)) return;
-    const next = [...otp]; next[i] = val; setOtp(next); setError('');
+    const next = [...otp];
+    next[i] = val;
+    setOtp(next);
+    setError('');
     if (val && i < 5) otpRefs.current[i + 1]?.focus();
+
+    const fullOtp = next.join('');
+    if (fullOtp.length === 6 && next.every(d => d !== '')) {
+      void handleVerifyOtp(fullOtp);
+    }
   };
+
   const handleOtpKeyDown = (i: number, e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (otp.join('').length === 6 && !loading && !showSuccess) {
-        void handleVerifyOtp();
-      }
+      const currentOtp = otp.join('');
+      void handleVerifyOtp(currentOtp);
       return;
     }
 
@@ -198,11 +226,24 @@ const Login = () => {
       otpRefs.current[i - 1]?.focus();
     }
   };
+
   const handleOtpPaste = (e: React.ClipboardEvent) => {
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length === 6) { setOtp(pasted.split('')); otpRefs.current[5]?.focus(); }
     e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    const next = [...otp];
+    pasted.split('').forEach((ch, idx) => {
+      if (idx < 6) next[idx] = ch;
+    });
+    setOtp(next);
+    setError('');
+    const focusIdx = Math.min(pasted.length, 5);
+    otpRefs.current[focusIdx]?.focus();
+    if (next.every(d => d !== '') && next.join('').length === 6) {
+      void handleVerifyOtp(next.join(''));
+    }
   };
+
   const handleResend = () => {
     setOtp(['', '', '', '', '', '']); setError(''); handleSendOtp();
   };
@@ -533,11 +574,18 @@ const Login = () => {
                       <span className="lg-phone-prefix">+91</span>
                       <input
                         className="lg-phone-input"
-                        type="number"
+                        type="tel"
+                        inputMode="numeric"
                         placeholder="Enter 10-digit mobile number"
+                        maxLength={10}
                         value={phone}
-                        onChange={(e) => { setPhone(e.target.value.slice(0, 10)); setError(''); }}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSendOtp()}
+                        onChange={(e) => { setPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setError(''); }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSendOtp();
+                          }
+                        }}
                       />
                     </div>
                   </div>
@@ -562,7 +610,15 @@ const Login = () => {
               )}
 
               {step === 'otp' && (
-                <div className="lg-animate">
+                <div
+                  className="lg-animate"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void handleVerifyOtp();
+                    }
+                  }}
+                >
                   <div className="lg-form-title">Verify OTP</div>
                   <div className="lg-form-sub">Code sent to your mobile</div>
 
@@ -590,7 +646,7 @@ const Login = () => {
                           autoComplete={i === 0 ? 'one-time-code' : 'off'}
                           maxLength={1}
                           value={d}
-                          onChange={e => handleOtpChange(i, e.target.value.slice(-1))}
+                          onChange={e => handleOtpChange(i, e.target.value)}
                           onKeyDown={e => handleOtpKeyDown(i, e)}
                         />
                       ))}
@@ -615,7 +671,7 @@ const Login = () => {
 
                   <button
                     className="lg-btn"
-                    onClick={handleVerifyOtp}
+                    onClick={() => handleVerifyOtp()}
                     disabled={loading || otp.join('').length < 6 || showSuccess}
                   >
                     {loading ? <span className="lg-spin" /> : showSuccess ? 'Success!' : 'Verify & Sign In →'}
