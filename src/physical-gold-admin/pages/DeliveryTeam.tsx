@@ -5,6 +5,9 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Toast, { ToastType } from '../../PhysicalGold/components/Toast';
+import Modal from '../components/ui/Modal';
+import Input from '../components/ui/Input';
+import Toast, { ToastType } from '../../PhysicalGold/components/Toast';
 import {
     DeliveryBoy,
     DeliveryBoyPayload,
@@ -12,8 +15,19 @@ import {
     createAdminDeliveryBoy,
     fetchAdminDeliveryBoys,
     updateAdminDeliveryBoy,
+    updateAdminDeliveryBoy,
     updateAdminDeliveryBoyStatus,
 } from '../services/adminService';
+
+const initialFormData: DeliveryBoyPayload = {
+    firstName: '',
+    lastName: '',
+    phone: '',
+    alternateMobileNumber: '',
+    email: '',
+    vehicleNumber: '',
+    vehicleType: '',
+};
 
 const initialFormData: DeliveryBoyPayload = {
     firstName: '',
@@ -47,7 +61,10 @@ const DeliveryTeam: React.FC = () => {
         try {
             const data = await fetchAdminDeliveryBoys();
             setBoys(data);
+            const data = await fetchAdminDeliveryBoys();
+            setBoys(data);
         } catch (error: any) {
+            setToast({ type: 'error', message: error.message || 'Unable to load the delivery team.' });
             setToast({ type: 'error', message: error.message || 'Unable to load the delivery team.' });
         } finally {
             setLoading(false);
@@ -56,6 +73,9 @@ const DeliveryTeam: React.FC = () => {
 
     useEffect(() => { loadBoys(); }, []);
 
+    // Change Status (PATCH /delivery/{id}/status)
+    const handleStatusChange = async (boy: DeliveryBoy, nextStatus: DeliveryBoyStatus) => {
+        if (boy.status === nextStatus) return;
     // Change Status (PATCH /delivery/{id}/status)
     const handleStatusChange = async (boy: DeliveryBoy, nextStatus: DeliveryBoyStatus) => {
         if (boy.status === nextStatus) return;
@@ -74,7 +94,21 @@ const DeliveryTeam: React.FC = () => {
                 type: 'success',
                 message: `${boy.firstName}'s status set to ${nextStatus} (${description}).`,
             });
+            const res = await updateAdminDeliveryBoyStatus(boy.id, nextStatus);
+            setBoys(current => current.map(item => item.id === boy.id ? { ...item, ...(res || {}), status: nextStatus } : item));
+            
+            const description = nextStatus === 'ACTIVE'
+                ? 'available to take deliveries'
+                : nextStatus === 'INACTIVE'
+                ? 'off duty'
+                : 'suspended';
+
+            setToast({
+                type: 'success',
+                message: `${boy.firstName}'s status set to ${nextStatus} (${description}).`,
+            });
         } catch (error: any) {
+            setToast({ type: 'error', message: error.message || 'Status update failed.' });
             setToast({ type: 'error', message: error.message || 'Status update failed.' });
         } finally {
             setUpdatingId(null);
@@ -176,6 +210,7 @@ const DeliveryTeam: React.FC = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
+            {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h1 className="flex items-center gap-2 text-xl font-bold text-slate-800">
@@ -231,6 +266,7 @@ const DeliveryTeam: React.FC = () => {
                 </button>
             </div>
 
+            {/* Delivery personnel list */}
             {/* Delivery personnel list */}
             <section>
                 <div className="flex items-center justify-between mb-3">
