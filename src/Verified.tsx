@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import Radha from "./assets/radha sir.png";
+import Radha from "./assets/radha.png";
 import OxyLogo from "./assets/oxygoldlogo.png";
 /*
  * Replace only the values in this object when the HUID, certified weight,

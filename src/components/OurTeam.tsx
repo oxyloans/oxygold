@@ -2,8 +2,8 @@ import React from "react";
 import { motion, Variants } from "framer-motion";
 import { Linkedin } from "lucide-react";
 
-import Radha from "../assets/radha sir.png";
-import Rama from "../assets/rama mam.png";
+import Radha from "../assets/radha.png";
+import Rama from "../assets/rama.png";
 import Sneha from "../assets/sneha.png";
 import Subash from "../assets/subbu.png";
 import Chakri from "../assets/jags.png";
