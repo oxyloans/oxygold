@@ -95,6 +95,9 @@ const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm" style={{ borderTop: "1px solid hsl(20, 20%, 20%)" }}>
+         
+         
+
           <p style={{ color: "hsl(30, 15%, 60%)" }}>
             © 2026 OxyGold by OXYIDEAS PARTNERS LLP. All rights reserved.
           </p>

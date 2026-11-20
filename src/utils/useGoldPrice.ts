@@ -30,7 +30,9 @@ export const useGoldPrice = () => {
       }
     } catch (err) {
       setError('Network error');
-      console.error('Gold price fetch error:', err);
+      if (import.meta.env.DEV) {
+        console.warn('Gold price fetch error:', err);
+      }
     } finally {
       setLoading(false);
     }

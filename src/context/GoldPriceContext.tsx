@@ -68,8 +68,10 @@ export const GoldPriceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const buyData = await buyRes.json();
       const sellData = await sellRes.json();
 
-      console.log('Buy API Response:', buyData);
-      console.log('Sell API Response:', sellData);
+      if (import.meta.env.DEV) {
+        console.log('Buy API Response:', buyData);
+        console.log('Sell API Response:', sellData);
+      }
 
       const buyDataObj = Array.isArray(buyData?.data) ? buyData?.data?.[0] : buyData?.data;
       const sellDataObj = Array.isArray(sellData?.data) ? sellData?.data?.[0] : sellData?.data;
@@ -77,22 +79,17 @@ export const GoldPriceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const buyPriceValue = buyDataObj?.preTaxAmount;
       const sellPriceValue = sellDataObj?.preTaxAmount;
 
-      console.log('Buy Price Value:', buyPriceValue);
-      console.log('Sell Price Value:', sellPriceValue);
-
       let priceUpdated = false;
 
       if (buyPriceValue && !isNaN(parseFloat(buyPriceValue))) {
         const parsedBuyPrice = parseFloat(buyPriceValue);
         setBuyPrice(parsedBuyPrice);
-        console.log('Buy Price Set:', parsedBuyPrice);
         priceUpdated = true;
       }
 
       if (sellPriceValue && !isNaN(parseFloat(sellPriceValue))) {
         const parsedSellPrice = parseFloat(sellPriceValue);
         setSellPrice(parsedSellPrice);
-        console.log('Sell Price Set:', parsedSellPrice);
         priceUpdated = true;
       }
 
@@ -103,7 +100,9 @@ export const GoldPriceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       setLoading(false);
     } catch (err: unknown) {
-      console.error('Price fetch error:', err);
+      if (import.meta.env.DEV) {
+        console.warn('Price fetch using fallback values:', err);
+      }
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch prices';
       
       // Only set error on first load, not on refresh failures
@@ -112,7 +111,6 @@ export const GoldPriceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
       
       setLoading(false);
-      console.log('Using fallback prices:', { buyPrice, sellPrice });
     }
   };
 

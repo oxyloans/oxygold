@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Logo from "../assets/oxygoldlogo-wk.png";
+import Logo from "../assets/oxygoldlogo-wk.webp";
 import SubscribeLivePrice from "../components/SubscribeLivePrice";
 import { IoMdMenu } from "react-icons/io";
 type LinkItem = { label: string; targetId: string };
@@ -147,7 +147,7 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
               aria-label="Go to top"
               style={{ display: "flex", alignItems: "center", background: "transparent", border: "none", cursor: "pointer", padding: 0, flexShrink: 0 }}
             >
-              <img src={Logo} alt="OxyGold Logo" 
+              <img src={Logo} alt="OxyGold Logo" width={180} height={64}
                className="h-14 md:h-16 w-auto object-contain cursor-pointer"
                />
             </button>

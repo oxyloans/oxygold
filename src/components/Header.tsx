@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/Header.css';
-import Logo from "../assets/oxygoldlogo-bk.png";
+import Logo from "../assets/oxygoldlogo-bk.webp";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -38,7 +38,7 @@ const Header = () => {
           <span className="logo-gold">GOLD</span>
         </h1> */}
          <button onClick={() => goTo("top")} style={styles.logoBtn} aria-label="Go to top">
-            <img src={Logo} alt="OxyGold Logo" style={styles.logoImg} />
+            <img src={Logo} alt="OxyGold Logo" width={180} height={60} style={styles.logoImg} />
           </button>
         
         <button 

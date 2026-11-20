@@ -1,4 +1,4 @@
-import silverBanner from "../assets/silverbanner.png";
+import silverBanner from "../assets/silverbanner.webp";
 import { useNavigate } from "react-router-dom";
 
 export default function BuySilverSection() {
@@ -27,6 +27,10 @@ export default function BuySilverSection() {
                 className="buy-silver-image"
                 src={silverBanner}
                 alt="OXYGOLD 999 pure silver 10 gram coin and 20 gram bar"
+                loading="lazy"
+                decoding="async"
+                width={900}
+                height={900}
               />
             </div>
 

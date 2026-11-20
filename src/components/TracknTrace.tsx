@@ -1,6 +1,6 @@
 
 import { Sparkles, Layers, CheckCircle2 } from "lucide-react";
-import trackImage from "../assets/trackImage.png";
+import trackImage from "../assets/trackImage.webp";
 
 export default function TracknTrace() {
   const participants = [
@@ -96,7 +96,11 @@ export default function TracknTrace() {
               <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/15 bg-black/40 backdrop-blur-md p-4 sm:p-6 shadow-2xl transition-transform duration-300 group-hover:scale-[1.01]">
                 <img
                   src={trackImage}
-                  alt="Track and Trace Gold"
+                  alt="Track and Trace Gold supply chain"
+                  loading="lazy"
+                  decoding="async"
+                  width={900}
+                  height={758}
                   className="w-full h-auto object-contain rounded-xl drop-shadow-[0_15px_30px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-[1.02]"
                 />
               </div>

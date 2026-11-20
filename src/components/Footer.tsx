@@ -1,3 +1,4 @@
+import { PhoneCall } from 'lucide-react';
 import '../styles/Footer.css';
 
 const Footer = () => {
@@ -100,15 +101,29 @@ const Footer = () => {
       {/* Bottom Bar */}
       <div className="footer-bottom">
         <div className="footer-bottom-content">
+          {/* Toll Free Helpline Badge (Left side bottom) */}
+          <a href="tel:04041897778" className="footer-toll-free-pill" title="Click to call Toll Free Helpline">
+            <div className="toll-free-icon-circle">
+              <PhoneCall size={18} />
+            </div>
+            <div className="toll-free-info">
+              <span className="toll-free-label">
+                <span className="toll-free-dot" />
+                TOLL FREE HELPLINE • 24/7
+              </span>
+              <span className="toll-free-number">040 4189 7778</span>
+            </div>
+          </a>
+
           <p className="copyright">
             © 2026 OXYGOLD.AI. All rights reserved.
           </p>
           <div className="footer-bottom-links">
-            <a href="#terms">Terms & Conditions</a>
+            <a href="/terms">Terms & Conditions</a>
             <span className="separator">|</span>
-            <a href="#privacy">Privacy Policy</a>
+            <a href="/privacy">Privacy Policy</a>
             <span className="separator">|</span>
-            <a href="#contact">Contact Us</a>
+            <a href="/contact">Contact Us</a>
           </div>
         </div>
       </div>

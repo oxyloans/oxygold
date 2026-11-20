@@ -1050,6 +1050,7 @@ import { useNavigate } from 'react-router-dom';
   import { useEffect, useState } from 'react';
   import { requireAuth } from '../utils/auth';
   import { useGoldPrice } from '../context/GoldPriceContext';
+  import Footer from '../components/Footer';
 
   const Landing = () => {
     const navigate = useNavigate();
@@ -1095,7 +1096,6 @@ import { useNavigate } from 'react-router-dom';
     return (
       <>
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
           *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
           :root {
@@ -1251,7 +1251,7 @@ import { useNavigate } from 'react-router-dom';
             background: linear-gradient(90deg, transparent 0%, var(--g1) 40%, var(--g2) 60%, transparent 100%);
             z-index: 4;
           }
-          .img-card img { display: block; width: 100%; height: auto; aspect-ratio: 3/2; object-fit: cover; }
+          .img-card img { display: block; width: 100%; height: auto; aspect-ratio: 16/9; object-fit: cover; }
           .img-strip {
             position: absolute; bottom: 0; left: 0; right: 0;
             padding: 20px 16px 16px;
@@ -1554,7 +1554,7 @@ import { useNavigate } from 'react-router-dom';
           <div className="hero-right">
             <div className="img-glow" />
             <div className="img-card" onClick={() => openImageModal('https://assets.gadgets360cdn.com/img/gold/digital-gold-og-image.png')}>
-              <img src="https://assets.gadgets360cdn.com/img/gold/digital-gold-og-image.png" alt="Digital Gold Investment" />
+              <img src="https://assets.gadgets360cdn.com/img/gold/digital-gold-og-image.png" alt="Digital Gold Investment" width={640} height={360} fetchPriority="high" loading="eager" decoding="async" />
               <div className="img-strip">
                 <div>
                   <div className="img-strip-val">₹{goldRate?.toFixed(2)}</div>
@@ -1627,7 +1627,7 @@ import { useNavigate } from 'react-router-dom';
               </ul>
             </div>
             <div id="wi" className="obs what-image" style={rv('wi', 0.2)} onClick={() => openImageModal('https://d1fow5xdcuw86u.cloudfront.net/assets/blog/Digital_Gold_A_071020251243279663034.webp')}>
-              <img src="https://d1fow5xdcuw86u.cloudfront.net/assets/blog/Digital_Gold_A_071020251243279663034.webp" alt="What is Digital Gold" />
+              <img src="https://d1fow5xdcuw86u.cloudfront.net/assets/blog/Digital_Gold_A_071020251243279663034.webp" alt="What is Digital Gold" width={600} height={400} loading="lazy" decoding="async" />
             </div>
           </div>
         </section>
@@ -1644,7 +1644,7 @@ import { useNavigate } from 'react-router-dom';
             </div>
             <div className="comparison-grid">
               <div id="ci" className="obs comparison-image" style={rv('ci')} onClick={() => openImageModal('https://www.paisabazaar.com/wp-content/webp-express/webp-images/doc-root/wp-content/uploads/2018/09/Digital-gold-outsorced-traditional-gold.jpg.webp')}>
-                <img src="https://www.paisabazaar.com/wp-content/webp-express/webp-images/doc-root/wp-content/uploads/2018/09/Digital-gold-outsorced-traditional-gold.jpg.webp" alt="Digital vs Traditional Gold" />
+                <img src="https://www.paisabazaar.com/wp-content/webp-express/webp-images/doc-root/wp-content/uploads/2018/09/Digital-gold-outsorced-traditional-gold.jpg.webp" alt="Digital vs Traditional Gold" width={600} height={400} loading="lazy" decoding="async" />
               </div>
               <div id="cc" className="obs comparison-content" style={rv('cc', 0.2)}>
                 <h3>Advantages of <span>Digital Gold</span></h3>
@@ -1784,6 +1784,9 @@ import { useNavigate } from 'react-router-dom';
             </div>
           </div>
         )}
+
+        {/* Footer */}
+        <Footer />
       </>
     );
   };

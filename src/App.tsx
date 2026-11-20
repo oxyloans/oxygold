@@ -5,14 +5,13 @@ import { GoldPriceProvider } from './context/GoldPriceContext';
 import { PurchaseProvider } from './context/PurchaseContext';
 import { CartProvider } from './PhysicalGold/CartContext';
 import { WishlistProvider } from './PhysicalGold/WishlistContext';
-import oxygoldLogo from './assets/oxygoldlogo-wk.png';
+import oxygoldLogo from './assets/oxygoldlogo-wk.webp';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Eagerly loaded (critical path)
 import Header from './components/Header';
 import Footer from './components/Footer';
-import Home from './Verified';
-import CertificatesPage from './components/CertificatesPage';
+import TollFreeHelplineBadge from './components/TollFreeHelplineBadge';
 
 declare global {
   interface Window {
@@ -98,6 +97,8 @@ const APITest = lazy(() => import('./pages/APITest'));
 const ReviewOrder = lazy(() => import('./pages/ReviewOrder'));
 const GoldSelection = lazy(() => import('./pages/GoldSelection'));
 const BISCertificate = lazy(() => import('./pages/BISCertificate'));
+const Home = lazy(() => import('./Verified'));
+const CertificatesPage = lazy(() => import('./components/CertificatesPage'));
 
 // Global loading fallback
 function PageLoader() {
@@ -214,6 +215,8 @@ function AppContent() {
     '/sell-processing',
     '/sell-success',
     '/',
+    '/oxygold-ai',
+    '/oxygold-ai/',
     "/select-gold",
     "/bis-certificate",
     "/imageCreation",
@@ -283,6 +286,10 @@ function AppContent() {
             <Route path="/sell-summary" element={<SellSummary />} />
             <Route path="/bank-account" element={<BankAccount />} />
             <Route path="/terms-conditions" element={<TermsConditions termsData={transactionData} flowType={transactionData?.flowType || 'buy'} />} />
+            <Route path="/terms" element={<Navigate to="/terms-conditions" replace />} />
+            <Route path="/privacy" element={<Navigate to="/physical-gold/privacy-policy" replace />} />
+            <Route path="/privacy-policy" element={<Navigate to="/physical-gold/privacy-policy" replace />} />
+            <Route path="/contact" element={<Navigate to="/" replace />} />
             <Route path="/sell-success" element={<SellSuccess />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/faq" element={<FAQ />} />
@@ -359,6 +366,11 @@ function AppContent() {
       </ErrorBoundary>
       </div>
       {!isAuthPage && !isTestPage && !isFullPageFlow && <Footer />}
+
+      {/* Fixed Floating Toll Free Helpline Badge (ONLY on Landing Page, NOT inside app / NOT when logged in) */}
+      {['/', '/oxygold-ai'].includes(location.pathname) && (
+        <TollFreeHelplineBadge />
+      )}
     </div>
   );
 }

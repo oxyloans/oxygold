@@ -10,7 +10,7 @@ import {
   ArrowUpRight,
   X,
 } from "lucide-react";
-import GoldJewelleryImage from "../assets/goldbanner1.png";
+import GoldJewelleryImage from "../assets/goldbanner1.webp";
 
 // ── Personalise Modal ──
 interface PersonaliseModalProps {
@@ -347,7 +347,11 @@ const OxyGoldAIPage: React.FC = () => {
               <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/15 bg-black/40 backdrop-blur-md p-3 sm:p-4 shadow-2xl transition-transform duration-300 group-hover:scale-[1.01]">
                 <img
                   src={GoldJewelleryImage}
-                  alt="AI Jewellery Design"
+                  alt="AI Jewellery Design showcase"
+                  loading="lazy"
+                  decoding="async"
+                  width={900}
+                  height={712}
                   className="w-full h-auto object-cover rounded-xl drop-shadow-[0_10px_25px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-[1.02]"
                 />
               </div>

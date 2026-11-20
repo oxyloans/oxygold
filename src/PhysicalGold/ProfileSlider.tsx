@@ -8,7 +8,6 @@ import {
     Loader2,
     LogOut,
     MapPin,
-    MapPinned,
     Map as MapIcon,
     Pencil,
     Plus,
@@ -22,10 +21,8 @@ import {
     User,
     Wallet,
     Trash2,
-    HelpCircle,
     MessageSquare,
     Send,
-    CheckCheck,
     Paperclip,
     X,
     AlertTriangle,
@@ -33,6 +30,7 @@ import {
     ImagePlus,
     Truck,
     Tag,
+    Ban,
 } from "lucide-react";
 import {
     addAddress,
@@ -46,7 +44,6 @@ import {
     deleteAddress,
     fetchUserOrders,
     getInvoicePreviewUrl,
-    verifyPan,
     writeQuery,
     getAllQueries,
     cancelQuery,
@@ -240,6 +237,27 @@ const formatTimelineDate = (dateString: string) => {
     return formatISTDateTime(dateString, true);
 };
 
+const formatTicketDate = (dateString?: string | number | Date | null): string => {
+    if (!dateString) return "—";
+    const d = parseToDate(dateString);
+    if (!d) return String(dateString);
+    return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+};
+
+const formatNumericDate = (dateString?: string | number | Date | null): string => {
+    if (!dateString) return "—";
+    const d = parseToDate(dateString);
+    if (!d) return String(dateString);
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${mm}/${dd}/${yyyy}`;
+};
+
 const getStatusColor = (status?: string | null) => {
     switch (status?.toUpperCase()) {
         case "CONFIRMED":
@@ -310,12 +328,15 @@ const ProfilePage: React.FC = () => {
     const [retryingOrderId, setRetryingOrderId] = useState<number | null>(null);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-    const [locationSearch, setLocationSearch] = useState("");
-    const [locationSuggestions, setLocationSuggestions] = useState<{ description: string; place_id: string }[]>([]);
-    const [isSearchingLocation, setIsSearchingLocation] = useState(false);
-    const locationSearchDebounce = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     const [showLocationPicker, setShowLocationPicker] = useState(false);
+
+    // Helpdesk Conversational & Modal State
+    const [replyTextMap, setReplyTextMap] = useState<Record<number, string>>({});
+    const [replyFileMap, setReplyFileMap] = useState<Record<number, File | null>>({});
+    const [replyErrorMap, setReplyErrorMap] = useState<Record<number, string>>({});
+    const [isReplyingTicketId, setIsReplyingTicketId] = useState<number | null>(null);
+    const [selectedHistoryTicket, setSelectedHistoryTicket] = useState<HelpdeskQuery | null>(null);
+    const [selectedReplyTicket, setSelectedReplyTicket] = useState<HelpdeskQuery | null>(null);
 
     const [s, setS] = useState<PageState>({
         activeTab: initialTab,
@@ -928,61 +949,6 @@ const ProfilePage: React.FC = () => {
         }
     };
 
-    /* ── Location text search via Places Autocomplete ── */
-    const searchLocationByText = (query: string) => {
-        setLocationSearch(query);
-        if (locationSearchDebounce.current) clearTimeout(locationSearchDebounce.current);
-        if (!query.trim() || query.length < 3) { setLocationSuggestions([]); return; }
-        locationSearchDebounce.current = setTimeout(async () => {
-            setIsSearchingLocation(true);
-            try {
-                const res = await fetch(
-                    `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&components=country:in&key=${GOOGLE_API_KEY}`
-                );
-                const data = await res.json();
-                setLocationSuggestions(data.predictions?.slice(0, 5) || []);
-            } catch { setLocationSuggestions([]); }
-            finally { setIsSearchingLocation(false); }
-        }, 350);
-    };
-
-    const selectLocationSuggestion = async (placeId: string, description: string) => {
-        setLocationSearch(description);
-        setLocationSuggestions([]);
-        setIsSearchingLocation(true);
-        try {
-            const res = await fetch(
-                `https://maps.googleapis.com/maps/api/geocode/json?place_id=${placeId}&key=${GOOGLE_API_KEY}`
-            );
-            const data = await res.json();
-            if (data.status === "OK" && data.results?.[0]) {
-                const parsed = parseGeocodeResult(data.results[0]);
-                const { lat, lng } = data.results[0].geometry.location;
-                patchAddrForm({
-                    latitude: String(lat),
-                    longitude: String(lng),
-                    ...(parsed.flatNo && { flatNo: parsed.flatNo }),
-                    ...(parsed.landMark && { landMark: parsed.landMark }),
-                    ...(parsed.address && { address: parsed.address }),
-                    ...(parsed.pinCode && { pinCode: parsed.pinCode }),
-                    ...(parsed.state && { state: parsed.state }),
-                });
-                // clear errors for filled fields
-                setS(prev => ({
-                    ...prev,
-                    addrErrors: Object.fromEntries(
-                        Object.entries(prev.addrErrors).filter(([k]) =>
-                            !['flatNo','landMark','address','pinCode','state','latitude'].includes(k)
-                        )
-                    )
-                }));
-                setLocationSearch("");
-                patch({ toast: { message: "Address filled from search — please review and confirm", type: "success" } });
-            }
-        } catch { patch({ toast: { message: "Could not fetch address details. Please try again.", type: "error" } }); }
-        finally { setIsSearchingLocation(false); }
-    };
-
     const handleLocationPicked = (result: LocationPickerResult) => {
         patchAddrForm({
             latitude: result.latitude,
@@ -1007,8 +973,6 @@ const ProfilePage: React.FC = () => {
     };
 
     const cancelAddrForm = () => {
-        setLocationSearch("");
-        setLocationSuggestions([]);
         setShowLocationPicker(false);
         patch({
             isAddingAddress: false, editingAddress: null, addrErrors: {},
@@ -1214,6 +1178,8 @@ const ProfilePage: React.FC = () => {
                 userId: uid,
                 query,
                 email: s.profileForm.email,
+                ticketId: 0,
+                issueResolved: false,
             });
 
             let attachmentUploaded = true;
@@ -1247,6 +1213,109 @@ const ProfilePage: React.FC = () => {
         } finally {
             patch({ isSubmittingQuery: false });
         }
+    };
+
+    const handleReplyToQuery = async (ticketId: number, queryItem: HelpdeskQuery) => {
+        const userData = GET_USER_DATA();
+        const uid = userData?.data?.userId;
+        if (!uid) return;
+
+        // Check if ticket is resolved
+        if (queryItem.queryStatus === 'COMPLETED' || queryItem.issueResolved === true) {
+            patch({ toast: { message: 'This ticket has been marked as resolved and cannot be continued.', type: 'error' } });
+            return;
+        }
+
+        const replyContent = (replyTextMap[ticketId] || '').trim();
+        if (!replyContent) {
+            setReplyErrorMap(prev => ({ ...prev, [ticketId]: 'Please enter a reply message.' }));
+            return;
+        }
+
+        setIsReplyingTicketId(ticketId);
+        setReplyErrorMap(prev => ({ ...prev, [ticketId]: '' }));
+
+        try {
+            const userEmail = s.profileForm.email || userData?.data?.email || userData?.email || '';
+            await writeQuery({
+                userId: uid,
+                query: replyContent,
+                email: userEmail,
+                ticketId: ticketId,
+                issueResolved: false,
+            });
+
+            const replyFile = replyFileMap[ticketId];
+            if (replyFile) {
+                try {
+                    await uploadQueryScreenshot(uid, ticketId, replyFile);
+                } catch (uploadErr) {
+                    console.error('Reply file upload failed:', uploadErr);
+                }
+            }
+
+            setReplyTextMap(prev => ({ ...prev, [ticketId]: '' }));
+            setReplyFileMap(prev => ({ ...prev, [ticketId]: null }));
+
+            patch({
+                toast: { message: 'Your reply has been sent successfully.', type: 'success' },
+            });
+
+            // Reload queries to show the updated conversational thread
+            await loadQueries(s.queryStatusFilter);
+        } catch (err) {
+            console.error('Failed to reply to ticket:', err);
+            patch({
+                toast: { message: getApiErrorMessage(err, 'Failed to send reply. Please try again.'), type: 'error' },
+            });
+        } finally {
+            setIsReplyingTicketId(null);
+        }
+    };
+
+    const getTicketHistoryRows = (q: HelpdeskQuery) => {
+        const rows: Array<{
+            sno: number;
+            resolvedBy: string;
+            date: string;
+            comments: string;
+            documents?: any[];
+        }> = [];
+
+        // 1. Subsequent replies in userPendingQueries (filtered for duplicates)
+        const pending = (q.userPendingQueries || []).filter((pq: any) => {
+            const text = (pq.pendingComments || pq.message || '')?.trim();
+            const isAdmin = String(pq.resolvedBy || '').toUpperCase() === 'ADMIN';
+            if (!isAdmin && text === q.query?.trim()) {
+                return false;
+            }
+            return true;
+        });
+
+        pending.forEach((pq: any) => {
+            const isAdmin = String(pq.resolvedBy || '').toUpperCase() === 'ADMIN';
+            rows.push({
+                sno: rows.length + 1,
+                resolvedBy: isAdmin ? (pq.resolvedBy?.toLowerCase() || 'admin') : 'You',
+                date: formatNumericDate(pq.resolvedOn || pq.createdAt),
+                comments: pq.pendingComments || pq.message || '',
+                documents: pq.documents || [],
+            });
+        });
+
+        // 2. Final admin resolution comments (if present and not already in pending)
+        const adminDocs = (q.userDocuments || []).filter((d: any) => d.adminUploadedFilePath || d.adminDocumentId);
+        if (q.comments && !pending.some(pq => (pq.pendingComments || pq.message)?.trim() === q.comments?.trim())) {
+            rows.push({
+                sno: rows.length + 1,
+                resolvedBy: q.resolvedBy?.toLowerCase() || 'admin',
+                date: formatNumericDate(q.resolvedOn || q.createdAt),
+                comments: q.comments,
+                documents: adminDocs,
+            });
+        }
+
+        return rows;
     };
 
     const handleCancelQuery = async (queryId: number) => {
@@ -2500,112 +2569,379 @@ const ProfilePage: React.FC = () => {
                                     <p className="text-[12px] text-[#8A8A8A]">Submit a query and our team will get back to you</p>
                                 </div>
                             ) : (
-                                <div className="space-y-3">
-                                    {s.queries.map((q) => (
-                                        <div key={q.id} className="border border-[#E8E0D5] rounded-xl bg-white overflow-hidden">
-                                            <div className="px-4 py-4">
-                                                <div className="flex items-start justify-between gap-3 mb-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-[10px] font-semibold text-[#8A8A8A] uppercase tracking-wider">
-                                                            #{q.randomTicketId || q.ticketId}
-                                                        </span>
-                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${q.queryStatus === 'COMPLETED'
-                                                            ? 'bg-emerald-50 text-emerald-700'
-                                                            : q.queryStatus === 'PENDING'
-                                                                ? 'bg-amber-50 text-amber-700'
-                                                                : q.queryStatus === 'CANCELLED'
-                                                                    ? 'bg-rose-50 text-rose-700'
-                                                                    : 'bg-blue-50 text-blue-700'
-                                                            }`}>
-                                                            {q.queryStatus}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-[11px] text-[#8A8A8A] shrink-0">
-                                                        {q.createdAt ? new Date(q.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                                                    </span>
-                                                </div>
-                                                <p className="text-[13px] font-medium text-[#1A1A1A] mb-1">{q.query}</p>
-                                                {q.comments && (
-                                                    <p className="text-[12px] text-[#8A8A8A]">{q.comments}</p>
-                                                )}
-                                                {q.resolvedBy && (
-                                                    <div className="mt-3 pt-3 border-t border-[#F0EBE1] flex items-center gap-2">
-                                                        <CheckCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                                                        <p className="text-[12px] text-emerald-700 font-medium">Cancelled by {q.resolvedBy}</p>
-                                                    </div>
-                                                )}
-                                                {/* User Documents */}
-                                                {q.userDocuments?.length > 0 && (
-                                                    <div className="mt-3 pt-3 border-t border-[#F0EBE1]">
-                                                        <p className="text-[10px] font-semibold text-[#8A8A8A] uppercase tracking-wider mb-2">Attachments</p>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {q.userDocuments.map((doc: any) => {
-                                                                const filePath = doc.filePath || doc.adminUploadedFilePath || "";
-                                                                const resolvedUrl = resolveS3ImageUrl(filePath);
-                                                                const fileName = doc.fileName || doc.adminUploadedFileName || "Attachment";
-                                                                const isImage = /\.(jpg|jpeg|png|gif|webp|svg)/i.test(fileName) || /\.(jpg|jpeg|png|gif|webp|svg)/i.test(filePath);
-                                                                return (
-                                                                    <a
-                                                                        key={doc.userDocumentId || doc.adminDocumentId || filePath}
-                                                                        href={resolvedUrl}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="group relative inline-block"
-                                                                        title={fileName}
-                                                                    >
-                                                                        {isImage ? (
-                                                                            <div className="h-16 w-16 rounded-lg border border-[#E8E0D5] overflow-hidden bg-[#F5F2EE] hover:border-[#8B6914] transition">
-                                                                                <img
-                                                                                    src={resolvedUrl}
-                                                                                    alt={fileName}
-                                                                                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                                                                />
-                                                                            </div>
-                                                                        ) : (
-                                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 border border-[#E8E0D5] rounded-lg bg-white hover:bg-[#F5F2EE] transition">
-                                                                                <Paperclip className="h-3 w-3 text-[#8A8A8A]" />
-                                                                                <span className="text-[11px] text-[#1A1A1A] max-w-[120px] truncate">{fileName}</span>
-                                                                            </div>
-                                                                        )}
-                                                                    </a>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {q.queryStatus?.toUpperCase() === 'PENDING' && (
-                                                    <div className="mt-3 pt-3 border-t border-[#F0EBE1]">
-                                                        <div className="flex justify-end">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => patch({ cancelQueryConfirmation: { show: true, queryId: q.id, ticketNumber: q.randomTicketId || String(q.ticketId || q.id) } })}
-                                                                disabled={s.cancellingQueryId === q.id}
-                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 transition disabled:opacity-60"
-                                                            >
-                                                                {s.cancellingQueryId === q.id
-                                                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                                    : <X className="h-3.5 w-3.5" />}
-                                                                Cancel Query
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {q.userPendingQueries?.length > 0 && (
-                                                    <div className="mt-3 pt-3 border-t border-[#F0EBE1] space-y-2">
-                                                        {q.userPendingQueries.map((pq) => (
-                                                            <div key={pq.id} className="bg-[#FAFAF8] rounded-lg px-3 py-2">
-                                                                <p className="text-[12px] text-[#1A1A1A]">{pq.message || pq.pendingComments}</p>
-                                                                <p className="text-[10px] text-[#8A8A8A] mt-1">{pq.createdAt}</p>
+                                <div className="overflow-x-auto rounded-xl border border-[#E8E0D5] bg-white shadow-xs">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="border-b border-[#E8E0D5] bg-[#FAFAF8] text-[#1A1A1A] text-xs sm:text-sm">
+                                                <th className="py-3.5 px-4 font-semibold text-center w-16">SNO</th>
+                                                <th className="py-3.5 px-4 font-semibold w-48 sm:w-56">Ticket Id</th>
+                                                <th className="py-3.5 px-4 font-semibold">Query</th>
+                                                <th className="py-3.5 px-4 font-semibold text-center w-64 sm:w-80">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-[#E8E0D5]/70 text-xs sm:text-sm">
+                                            {s.queries.map((q, idx) => {
+                                                const ticketId = q.ticketId || q.id;
+                                                const isResolved = q.queryStatus === 'COMPLETED' || q.issueResolved === true;
+                                                const isCancelled = q.queryStatus === 'CANCELLED';
+                                                const canReplyOrCancel = q.queryStatus === 'PENDING' && !isResolved && !isCancelled;
+
+                                                return (
+                                                    <tr key={q.id} className="hover:bg-[#FAF8F5]/60 transition">
+                                                        {/* SNO */}
+                                                        <td className="py-4 px-4 text-center font-medium text-[#1A1A1A] align-top">
+                                                            {idx + 1}
+                                                        </td>
+
+                                                        {/* Ticket Id & Status */}
+                                                        <td className="py-4 px-4 align-top">
+                                                            <div className="font-bold text-[#1A1A1A] text-[13px] sm:text-sm">
+                                                                #{q.randomTicketId || ticketId}
                                                             </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
+                                                            <div className="text-[11px] text-[#8A8A8A] mt-0.5">
+                                                                Received On: {formatTicketDate(q.createdAt)}
+                                                            </div>
+                                                            <div className="mt-1.5">
+                                                                {isResolved ? (
+                                                                    <span className="inline-block px-2.5 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-300">
+                                                                        Resolved
+                                                                    </span>
+                                                                ) : q.queryStatus === 'PENDING' ? (
+                                                                    <span className="inline-block px-2.5 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-600 border border-amber-300">
+                                                                        Pending
+                                                                    </span>
+                                                                ) : isCancelled ? (
+                                                                    <span className="inline-block px-2.5 py-0.5 rounded text-[11px] font-medium bg-rose-50 text-rose-600 border border-rose-300">
+                                                                        Cancelled
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-block px-2.5 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-300">
+                                                                        {q.queryStatus}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {(isResolved || isCancelled) && (q.resolvedOn || q.createdAt) && (
+                                                                <div className="text-[11px] text-[#8A8A8A] mt-1">
+                                                                    Resolved On: {formatTicketDate(q.resolvedOn || q.createdAt)}
+                                                                </div>
+                                                            )}
+                                                        </td>
+
+                                                        {/* Query */}
+                                                        <td className="py-4 px-4 align-top">
+                                                            <p className="font-bold text-[#1A1A1A] text-[13px] sm:text-sm m-0 leading-snug">
+                                                                {q.query}
+                                                            </p>
+                                                            {q.userDocuments && q.userDocuments.length > 0 && (
+                                                                <div className="mt-2 flex flex-wrap gap-2">
+                                                                    {q.userDocuments.map((doc: any, docIdx: number) => {
+                                                                        const filePath = doc.filePath || doc.adminUploadedFilePath || "";
+                                                                        const resolvedUrl = resolveS3ImageUrl(filePath);
+                                                                        const fileName = doc.fileName || doc.adminUploadedFileName || "Attachment";
+                                                                        return (
+                                                                            <a
+                                                                                key={doc.userDocumentId || docIdx}
+                                                                                href={resolvedUrl}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#FAF8F5] border border-[#E8E0D5] text-[11px] text-[#8B6914] hover:border-[#8B6914] transition"
+                                                                                title={`View ${fileName}`}
+                                                                            >
+                                                                                <Paperclip className="h-3 w-3" />
+                                                                                <span className="max-w-[140px] truncate">{fileName}</span>
+                                                                            </a>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                        </td>
+
+                                                        {/* Actions */}
+                                                        <td className="py-4 px-4 align-top text-center">
+                                                            <div className="flex flex-wrap items-center justify-center gap-2">
+                                                                {/* View Comments Button */}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setSelectedHistoryTicket(q)}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#0284C7] hover:bg-[#0369A1] text-white text-[12px] font-medium shadow-xs transition cursor-pointer"
+                                                                    title="View comments history"
+                                                                >
+                                                                    <MessageSquare className="h-3.5 w-3.5 fill-current" />
+                                                                    View Comments
+                                                                </button>
+
+                                                                {/* Reply & Cancel Buttons (Only for PENDING status) */}
+                                                                {canReplyOrCancel && (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setSelectedReplyTicket(q);
+                                                                                setReplyTextMap(prev => ({ ...prev, [ticketId]: '' }));
+                                                                                setReplyFileMap(prev => ({ ...prev, [ticketId]: null }));
+                                                                                setReplyErrorMap(prev => ({ ...prev, [ticketId]: '' }));
+                                                                            }}
+                                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#10B981] hover:bg-[#059669] text-white text-[12px] font-medium shadow-xs transition cursor-pointer"
+                                                                            title="Reply to this ticket"
+                                                                        >
+                                                                            <Pencil className="h-3.5 w-3.5" />
+                                                                            Reply
+                                                                        </button>
+
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => patch({
+                                                                                cancelQueryConfirmation: {
+                                                                                    show: true,
+                                                                                    queryId: q.id,
+                                                                                    ticketNumber: q.randomTicketId || String(ticketId),
+                                                                                },
+                                                                            })}
+                                                                            disabled={s.cancellingQueryId === q.id}
+                                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white border border-rose-300 hover:bg-rose-50 text-rose-500 text-[12px] font-medium shadow-xs transition cursor-pointer disabled:opacity-60"
+                                                                            title="Cancel this ticket"
+                                                                        >
+                                                                            <Ban className="h-3.5 w-3.5" />
+                                                                            Cancel
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
                                 </div>
                             ))}
+
+                            {/* Ticket Comments History Modal */}
+                            {selectedHistoryTicket && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+                                    <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-[#E8E0D5] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                        {/* Modal Header */}
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8E0D5]">
+                                            <h3 className="text-base sm:text-lg font-bold text-[#1A1A1A]">
+                                                Ticket Comments History
+                                            </h3>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedHistoryTicket(null)}
+                                                className="text-[#8A8A8A] hover:text-[#1A1A1A] p-1 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                                            >
+                                                <X className="h-5 w-5" />
+                                            </button>
+                                        </div>
+
+                                        {/* Modal Table Content */}
+                                        <div className="p-6 overflow-y-auto max-h-[70vh]">
+                                            <div className="overflow-x-auto rounded-lg border border-[#E8E0D5]">
+                                                <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                                                    <thead>
+                                                        <tr className="border-b border-[#E8E0D5] bg-[#FAFAF8] text-[#1A1A1A]">
+                                                            <th className="py-3 px-4 font-semibold text-center w-16">S.No</th>
+                                                            <th className="py-3 px-4 font-semibold w-32">Resolved By</th>
+                                                            <th className="py-3 px-4 font-semibold w-28">Date</th>
+                                                            <th className="py-3 px-4 font-semibold">Comments / Attachments</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-[#E8E0D5]/70">
+                                                        {(() => {
+                                                            const historyRows = getTicketHistoryRows(selectedHistoryTicket);
+                                                            if (historyRows.length === 0) {
+                                                                return (
+                                                                    <tr>
+                                                                        <td colSpan={4} className="py-8 text-center text-[#8A8A8A] text-xs sm:text-sm">
+                                                                            No comments available yet for this ticket.
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            }
+                                                            return historyRows.map((row) => (
+                                                            <tr key={row.sno} className="hover:bg-[#FAF8F5]/60 transition">
+                                                                <td className="py-3.5 px-4 text-center font-medium text-[#1A1A1A] align-top">{row.sno}</td>
+                                                                <td className="py-3.5 px-4 font-medium text-[#1A1A1A] align-top">{row.resolvedBy}</td>
+                                                                <td className="py-3.5 px-4 text-[#4A4A4A] align-top whitespace-nowrap">{row.date}</td>
+                                                                <td className="py-3.5 px-4 align-top">
+                                                                    <p className="text-[#1A1A1A] whitespace-pre-wrap leading-relaxed m-0">{row.comments}</p>
+                                                                    {row.documents && row.documents.length > 0 && (
+                                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                                            {row.documents.map((doc: any, dIdx: number) => {
+                                                                                const fPath = doc.filePath || doc.adminUploadedFilePath || "";
+                                                                                const rUrl = resolveS3ImageUrl(fPath);
+                                                                                const fName = doc.fileName || doc.adminUploadedFileName || "Attachment";
+                                                                                const isImg = /\.(jpg|jpeg|png|gif|webp|svg)/i.test(fName) || /\.(jpg|jpeg|png|gif|webp|svg)/i.test(fPath);
+                                                                                return (
+                                                                                    <a
+                                                                                        key={doc.userDocumentId || dIdx}
+                                                                                        href={rUrl}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="group inline-block"
+                                                                                        title={fName}
+                                                                                    >
+                                                                                        {isImg ? (
+                                                                                            <div className="h-14 w-14 rounded border border-[#E8E0D5] overflow-hidden bg-white hover:border-[#8B6914] transition">
+                                                                                                <img
+                                                                                                    src={rUrl}
+                                                                                                    alt={fName}
+                                                                                                    className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                                                                                                />
+                                                                                            </div>
+                                                                                        ) : (
+                                                                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#E8E0D5] bg-[#FAF8F5] text-xs text-[#8B6914]">
+                                                                                                <Paperclip className="h-3 w-3" />
+                                                                                                <span className="max-w-[120px] truncate">{fName}</span>
+                                                                                            </div>
+                                                                                        )}
+                                                    </a>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </td>
+                            </tr>
+                        ));
+                    })()}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Reply to Ticket Modal */}
+                            {selectedReplyTicket && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+                                    <div className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl border border-[#E8E0D5] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                        {/* Modal Header */}
+                                        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8E0D5]">
+                                            <div>
+                                                <h3 className="text-base sm:text-lg font-bold text-[#1A1A1A]">
+                                                    Reply to Ticket #{selectedReplyTicket.randomTicketId || selectedReplyTicket.ticketId || selectedReplyTicket.id}
+                                                </h3>
+                                                <p className="text-xs text-[#8A8A8A] mt-0.5">
+                                                    Send a follow-up or additional details to our support team
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedReplyTicket(null)}
+                                                className="text-[#8A8A8A] hover:text-[#1A1A1A] p-1 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                                            >
+                                                <X className="h-5 w-5" />
+                                            </button>
+                                        </div>
+
+                                        {/* Modal Content */}
+                                        <div className="p-6 space-y-4">
+                                            {/* Original Query Preview */}
+                                            <div className="p-3 bg-[#FAF8F5] rounded-lg border border-[#E8E0D5] text-xs">
+                                                <span className="font-semibold text-[#8B6914] block mb-1">Original Query:</span>
+                                                <p className="text-[#1A1A1A] m-0 line-clamp-3">{selectedReplyTicket.query}</p>
+                                            </div>
+
+                                            {/* Reply Textarea */}
+                                            <div>
+                                                <label className={labelCls}>Your Reply <span className="text-rose-500">*</span></label>
+                                                <textarea
+                                                    rows={4}
+                                                    value={replyTextMap[selectedReplyTicket.id] || ''}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setReplyTextMap(prev => ({ ...prev, [selectedReplyTicket.id]: val }));
+                                                        if (val.trim()) setReplyErrorMap(prev => ({ ...prev, [selectedReplyTicket.id]: '' }));
+                                                    }}
+                                                    placeholder="Type your reply or additional information here..."
+                                                    className="w-full px-3.5 py-2.5 border border-[#E8E0D5] rounded-lg text-sm text-[#1A1A1A] placeholder-[#BEB5AA] bg-white focus:outline-none focus:border-[#8B6914] resize-none"
+                                                />
+                                                {replyErrorMap[selectedReplyTicket.id] && (
+                                                    <p className="text-xs text-rose-500 font-medium mt-1">{replyErrorMap[selectedReplyTicket.id]}</p>
+                                                )}
+                                            </div>
+
+                                            {/* Attachment */}
+                                            <div>
+                                                <label className={labelCls}>Attach Screenshot <span className="text-[#8A8A8A] font-normal">(optional)</span></label>
+                                                {replyFileMap[selectedReplyTicket.id] ? (
+                                                    <div className="flex items-center gap-2 px-3 py-2 border border-[#E8E0D5] rounded-lg bg-white text-xs">
+                                                        <Paperclip className="h-3.5 w-3.5 text-[#8B6914] shrink-0" />
+                                                        <span className="text-[#1A1A1A] flex-1 truncate">{replyFileMap[selectedReplyTicket.id]?.name}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setReplyFileMap(prev => ({ ...prev, [selectedReplyTicket.id]: null }))}
+                                                            className="text-[#8A8A8A] hover:text-rose-500 transition cursor-pointer"
+                                                        >
+                                                            <X className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-[#E8E0D5] rounded-lg bg-[#FAFAF8] text-xs text-[#8A8A8A] hover:border-[#8B6914] hover:text-[#8B6914] transition cursor-pointer">
+                                                        <Paperclip className="h-3.5 w-3.5" />
+                                                        <span>Click to attach screenshot (JPEG, PNG up to 5MB)</span>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            onChange={(e) => {
+                                                                const file = e.target.files?.[0] || null;
+                                                                if (!file) return;
+                                                                if (!file.type.startsWith('image/')) {
+                                                                    setReplyErrorMap(prev => ({ ...prev, [selectedReplyTicket.id]: 'Only image files are allowed.' }));
+                                                                    e.target.value = '';
+                                                                    return;
+                                                                }
+                                                                if (file.size > 5 * 1024 * 1024) {
+                                                                    setReplyErrorMap(prev => ({ ...prev, [selectedReplyTicket.id]: 'Attachment must be 5 MB or smaller.' }));
+                                                                    e.target.value = '';
+                                                                    return;
+                                                                }
+                                                                setReplyFileMap(prev => ({ ...prev, [selectedReplyTicket.id]: file }));
+                                                                setReplyErrorMap(prev => ({ ...prev, [selectedReplyTicket.id]: '' }));
+                                                            }}
+                                                        />
+                                                    </label>
+                                                )}
+                                            </div>
+
+                                            {/* Modal Actions */}
+                                            <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#E8E0D5]">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedReplyTicket(null)}
+                                                    className="px-4 py-2 border border-[#E8E0D5] text-[#8A8A8A] text-xs font-semibold rounded-lg hover:bg-gray-50 transition cursor-pointer"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={isReplyingTicketId === selectedReplyTicket.id}
+                                                    onClick={async () => {
+                                                        const ticketId = selectedReplyTicket.id;
+                                                        await handleReplyToQuery(ticketId, selectedReplyTicket);
+                                                        setSelectedReplyTicket(null);
+                                                    }}
+                                                    className="inline-flex items-center gap-2 px-5 py-2 bg-[#10B981] hover:bg-[#059669] text-white text-xs font-semibold rounded-lg transition disabled:opacity-60 cursor-pointer shadow-xs"
+                                                >
+                                                    {isReplyingTicketId === selectedReplyTicket.id ? (
+                                                        <>
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                            Sending...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Send className="h-3.5 w-3.5" />
+                                                            Submit Reply
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

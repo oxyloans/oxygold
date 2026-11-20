@@ -1,5 +1,6 @@
 import React from "react";
-import Logo from "../assets/oxygoldlogo-wk.png";
+import Logo from "../assets/oxygoldlogo-wk.webp";
+import { PhoneCall } from "lucide-react";
 import {
   EnvironmentOutlined,
   PhoneOutlined,
@@ -45,7 +46,9 @@ export default function OxyGoldFooter({
             <img  
               src={Logo} 
               alt="OxyGold Logo" 
-                className="h-14 md:h-16 w-auto object-contain cursor-pointer"
+              width={180}
+              height={64}
+              className="h-14 md:h-16 w-auto object-contain cursor-pointer"
             />
             <p className="text-gray-300/90 text-base leading-relaxed max-w-md">
               {aboutText}
@@ -56,41 +59,80 @@ export default function OxyGoldFooter({
               href="https://play.google.com/store/apps/details?id=com.oxygold.ai&hl=en_IN"
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="Download OXYGOLD App on Google Play Store"
               className="inline-block transition-transform duration-200 hover:scale-105"
             >
               <img
                 src="https://s2.rdbuz.com/web/images/homeV2/appinstall/playStore.svg"
                 alt="Get it on Google Play"
+                loading="lazy"
+                width={128}
+                height={38}
                 className="w-28 sm:w-32 h-auto"
               />
             </a>
           </div>
 
-          {/* Column 2: Contact Us */}
-          <div>
-            <h3 className="text-xl font-semibold mb-6 text-white/95 tracking-wide">Contact Us</h3>
-            <div className="flex flex-col gap-5">
-              <div className="flex gap-3 items-start">
-                <EnvironmentOutlined className="mt-1 text-yellow-500 text-xl flex-shrink-0" />
-                <p className="text-gray-300/90 text-base leading-relaxed m-0">{address1}</p>
+          {/* Column 2: Office Address & Contact */}
+          <div className="space-y-4">
+            <span className="text-xs font-semibold uppercase tracking-widest text-amber-300/80">
+              OFFICE ADDRESS
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight m-0">
+              Visit us in Hyderabad
+            </h3>
+
+            <div className="flex flex-col gap-3 text-gray-300/90 text-sm sm:text-base leading-relaxed pt-1">
+              <div className="flex gap-2.5 items-start">
+                <EnvironmentOutlined className="mt-1 text-amber-400 text-base flex-shrink-0" />
+                <p className="m-0 leading-relaxed">{address1}</p>
               </div>
-              <div className="flex gap-3 items-start">
-                <EnvironmentOutlined className="mt-1 text-yellow-500 text-xl flex-shrink-0" />
-                <p className="text-gray-300/90 text-base leading-relaxed m-0">{address2}</p>
+              <div className="flex gap-2.5 items-start">
+                <EnvironmentOutlined className="mt-1 text-amber-400 text-base flex-shrink-0" />
+                <p className="m-0 leading-relaxed text-gray-400 text-xs sm:text-sm">{address2}</p>
               </div>
-              <div className="flex gap-3 items-start">
-                <MailOutlined className="mt-1 text-yellow-500 text-xl flex-shrink-0" />
-                <a 
-                  href={`mailto:${email}`} 
-                  className="text-gray-300/90 text-base hover:text-yellow-400 transition-colors"
+            </div>
+
+            {/* Toll Free Pill Button (matching design in reference image) */}
+            <div className="pt-2 flex flex-wrap items-center gap-3">
+              <a
+                href="tel:04041897778"
+                className="inline-flex items-center gap-2.5 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full shadow-lg transition-all duration-300 hover:scale-[1.02] text-decoration-none group"
+                style={{
+                  background: 'linear-gradient(135deg, #FDE68A 0%, #F5D36C 50%, #E8B949 100%)',
+                  color: '#2A1202',
+                }}
+                title="Click to call Toll Free: 040 4189 7778"
+              >
+                <PhoneCall size={18} className="text-[#2A1202] group-hover:scale-110 transition-transform" />
+                <span className="text-sm sm:text-base font-bold tracking-wide">
+                  Toll Free: 040 4189 7778
+                </span>
+                <span
+                  className="text-[11px] sm:text-xs px-2.5 py-0.5 rounded-full font-semibold border border-black/10"
+                  style={{
+                    background: 'rgba(42, 18, 2, 0.1)',
+                    color: '#2A1202',
+                  }}
                 >
-                  {email}
-                </a>
-              </div>
-              <div className="flex gap-3 items-start">
-                <PhoneOutlined className="mt-1 text-yellow-500 text-xl flex-shrink-0" />
-                <p className="text-gray-300/90 text-base m-0">{phones.join(" , ")}</p>
-              </div>
+                  24/7 · 365 Days
+                </span>
+              </a>
+
+              {/* Email Glass Pill Button (matching design in reference image) */}
+              <a
+                href={`mailto:${email}`}
+                className="inline-flex items-center gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 backdrop-blur-md text-gray-200 hover:text-white transition-all duration-300 text-sm sm:text-base group text-decoration-none shadow-sm"
+                title="Email Us"
+              >
+                <MailOutlined className="text-amber-400 group-hover:scale-110 transition-transform text-base" />
+                <span className="font-medium">{email}</span>
+              </a>
+            </div>
+
+            <div className="pt-1 flex items-center gap-2 text-xs text-gray-400">
+              <PhoneOutlined className="text-amber-400 flex-shrink-0" />
+              <span>Direct lines: {phones.join(" , ")}</span>
             </div>
           </div>
         </div>
@@ -104,10 +146,20 @@ export default function OxyGoldFooter({
         </div>
 
         {/* Bottom row */}
-        <div className="mt-8 pt-6 border-t border-white/10 flex flex-wrap justify-between  text-center items-center gap-4">
-          <p className="text-xs text-center  text-gray-400/80 m-0">
-            © {year}-{year+1 } OXYGOLD.AI. All rights reserved.
+        <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-gray-400/80 w-full">
+          <p className="m-0 text-left">
+            © {year}-{year + 1} OXYGOLD.AI. All rights reserved.
           </p>
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            {links.map((link, idx) => (
+              <React.Fragment key={link.href}>
+                {idx > 0 && <span className="text-gray-600">|</span>}
+                <a href={link.href} className="hover:text-amber-400 transition-colors">
+                  {link.label}
+                </a>
+              </React.Fragment>
+            ))}
+          </div>
         </div>
       </div>
     </footer>

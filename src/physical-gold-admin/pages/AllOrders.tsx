@@ -396,7 +396,7 @@ const AllOrders: React.FC = () => {
       title: "Delivery Status",
       dataIndex: "deliveryStatus",
       key: "deliveryStatus",
-      width: 200,
+      // width: 200,
       render: (_: unknown, item: AdminOrder) => {
         const deliveryStatus = getOrderDeliveryStatus(item);
         const deliveryBoy = getDeliveryBoyName(item);
@@ -441,11 +441,11 @@ const AllOrders: React.FC = () => {
         const hasCoords = item.latitude || item.longitude;
 
         return (
-          <div className="w-[180px] space-y-0.5 text-left text-[12px] leading-4">
+          <div className="w-[170px] space-y-0.5 text-left text-[12px] leading-4">
             <p className="line-clamp-8 text-slate-600" title={addressText}>
               {addressText}
             </p>
-            {hasCoords && (
+            {/* {hasCoords && (
               <p className="truncate text-[10px] text-slate-400">
                 Lat: {item.latitude || "—"} · Long: {item.longitude || "—"}
               </p>
@@ -454,7 +454,7 @@ const AllOrders: React.FC = () => {
               <p className="text-[10px] font-semibold text-slate-500">
                 Distance: {item.deliveryDistanceKm} km
               </p>
-            )}
+            )} */}
           </div>
         );
       },
@@ -464,7 +464,7 @@ const AllOrders: React.FC = () => {
       dataIndex: "items",
       key: "items",
       render: (_: unknown, item: AdminOrder) => (
-        <div className="min-w-[220px] space-y-2 text-left">
+        <div className="min-w-[210px] space-y-2 text-left">
           {item.items?.map((product) => (
             <div
               key={product.orderItemId || product.productId}
@@ -492,7 +492,7 @@ const AllOrders: React.FC = () => {
     {
       title: "Actions",
       key: "actions",
-      width: 140,
+      // width: 140,
       render: (_: unknown, item: AdminOrder) => {
         const deliveryStatus = getOrderDeliveryStatus(item);
         const canReassign = deliveryStatus.toUpperCase() === "ASSIGNED";
@@ -640,49 +640,7 @@ const AllOrders: React.FC = () => {
           )}
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="w-40">
-            <Select
-              options={[
-                { label: "All Payments", value: "ALL" },
-                { label: "Success", value: "SUCCESS" },
-                { label: "Pending", value: "PENDING" },
-                { label: "Failed", value: "FAILED" },
-              ]}
-              value={paymentStatusFilter}
-              onChange={(val) => setPaymentStatusFilter(val as string)}
-              placeholder="Payment status"
-            />
-          </div>
-
-          <div className="w-36">
-            <Select
-              options={[
-                { label: "All Modes", value: "ALL" },
-                { label: "Wallet", value: "WALLET" },
-                { label: "Cashfree", value: "CASHFREE" },
-                { label: "COD", value: "COD" },
-              ]}
-              value={paymentModeFilter}
-              onChange={(val) => setPaymentModeFilter(val as string)}
-              placeholder="Payment mode"
-            />
-          </div>
-
-          {(searchQuery || paymentStatusFilter !== "ALL" || paymentModeFilter !== "ALL") && (
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => {
-                setSearchQuery("");
-                setPaymentStatusFilter("ALL");
-                setPaymentModeFilter("ALL");
-              }}
-            >
-              Reset
-            </Button>
-          )}
-        </div>
+        
       </div>
 
       {/* Error Message */}

@@ -95,30 +95,22 @@ const SubscribeLivePrice = ({ iconOnly = false }: { iconOnly?: boolean }) => {
           20%, 40% { transform: rotate(15deg); }
           50% { transform: rotate(0deg); }
         }
-        @keyframes glowPulse {
-          0%, 100% {
-            box-shadow: 0 0 8px 2px rgba(240,187,58,0.25), 0 4px 18px rgba(217,160,32,0.15);
-          }
-          50% {
-            box-shadow: 0 0 22px 6px rgba(240,187,58,0.55), 0 4px 32px rgba(217,160,32,0.40);
-          }
-        }
-        @keyframes borderShimmer {
-          0%, 100% { border-color: rgba(240,187,58,0.30); }
-          50% { border-color: rgba(240,187,58,0.85); }
-        }
         .bell-icon {
-          animation: bellRing 2s ease-in-out infinite;
+          animation: bellRing 3s ease-in-out infinite;
+          will-change: transform;
         }
         .subscribe-btn {
-          animation: glowPulse 2s ease-in-out infinite, borderShimmer 2s ease-in-out infinite;
+          box-shadow: 0 0 12px 2px rgba(240,187,58,0.28);
+          border-color: rgba(240,187,58,0.45);
+          transition: transform 0.25s ease, box-shadow 0.25s ease;
+          will-change: transform;
+        }
+        .subscribe-btn:hover {
+          transform: translateY(-1px) scale(1.02);
+          box-shadow: 0 0 24px 6px rgba(240,187,58,0.55);
         }
         .subscribe-btn:hover .bell-icon {
           animation: bellRing 0.5s ease-in-out infinite;
-        }
-        .subscribe-btn:hover {
-          animation: none;
-          box-shadow: 0 0 28px 8px rgba(240,187,58,0.60), 0 4px 24px rgba(217,160,32,0.35) !important;
         }
         .subscribe-btn-text-full {
           display: inline;
@@ -127,6 +119,7 @@ const SubscribeLivePrice = ({ iconOnly = false }: { iconOnly?: boolean }) => {
 
       <button
         onClick={() => setIsOpen(true)}
+        aria-label="Subscribe to Live Gold Price alerts"
         className="subscribe-btn inline-flex cursor-pointer items-center justify-center gap-2 bg-[rgba(13,31,60,0.72)] hover:bg-[rgba(13,31,60,0.9)] text-[#f0bb3a] font-semibold rounded-xl border border-[rgba(240,187,58,0.30)] transition-all duration-300 hover:scale-[1.02]"
         style={{
           height: "42px",
@@ -157,6 +150,7 @@ const SubscribeLivePrice = ({ iconOnly = false }: { iconOnly?: boolean }) => {
               </div>
               <button
                 onClick={() => setIsOpen(false)}
+                aria-label="Close subscription modal"
                 className="text-white/50 cursor-pointer hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"
               >
                 <X size={20} />
@@ -182,8 +176,9 @@ const SubscribeLivePrice = ({ iconOnly = false }: { iconOnly?: boolean }) => {
                   <div className="space-y-4">
                     {/* Name */}
                     <div>
-                      <label className="block text-white/60 text-xs font-semibold mb-1.5 uppercase tracking-wider">Name</label>
+                      <label htmlFor="sub-name" className="block text-white/60 text-xs font-semibold mb-1.5 uppercase tracking-wider">Name</label>
                       <input
+                        id="sub-name"
                         type="text"
                         name="name"
                         value={formData.name}
@@ -196,8 +191,9 @@ const SubscribeLivePrice = ({ iconOnly = false }: { iconOnly?: boolean }) => {
 
                     {/* Email */}
                     <div>
-                      <label className="block text-white/60 text-xs font-semibold mb-1.5 uppercase tracking-wider">Email Address</label>
+                      <label htmlFor="sub-email" className="block text-white/60 text-xs font-semibold mb-1.5 uppercase tracking-wider">Email Address</label>
                       <input
+                        id="sub-email"
                         type="email"
                         name="email"
                         value={formData.email}
@@ -210,8 +206,9 @@ const SubscribeLivePrice = ({ iconOnly = false }: { iconOnly?: boolean }) => {
 
                     {/* WhatsApp */}
                     <div>
-                      <label className="block text-white/60 text-xs font-semibold mb-1.5 uppercase tracking-wider">WhatsApp Number</label>
+                      <label htmlFor="sub-mobileNumber" className="block text-white/60 text-xs font-semibold mb-1.5 uppercase tracking-wider">WhatsApp Number</label>
                       <input
+                        id="sub-mobileNumber"
                         type="tel"
                         name="mobileNumber"
                         value={formData.mobileNumber}

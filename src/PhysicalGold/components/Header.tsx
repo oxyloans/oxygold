@@ -144,7 +144,7 @@ const Header: React.FC<HeaderProps> = ({
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => {
-                      const target = "/physical-gold/profile";
+                      const target = "/physical-gold/profile?tab=info";
                       if (!isLoggedIn) {
                         navigate("/login");
                       } else {

@@ -4,24 +4,41 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/src/assets/ChatGPT Image Feb 27, 2026, 04_25_41 PM.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OXYGOLD.AI</title>
-    <!-- Google tag (gtag.js) -->
+    <title>OXYGOLD.AI - India's Digital Gold Bank</title>
+    <meta name="description" content="OXYGOLD.AI is India's Digital Gold Bank — a secure, tech-driven platform bringing transparency, trust, and traceability to digital gold and bullion." />
+    <meta name="theme-color" content="#07061A" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- DNS Prefetch & Preconnect for Fast Asset Delivery -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://meta.oxyloans.com" />
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" /></noscript>
+
+    <!-- Google tag (gtag.js) - async -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-2XHEP551PX"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', 'G-2XHEP551PX', { send_page_view: false });
     </script>
-    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Cashfree SDK - Non-blocking deferred loading -->
+    <script defer src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+
+    <!-- Leaflet Map CSS - Asynchronous / non-render-blocking -->
+    <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /></noscript>
   </head>
   <body>
     <div id="root">
-      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#07061A;gap:16px;font-family:sans-serif;">
+      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#07061A;gap:16px;font-family:system-ui,-apple-system,sans-serif;" role="status" aria-live="polite">
         <div style="width:64px;height:64px;border-radius:50%;border:3px solid rgba(194,155,39,0.2);border-top-color:#C29B27;animation:preloaderSpin 1s linear infinite;"></div>
         <div style="color:#E2BF55;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;">OXYGOLD.AI</div>
+        <span class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;">Loading OXYGOLD.AI...</span>
         <style>
           @keyframes preloaderSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         </style>

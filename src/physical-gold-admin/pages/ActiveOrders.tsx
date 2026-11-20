@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import Modal from "../components/ui/Modal";
-import Select from "../components/ui/Select";
 import AssignDeliveryModal from "../components/AssignDeliveryModal";
 import {
   fetchActiveOrders,
@@ -516,8 +515,8 @@ const ActiveOrders: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header section */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm">
               <Zap size={20} />
@@ -531,22 +530,8 @@ const ActiveOrders: React.FC = () => {
               </p>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => loadOrders(currentPage, pageSize)}
-            disabled={loading}
-            className="flex items-center gap-1.5"
-          >
-            <RefreshCw
-              size={14}
-              className={loading ? "animate-spin text-amber-500" : ""}
-            />
-            <span>Refresh</span>
-          </Button>
+          
         </div>
       </div>
 
@@ -596,70 +581,7 @@ const ActiveOrders: React.FC = () => {
             )}
           </div>
 
-          {/* Filter dropdowns */}
-          <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value={orderStatusFilter}
-              onChange={(e) => setOrderStatusFilter(e.target.value)}
-              options={[
-                { value: "ALL", label: "All Order Status" },
-                { value: "CREATED", label: "Created" },
-                { value: "SUCCESS", label: "Success" },
-                { value: "CONFIRMED", label: "Confirmed" },
-                { value: "PENDING", label: "Pending" },
-                { value: "PROCESSING", label: "Processing" },
-                { value: "DELIVERED", label: "Delivered" },
-                { value: "CANCELLED", label: "Cancelled" },
-                { value: "FAILED", label: "Failed" },
-              ]}
-              className="w-36 text-xs"
-            />
-
-            <Select
-              value={paymentStatusFilter}
-              onChange={(e) => setPaymentStatusFilter(e.target.value)}
-              options={[
-                { value: "ALL", label: "All Payments" },
-                { value: "SUCCESS", label: "Paid" },
-                { value: "PENDING", label: "Pending" },
-                { value: "FAILED", label: "Failed" },
-              ]}
-              className="w-32 text-xs"
-            />
-
-            <Select
-              value={paymentModeFilter}
-              onChange={(e) => setPaymentModeFilter(e.target.value)}
-              options={[
-                { value: "ALL", label: "All Modes" },
-                { value: "CASHFREE", label: "Cashfree" },
-                { value: "ONLINE", label: "Online" },
-                { value: "WALLET", label: "Wallet" },
-                { value: "COD", label: "COD" },
-              ]}
-              className="w-32 text-xs"
-            />
-
-            {(searchQuery ||
-              orderStatusFilter !== "ALL" ||
-              paymentStatusFilter !== "ALL" ||
-              paymentModeFilter !== "ALL") && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSearchQuery("");
-                  setOrderStatusFilter("ALL");
-                  setPaymentStatusFilter("ALL");
-                  setPaymentModeFilter("ALL");
-                }}
-                className="flex items-center gap-1 text-xs text-rose-600 border-rose-200 hover:bg-rose-50"
-              >
-                <RotateCcw size={12} />
-                <span>Reset</span>
-              </Button>
-            )}
-          </div>
+         
         </div>
 
         {/* Showing counts */}

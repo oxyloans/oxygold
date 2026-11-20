@@ -62,7 +62,7 @@ const Select: React.FC<SelectProps> = ({
         options.find(o => o.value === val)?.label ?? val;
 
     return (
-        <div className="space-y-1" ref={ref}>
+        <div className={`space-y-1 ${open ? 'relative z-20' : ''}`} ref={ref}>
             {label && (
                 <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     {label}{required && <span className="text-red-400 ml-0.5">*</span>}
@@ -110,17 +110,19 @@ const Select: React.FC<SelectProps> = ({
                             {options.map(opt => {
                                 const isSelected = selected.includes(opt.value);
                                 return (
-                                    <li
-                                        key={opt.value}
-                                        onClick={() => toggle(opt.value)}
-                                        className={`flex items-center justify-between px-3 py-2 text-sm cursor-pointer transition-colors
+                                    <li key={opt.value}>
+                                        <button
+                                            type="button"
+                                            onClick={() => toggle(opt.value)}
+                                            className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left cursor-pointer transition-colors
                                             ${isSelected
                                                 ? 'bg-emerald-50 text-emerald-700 font-medium'
                                                 : 'text-slate-700 hover:bg-slate-50'
                                             }`}
-                                    >
-                                        {opt.label}
-                                        {isSelected && <Check size={13} className="text-emerald-500 flex-shrink-0" />}
+                                        >
+                                            {opt.label}
+                                            {isSelected && <Check size={13} className="text-emerald-500 flex-shrink-0" />}
+                                        </button>
                                     </li>
                                 );
                             })}

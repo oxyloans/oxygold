@@ -470,18 +470,7 @@ const Orders: React.FC = () => {
               className="border-none outline-none bg-transparent text-slate-700 font-semibold cursor-pointer w-full min-w-0"
             />
           </label>
-          <div className="flex items-center gap-2 flex-1 sm:flex-none justify-end">
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => {
-                loadOrders(currentPage);
-                loadScoreCard();
-              }}
-            >
-              Refresh
-            </Button>
-          </div>
+          
         </div>
       </div>
 
@@ -844,7 +833,7 @@ const Orders: React.FC = () => {
                           <span
                             className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold uppercase border ${getStatusColor(
                               selectedOrder.paymentDetails?.paymentStatus ||
-                                selectedOrder.paymentStatus
+                              selectedOrder.paymentStatus
                             )}`}
                           >
                             {selectedOrder.paymentDetails?.paymentStatus ||
@@ -916,11 +905,11 @@ const Orders: React.FC = () => {
                         </td>
                         <td className="px-4 py-2 text-slate-700 text-[14px] text-right">
                           {selectedOrder.paymentDetails?.paymentExpiry ||
-                          selectedOrder.paymentExpiry
+                            selectedOrder.paymentExpiry
                             ? formatDateTime(
-                                selectedOrder.paymentDetails?.paymentExpiry ||
-                                  selectedOrder.paymentExpiry
-                              )
+                              selectedOrder.paymentDetails?.paymentExpiry ||
+                              selectedOrder.paymentExpiry
+                            )
                             : "—"}
                         </td>
                       </tr>
@@ -955,7 +944,7 @@ const Orders: React.FC = () => {
                         <td className="px-4 py-2 font-bold text-emerald-600 text-[15px] tabular-nums text-right">
                           {formatCurrency(
                             selectedOrder.pricingDetails?.totalAmount ??
-                              selectedOrder.totalAmount
+                            selectedOrder.totalAmount
                           )}
                         </td>
                       </tr>
@@ -965,11 +954,11 @@ const Orders: React.FC = () => {
                         </td>
                         <td className="px-4 py-2 font-semibold text-emerald-600 tabular-nums text-[14px] text-right">
                           {(selectedOrder.pricingDetails?.totalDiscountAmount ??
-                          selectedOrder.totalDiscountAmount)
+                            selectedOrder.totalDiscountAmount)
                             ? `-${formatCurrency(
-                                selectedOrder.pricingDetails?.totalDiscountAmount ??
-                                  selectedOrder.totalDiscountAmount
-                              )}`
+                              selectedOrder.pricingDetails?.totalDiscountAmount ??
+                              selectedOrder.totalDiscountAmount
+                            )}`
                             : "—"}
                         </td>
                       </tr>
@@ -982,13 +971,13 @@ const Orders: React.FC = () => {
                             ? selectedOrder.pricingDetails.deliveryFee === 0
                               ? "Free"
                               : formatCurrency(
-                                  selectedOrder.pricingDetails.deliveryFee
-                                )
+                                selectedOrder.pricingDetails.deliveryFee
+                              )
                             : selectedOrder.deliveryFee != null
-                            ? selectedOrder.deliveryFee === 0
-                              ? "Free"
-                              : formatCurrency(selectedOrder.deliveryFee)
-                            : "Free"}
+                              ? selectedOrder.deliveryFee === 0
+                                ? "Free"
+                                : formatCurrency(selectedOrder.deliveryFee)
+                              : "Free"}
                         </td>
                       </tr>
                       <tr className="hover:bg-slate-50/50 transition-colors">
@@ -999,8 +988,8 @@ const Orders: React.FC = () => {
                           {selectedOrder.pricingDetails?.deliveryDistanceKm != null
                             ? `${selectedOrder.pricingDetails.deliveryDistanceKm} km`
                             : selectedOrder.deliveryDistanceKm != null
-                            ? `${selectedOrder.deliveryDistanceKm} km`
-                            : "—"}
+                              ? `${selectedOrder.deliveryDistanceKm} km`
+                              : "—"}
                         </td>
                       </tr>
                       <tr className="hover:bg-slate-50/50 transition-colors">
@@ -1019,11 +1008,11 @@ const Orders: React.FC = () => {
                         </td>
                         <td className="px-4 py-2 font-semibold text-emerald-600 tabular-nums text-[14px] text-right">
                           {(selectedOrder.pricingDetails?.couponDiscountAmount ??
-                          selectedOrder.couponDiscountAmount)
+                            selectedOrder.couponDiscountAmount)
                             ? `-${formatCurrency(
-                                selectedOrder.pricingDetails?.couponDiscountAmount ??
-                                  selectedOrder.couponDiscountAmount
-                              )}`
+                              selectedOrder.pricingDetails?.couponDiscountAmount ??
+                              selectedOrder.couponDiscountAmount
+                            )}`
                             : "—"}
                         </td>
                       </tr>
@@ -1034,8 +1023,8 @@ const Orders: React.FC = () => {
                         <td className="px-4 py-2 font-semibold text-slate-700 tabular-nums text-[14px] text-right">
                           {formatCurrency(
                             selectedOrder.pricingDetails?.couponEligibleAmount ??
-                              selectedOrder.couponEligibleAmount ??
-                              0
+                            selectedOrder.couponEligibleAmount ??
+                            0
                           )}
                         </td>
                       </tr>
@@ -1058,7 +1047,7 @@ const Orders: React.FC = () => {
               )}
               {getDeliveryId(selectedOrder) &&
                 getDeliveryStatus(selectedOrder).toUpperCase() ===
-                  "ASSIGNED" && (
+                "ASSIGNED" && (
                   <Button
                     variant="primary"
                     size="md"

@@ -8,6 +8,7 @@ import Textarea from '../components/ui/Textarea';
 import {
     adminGetAllQueries,
     adminResolveQuery,
+    adminUpdateQuery,
     adminUploadQueryScreenshot,
     HelpdeskQuery,
 } from '../services/adminService';
@@ -49,6 +50,7 @@ const Helpdesk: React.FC = () => {
     const [comments, setComments] = useState('');
     const [commentError, setCommentError] = useState('');
     const [isResolving, setIsResolving] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
@@ -162,12 +164,14 @@ const Helpdesk: React.FC = () => {
     const handleUpload = async () => {
         if (!uploadFile || !selectedQuery) return;
         setIsUploading(true);
+        const ticketId = selectedQuery.ticketId ?? selectedQuery.id;
         try {
-            await adminUploadQueryScreenshot(getAdminId(), selectedQuery.id, uploadFile);
+            await adminUploadQueryScreenshot(getAdminId(), ticketId, uploadFile);
             setUploadFile(null);
             // Refresh query to show new doc
             const res = await adminGetAllQueries({ queryStatus: statusFilter, page: currentPage, size: pageSize });
-            const updated = res.content.find(q => q.id === selectedQuery.id);
+            setQueries(res.content || []);
+            const updated = res.content.find(q => (q.ticketId ?? q.id) === ticketId);
             if (updated) setSelectedQuery(updated);
         } catch (err) {
             console.error('Upload failed:', err);
@@ -176,7 +180,7 @@ const Helpdesk: React.FC = () => {
         }
     };
 
-    const handleStatusUpdate = async (queryStatus: 'PENDING' | 'COMPLETED' | 'CANCELLED') => {
+    const handleResolveQuery = async () => {
         if (!selectedQuery) return;
         if (!comments.trim()) {
             setCommentError('Resolution comment is required.');
@@ -184,31 +188,85 @@ const Helpdesk: React.FC = () => {
         }
         setCommentError('');
         setIsResolving(true);
+        const ticketId = selectedQuery.ticketId ?? selectedQuery.id;
         try {
-            await adminResolveQuery(selectedQuery.id, {
-                userId: selectedQuery.userId,
-                queryStatus,
-                comments,
+            await adminResolveQuery(ticketId, {
+                comments: comments.trim(),
             });
             setIsDetailOpen(false);
             loadQueries(currentPage, statusFilter);
-        } catch (err) {
-            console.error('Failed to update query status:', err);
+        } catch (err: any) {
+            console.error('Failed to resolve query:', err);
+            setCommentError(err?.message || 'Failed to resolve query');
         } finally {
             setIsResolving(false);
         }
     };
 
+    const handleUpdateQuery = async () => {
+        if (!selectedQuery) return;
+        if (!comments.trim()) {
+            setCommentError('Comment is required.');
+            return;
+        }
+        setCommentError('');
+        setIsUpdating(true);
+        const ticketId = selectedQuery.ticketId ?? selectedQuery.id;
+        try {
+            await adminUpdateQuery(ticketId, {
+                comments: comments.trim(),
+            });
+            setIsDetailOpen(false);
+            loadQueries(currentPage, statusFilter);
+        } catch (err: any) {
+            console.error('Failed to update query:', err);
+            setCommentError(err?.message || 'Failed to update query');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
     const normalizedSearch = searchTerm.trim().toLowerCase().replace(/^#/, '');
     const filtered = queries.filter(q => {
-        const matchesSearch = !normalizedSearch || [q.name, q.randomTicketId, q.ticketId, q.id, q.email, q.number]
+        if (!normalizedSearch) return true;
+        return [q.name, q.randomTicketId, q.ticketId, q.id, q.email, q.number]
             .some(value => String(value ?? '').toLowerCase().replace(/^#/, '').includes(normalizedSearch));
-        return matchesSearch;
-    }).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    });
 
-    const formatHelpdeskDate = (value?: string | null) => value
-        ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-        : '—';
+    const formatHelpdeskDate = (value?: string | null) => {
+        if (!value) return '—';
+        try {
+            const iso = typeof value === 'string' && value.includes(' ') && !value.includes('T')
+                ? value.replace(' ', 'T')
+                : value;
+            const date = new Date(iso);
+            if (isNaN(date.getTime())) return String(value);
+            return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        } catch {
+            return String(value);
+        }
+    };
+
+    const formatHelpdeskDateTime = (value?: string | null) => {
+        if (!value) return '—';
+        try {
+            const iso = typeof value === 'string' && value.includes(' ') && !value.includes('T')
+                ? value.replace(' ', 'T')
+                : value;
+            const date = new Date(iso);
+            if (isNaN(date.getTime())) return String(value);
+            return date.toLocaleString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+            });
+        } catch {
+            return String(value);
+        }
+    };
 
     const getStatusStyle = (status: string) => {
         if (status === 'COMPLETED') return 'bg-emerald-50 text-emerald-700 border-emerald-100';
@@ -232,8 +290,20 @@ const Helpdesk: React.FC = () => {
                     <p><span className="font-bold text-slate-500">Name:</span> {item.name || '—'}</p>
                     <p><span className="font-bold text-slate-500">Email:</span> <span className="break-all">{item.email || '—'}</span></p>
                     <p><span className="font-bold text-slate-500">Mobile:</span> {item.number || '—'}</p>
-                    <p><span className="font-bold text-slate-500">Ticket ID:</span> {item.randomTicketId || item.ticketId || item.id}</p>
+                    <p>
+                        <span className="font-bold text-slate-500">Ticket ID:</span>{' '}
+                        <span className="font-mono font-bold text-slate-700">{item.randomTicketId || `#${item.ticketId ?? item.id}`}</span>
+                        {item.randomTicketId && (item.ticketId || item.id) ? (
+                            <span className="ml-1 text-[11px] text-slate-400 font-mono">(#{item.ticketId ?? item.id})</span>
+                        ) : null}
+                    </p>
                     <p><span className="font-bold text-slate-500">Date:</span> {formatHelpdeskDate(item.createdAt)}</p>
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                        <span className="font-bold text-slate-500">Status:</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${getStatusStyle(item.queryStatus)}`}>
+                            {item.queryStatus}
+                        </span>
+                    </div>
                 </div>
             ),
         },
@@ -273,40 +343,87 @@ const Helpdesk: React.FC = () => {
         },
         {
             header: 'Admin & User Replies', key: 'comments', width: '320px',
-            render: (_: string | null, item: HelpdeskQuery) => (
-                <div className="min-w-[280px] space-y-2 text-[12px]">
-                    {item.userPendingQueries?.map(reply => (
-                        <div key={reply.id} className="rounded-lg border border-blue-100 bg-blue-50 p-2">
-                            <p className="mb-0.5 font-bold text-blue-700">User Reply</p>
-                            <p className="whitespace-pre-wrap text-slate-600">{reply.message || reply.pendingComments || '—'}</p>
-                        </div>
-                    ))}
-                    {item.comments && (
-                        <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-2">
-                            <p className="mb-0.5 font-bold text-emerald-700">Admin Reply</p>
-                            <p className="whitespace-pre-wrap text-slate-600">{item.comments}</p>
-                        </div>
-                    )}
-                    {!item.comments && !item.userPendingQueries?.length && <span className="text-slate-400">No replies yet</span>}
-                    {(item.resolvedBy || item.resolvedOn) && (
-                        <div className="border-t border-slate-100 pt-2 text-slate-500">
-                            <p><span className="font-bold">Resolved By:</span> {item.resolvedBy || '—'}</p>
-                            {item.resolvedOn && (
-                                <p><span className="font-bold">Resolved On:</span> {formatHelpdeskDate(item.resolvedOn)}</p>
-                            )}
-                        </div>
-                    )}
-                </div>
-            ),
+            render: (_: string | null, item: HelpdeskQuery) => {
+                const pendingQueries = (item.userPendingQueries || []).filter(r => {
+                    const isAdmin = String(r.resolvedBy || '').toUpperCase() === 'ADMIN';
+                    const text = (r.pendingComments || r.message)?.trim();
+                    if (!isAdmin && text === item.query?.trim()) return false;
+                    return true;
+                });
+                const hasCommentsInPending = pendingQueries.some(
+                    r => (r.pendingComments || r.message)?.trim() === item.comments?.trim()
+                );
+
+                return (
+                    <div className="min-w-[280px] space-y-2 text-[12px]">
+                        {pendingQueries.map((reply, idx) => {
+                            const isAdmin = String(reply.resolvedBy || '').toUpperCase() === 'ADMIN';
+                            const text = reply.pendingComments || reply.message || '—';
+                            const timestamp = reply.resolvedOn || reply.createdAt;
+                            return (
+                                <div
+                                    key={reply.id || `${reply.ticketId || item.id}-${idx}`}
+                                    className={`rounded-lg border p-2 ${
+                                        isAdmin
+                                            ? 'border-emerald-100 bg-emerald-50/80'
+                                            : 'border-blue-100 bg-blue-50/80'
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-between gap-1 mb-0.5">
+                                        <p className={`font-bold ${isAdmin ? 'text-emerald-700' : 'text-blue-700'}`}>
+                                            {isAdmin ? 'Admin Response' : 'User Reply'}
+                                        </p>
+                                        {timestamp && (
+                                            <span className="text-[10px] text-slate-400">
+                                                {formatHelpdeskDateTime(timestamp)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="whitespace-pre-wrap text-slate-700">{text}</p>
+                                </div>
+                            );
+                        })}
+
+                        {item.comments && !hasCommentsInPending && (
+                            <div className="rounded-lg border border-emerald-100 bg-emerald-50/80 p-2">
+                                <div className="flex items-center justify-between gap-1 mb-0.5">
+                                    <p className="font-bold text-emerald-700">Admin Response</p>
+                                    {item.resolvedOn && (
+                                        <span className="text-[10px] text-slate-400">
+                                            {formatHelpdeskDateTime(item.resolvedOn)}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="whitespace-pre-wrap text-slate-700">{item.comments}</p>
+                            </div>
+                        )}
+
+                        {!item.comments && !pendingQueries.length && (
+                            <span className="text-slate-400">No replies yet</span>
+                        )}
+
+                        {(item.resolvedBy || item.resolvedOn) && (
+                            <div className="border-t border-slate-100 pt-2 text-slate-500 text-[11px] space-y-0.5">
+                                {item.resolvedBy && (
+                                    <p><span className="font-bold text-slate-600">Resolved By:</span> {item.resolvedBy}</p>
+                                )}
+                                {item.resolvedOn && (
+                                    <p><span className="font-bold text-slate-600">Resolved On:</span> {formatHelpdeskDateTime(item.resolvedOn)}</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                );
+            },
         },
         ...(statusFilter === 'PENDING' ? [{
             header: 'Action', key: 'queryStatus', width: '120px',
             render: (_: string, item: HelpdeskQuery) => (
                 <button
                     onClick={event => { event.stopPropagation(); openDetail(item); }}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-[12px] font-bold text-amber-700 transition hover:bg-amber-100"
+                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-bold transition cursor-pointer bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/60 shadow-2xs"
                 >
-                     Update
+                    Pending
                 </button>
             ),
         }] : []),
@@ -386,15 +503,32 @@ const Helpdesk: React.FC = () => {
             <Modal
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
-                title={`Query — ${selectedQuery?.randomTicketId}`}
+                title={`Query Ticket #${selectedQuery?.randomTicketId || selectedQuery?.ticketId || selectedQuery?.id}`}
                 size="lg"
                 footer={
                     selectedQuery?.queryStatus === 'PENDING' ? (
-                        <div className="flex flex-wrap justify-end gap-2">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
                             <Button
-                                onClick={() => handleStatusUpdate('COMPLETED')}
-                                disabled={isResolving}
+                                variant="outline"
+                                onClick={() => setIsDetailOpen(false)}
+                                disabled={isResolving || isUpdating}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={handleUpdateQuery}
+                                disabled={isResolving || isUpdating}
+                                isLoading={isUpdating}
+                                className="border-amber-300 text-amber-800 hover:bg-amber-50"
+                            >
+                                Pending Query
+                            </Button>
+                            <Button
+                                onClick={handleResolveQuery}
+                                disabled={isResolving || isUpdating}
                                 isLoading={isResolving}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
                             >
                                 <CheckCircle size={14} />
                                 Mark as Resolved
@@ -428,14 +562,97 @@ const Helpdesk: React.FC = () => {
                         {/* Query Text */}
                         <div>
                             <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">User Query</p>
-                            <p className="text-[14px] text-slate-700 bg-slate-50 rounded-lg p-3 leading-relaxed">{selectedQuery.query}</p>
+                            <p className="text-[14px] text-slate-700 bg-slate-50 rounded-lg p-3 leading-relaxed whitespace-pre-wrap">{selectedQuery.query}</p>
                         </div>
 
-                        {/* Existing Comments */}
-                        {selectedQuery.comments && (
-                            <div>
-                                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Admin Response</p>
-                                <p className="text-[14px] text-slate-700 bg-emerald-50 border border-emerald-100 rounded-lg p-3">{selectedQuery.comments}</p>
+                        {/* Responses & Replies Thread */}
+                        {(() => {
+                            const modalPendingQueries = (selectedQuery.userPendingQueries || []).filter(r => {
+                                const isAdmin = String(r.resolvedBy || '').toUpperCase() === 'ADMIN';
+                                const text = (r.pendingComments || r.message)?.trim();
+                                if (!isAdmin && text === selectedQuery.query?.trim()) return false;
+                                return true;
+                            });
+
+                            const allThreadMessages = [...modalPendingQueries];
+                            if (
+                                selectedQuery.comments &&
+                                !modalPendingQueries.some(
+                                    r => (r.pendingComments || r.message)?.trim() === selectedQuery.comments?.trim()
+                                )
+                            ) {
+                                allThreadMessages.push({
+                                    id: 'final-admin-comment',
+                                    resolvedBy: 'ADMIN',
+                                    pendingComments: selectedQuery.comments,
+                                    resolvedOn: selectedQuery.resolvedOn,
+                                } as any);
+                            }
+
+                            if (!allThreadMessages.length) return null;
+
+                            return (
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">
+                                            Responses & Reply History
+                                        </p>
+                                        {allThreadMessages.length > 3 && (
+                                            <span className="text-[11px] text-slate-400 font-medium">
+                                                {allThreadMessages.length} conversations (scrollable)
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2.5 max-h-[290px] overflow-y-auto pr-1.5">
+                                        {allThreadMessages.map((reply, idx) => {
+                                            const isAdmin = String(reply.resolvedBy || '').toUpperCase() === 'ADMIN';
+                                            const text = reply.pendingComments || reply.message || '—';
+                                            const timestamp = reply.resolvedOn || reply.createdAt;
+                                            return (
+                                                <div
+                                                    key={reply.id || `${reply.ticketId || selectedQuery.id}-${idx}`}
+                                                    className={`rounded-lg border p-3 ${
+                                                        isAdmin
+                                                            ? 'border-emerald-200 bg-emerald-50/70'
+                                                            : 'border-blue-200 bg-blue-50/70'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between mb-1 gap-2">
+                                                        <span className={`text-[11px] font-bold uppercase tracking-wider ${
+                                                            isAdmin ? 'text-emerald-700' : 'text-blue-700'
+                                                        }`}>
+                                                            {isAdmin ? 'Admin Response' : 'User Reply'}
+                                                        </span>
+                                                        {timestamp && (
+                                                            <span className="text-[11px] text-slate-400">
+                                                                {formatHelpdeskDateTime(timestamp)}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[13px] text-slate-700 whitespace-pre-wrap leading-relaxed">{text}</p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Resolution Details */}
+                        {(selectedQuery.resolvedBy || selectedQuery.resolvedOn) && (
+                            <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3 text-[12px] flex flex-wrap items-center gap-4 text-slate-600">
+                                {selectedQuery.resolvedBy && (
+                                    <div>
+                                        <span className="font-bold text-slate-500">Resolved By:</span>{' '}
+                                        <span className="font-semibold text-slate-800">{selectedQuery.resolvedBy}</span>
+                                    </div>
+                                )}
+                                {selectedQuery.resolvedOn && (
+                                    <div>
+                                        <span className="font-bold text-slate-500">Resolved On:</span>{' '}
+                                        <span className="font-semibold text-slate-800">{formatHelpdeskDateTime(selectedQuery.resolvedOn)}</span>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -528,19 +745,19 @@ const Helpdesk: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Resolve Comment */}
+                        {/* Resolve / Update Comment */}
                         {selectedQuery.queryStatus === 'PENDING' && (
                             <div>
                                 <Textarea
-                                    label="Resolution Comment *"
-                                    placeholder="Enter your response to resolve this query..."
+                                    label="Admin Response / Comment *"
+                                    placeholder="Enter your response to update or resolve this query..."
                                     value={comments}
                                     onChange={e => {
                                         setComments(e.target.value);
                                         if (e.target.value.trim()) setCommentError('');
                                     }}
                                     onBlur={() => {
-                                        if (!comments.trim()) setCommentError('Resolution comment is required.');
+                                        if (!comments.trim()) setCommentError('Comment is required.');
                                     }}
                                     error={commentError}
                                     required

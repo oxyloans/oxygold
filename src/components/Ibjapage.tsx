@@ -8,7 +8,7 @@ import {
   ArrowRight,
   X,
 } from "lucide-react";
-import ibjaPartner from "../assets/IBJApartner.png";
+import ibjaPartner from "../assets/IBJApartner.webp";
 
 export default function IBJAPartnerSection() {
   const [showModal, setShowModal] = useState(false);
@@ -55,6 +55,10 @@ export default function IBJAPartnerSection() {
                 <img
                   src={ibjaPartner}
                   alt="IBJA Platinum Partner - OXYGOLD.AI"
+                  loading="lazy"
+                  decoding="async"
+                  width={480}
+                  height={480}
                   className="w-full h-auto object-contain rounded-xl drop-shadow-[0_10px_25px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-[1.02]"
                 />
               </div>

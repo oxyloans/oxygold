@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import oxygoldLogo from '../assets/oxygoldlogo-wk.png';
+import oxygoldLogo from '../assets/oxygoldlogo-wk.webp';
 
 interface Props {
   children: ReactNode;

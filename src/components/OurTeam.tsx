@@ -2,14 +2,14 @@ import React from "react";
 import { motion, Variants } from "framer-motion";
 import { Linkedin } from "lucide-react";
 
-import Radha from "../assets/radha.png";
-import Rama from "../assets/rama.png";
-import Sneha from "../assets/sneha.png";
-import Subash from "../assets/subbu.png";
-import Chakri from "../assets/jags.png";
-import Srinivas from "../assets/yadavalli srinivas.png";
-import Ramesh from "../assets/ramesh.png";
-import Narendra from "../assets/narendra.png";
+import Radha from "../assets/radha.webp";
+import Rama from "../assets/rama.webp";
+import Sneha from "../assets/sneha.webp";
+import Subash from "../assets/subbu.webp";
+import Chakri from "../assets/jags.webp";
+import Srinivas from "../assets/yadavalli srinivas.webp";
+import Ramesh from "../assets/ramesh.webp";
+import Narendra from "../assets/narendra.webp";
 
 interface TeamMember {
   name: string;
@@ -153,6 +153,9 @@ const OurTeam: React.FC = () => {
                   src={member.img}
                   alt={member.name}
                   loading="lazy"
+                  decoding="async"
+                  width={400}
+                  height={400}
                   className="h-full w-full object-cover object-top transition duration-500 motion-safe:group-hover:scale-108"
                 />
 

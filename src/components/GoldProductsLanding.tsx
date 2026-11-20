@@ -107,7 +107,7 @@ export default function GoldProductsLanding() {
         setBreakupCache((prev) => ({ ...prev, [productId]: data }));
       }
     } catch (err) {
-      console.error("Failed to fetch price breakup for product:", productId, err);
+      console.warn("Failed to fetch price breakup for product:", productId, err);
     } finally {
       setLoadingBreakupId(null);
     }

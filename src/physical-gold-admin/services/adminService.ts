@@ -1514,16 +1514,28 @@ export const updateTestUserStatus = async (
 
 // -- Helpdesk API --
 
+export interface UserPendingQuery {
+  id?: number;
+  ticketId?: number;
+  pendingComments?: string;
+  message?: string;
+  createdAt?: string;
+  resolvedBy?: string | null;
+  resolvedOn?: string | null;
+  projectType?: string;
+  randomTicketId?: string;
+}
+
 export interface UserDocument {
-  userDocumentId: number;
-  userId: number;
-  filePath: string;
-  fileName: string;
-  createdDate: string;
-  adminDocumentId: number | null;
-  adminUploadedFileName: string | null;
-  adminUploadedFilePath: string | null;
-  adminUploadCreatedDate: string | null;
+  userDocumentId?: number;
+  userId?: number;
+  filePath?: string | null;
+  fileName?: string | null;
+  createdDate?: string | null;
+  adminDocumentId?: number | null;
+  adminUploadedFileName?: string | null;
+  adminUploadedFilePath?: string | null;
+  adminUploadCreatedDate?: string | null;
   documentName?: string;
   documentPath?: string;
   uploadedAt?: string;
@@ -1541,18 +1553,12 @@ export interface HelpdeskQuery {
   number: string;
   comments: string | null;
   resolvedBy: string | null;
-  projectType: string;
+  projectType?: string;
+  queryCount?: number | null;
   createdAt: string;
   resolvedOn: string | null;
   userDocuments: UserDocument[];
-  userPendingQueries?: Array<{
-    id: number;
-    pendingComments?: string;
-    message?: string;
-    createdAt?: string;
-    resolvedBy?: string | null;
-    resolvedOn?: string | null;
-  }>;
+  userPendingQueries?: UserPendingQuery[];
 }
 
 export interface HelpdeskQueryParams {
@@ -1568,6 +1574,8 @@ export const adminGetAllQueries = async (
   content: HelpdeskQuery[];
   totalElements: number;
   totalPages: number;
+  page?: number;
+  size?: number;
 }> => {
   const response = await adminAuthenticatedFetch(
     `${BASE_URL}/helpdesk/getAllQueries`,
@@ -1576,9 +1584,19 @@ export const adminGetAllQueries = async (
       body: JSON.stringify(params),
     },
   );
-  if (!response.ok) throw new Error("Failed to fetch queries");
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.message || "Failed to fetch queries");
+  }
   const result = await response.json();
-  return result.data ?? result;
+  const data = result.data ?? result;
+  return {
+    content: data.content ?? (Array.isArray(data) ? data : []),
+    totalElements: data.totalElements ?? data.total ?? data.content?.length ?? 0,
+    totalPages: data.totalPages ?? 1,
+    page: data.page ?? params.page,
+    size: data.size ?? params.size,
+  };
 };
 
 export const adminUploadQueryScreenshot = async (
@@ -1603,17 +1621,38 @@ export const adminUploadQueryScreenshot = async (
 };
 
 export const adminResolveQuery = async (
-  queryId: number,
-  payload: { userId: number; queryStatus: string; comments: string },
+  ticketId: number | string,
+  payload: { comments: string },
 ) => {
   const response = await adminAuthenticatedFetch(
-    `${BASE_URL}/helpdesk/adminResolveQuery/${queryId}`,
+    `${BASE_URL}/helpdesk/adminResolveQuery/${ticketId}`,
     {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ comments: payload.comments }),
     },
   );
-  if (!response.ok) throw new Error("Failed to resolve query");
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.message || "Failed to resolve query");
+  }
+  return response.json();
+};
+
+export const adminUpdateQuery = async (
+  ticketId: number | string,
+  payload: { comments: string },
+) => {
+  const response = await adminAuthenticatedFetch(
+    `${BASE_URL}/helpdesk/updateQuery/${ticketId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ comments: payload.comments }),
+    },
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.message || "Failed to update query");
+  }
   return response.json();
 };
 

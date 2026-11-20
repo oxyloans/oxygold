@@ -14,7 +14,7 @@ import {
 import { ArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import heroImage from "../assets/hero.png";
+import heroImage from "../assets/hero.webp";
 import BuyGoldCoins from "./BuyGoldCoins";
 import OxyGoldFooter from "./OxyGoldFooter";
 import GoldRatesDashboard from "./GoldRatesDashboard";
@@ -455,13 +455,19 @@ export default function OxyGoldLandingPage({ assets }: Props) {
               <div className="flex justify-center pt-0 lg:justify-end">
                 <img
                   src={A.heroPoster}
-                  alt="Hero Poster"
+                  alt="OXYGOLD.AI Digital Gold and Bullion Ecosystem"
+                  width={800}
+                  height={631}
+                  fetchPriority="high"
+                  loading="eager"
+                  decoding="async"
                   className="
                     w-full
                     max-w-sm
                     object-contain
                     sm:max-w-md
                     lg:max-w-xl
+                    h-auto
                   "
                   draggable={false}
                 />

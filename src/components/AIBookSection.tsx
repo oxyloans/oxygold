@@ -1,6 +1,6 @@
 import React from "react";
 import { Sparkles, ArrowRight, BookOpen } from "lucide-react";
-import bookImage from "../assets/book.png";
+import bookImage from "../assets/book.webp";
 
 export default function AIBookSection() {
   const openAskOxyBook = () => {
@@ -34,6 +34,10 @@ export default function AIBookSection() {
                 <img
                   src={bookImage}
                   alt="Enter the AI & GenAI Universe book cover"
+                  loading="lazy"
+                  decoding="async"
+                  width={800}
+                  height={664}
                   className="w-full h-auto object-contain rounded-xl drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)] transition-transform duration-500 group-hover:scale-[1.03]"
                 />
               </div>

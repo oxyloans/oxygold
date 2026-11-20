@@ -6,7 +6,7 @@ import {
   ShoppingOutlined,
   SafetyCertificateOutlined,
 } from "@ant-design/icons";
-import goldBanner from "../assets/goldbanner.png";
+import goldBanner from "../assets/goldbanner.webp";
 
 export default function BuyGoldSection() {
   const navigate = useNavigate();
@@ -209,7 +209,11 @@ export default function BuyGoldSection() {
               <div style={styles.right} className="buy-gold-right">
                 <img
                   src={goldBanner}
-                  alt="Gold coins banner"
+                  alt="Gold coins showcase"
+                  loading="lazy"
+                  decoding="async"
+                  width={900}
+                  height={712}
                   style={styles.bannerImg}
                   className="gold-banner-img"
                 />

@@ -173,7 +173,92 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+/* Toll Free Helpline Badge (Left side bottom) */
+.footer-toll-free-pill {
+  display: inline-flex;
+  align-items: center;
   gap: 0.75rem;
+  padding: 0.45rem 1.15rem 0.45rem 0.55rem;
+  background: rgba(13, 23, 42, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 9999px;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transition: all 0.25s ease;
+}
+
+.footer-toll-free-pill:hover {
+  border-color: #D4AF37;
+  background: rgba(26, 38, 66, 0.95);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.25);
+}
+
+.toll-free-icon-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FDE68A 0%, #D4AF37 100%);
+  color: #5B3A00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(212, 175, 55, 0.35);
+  transition: transform 0.25s ease;
+}
+
+.footer-toll-free-pill:hover .toll-free-icon-circle {
+  transform: scale(1.05);
+}
+
+.toll-free-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.toll-free-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #D1D5DB;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.toll-free-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 8px #10B981;
+  display: inline-block;
+  animation: pulse-dot 1.8s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.toll-free-number {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: 0.03em;
+  margin-top: 2px;
+}
+
+.footer-toll-free-pill:hover .toll-free-number {
+  color: #FDE68A;
 }
 
 .copyright {

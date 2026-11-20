@@ -1169,6 +1169,8 @@ export interface WriteQueryPayload {
   userId: number;
   query: string;
   email: string;
+  ticketId?: number;
+  issueResolved?: boolean;
 }
 
 export interface WriteQueryResponse {
@@ -1184,70 +1186,82 @@ export interface GetAllQueriesPayload {
   size: number;
 }
 
+export interface UserPendingQuery {
+  id?: number;
+  userId?: number;
+  queryStatus?: string;
+  pendingComments?: string;
+  resolvedBy?: string | null;
+  resolvedOn?: string | null;
+  ticketId?: number;
+  createdAt?: string;
+  message?: string;
+  projectType?: string;
+  randomTicketId?: string;
+}
+
+export interface UserDocument {
+  userDocumentId?: number;
+  userId?: number;
+  filePath?: string | null;
+  fileName?: string | null;
+  createdDate?: string | null;
+  adminDocumentId?: number | null;
+  adminUploadedFileName?: string | null;
+  adminUploadedFilePath?: string | null;
+  adminUploadCreatedDate?: string | null;
+  projectType?: string;
+  fileId?: number;
+  adminId?: number;
+}
+
 export interface HelpdeskQuery {
-  ticketId: number;
-  email: string;
-  query: string;
-  fullName: string;
   id: number;
-  responder: string;
-  respondedOn: string;
-  randomTicketId: string;
+  ticketId?: number;
   userId: number;
+  name?: string;
+  fullName?: string;
+  query: string;
+  randomTicketId: string;
   queryStatus: string;
-  number: string;
-  comments: string;
-  resolvedBy: string;
-  projectType: string;
-  queryCount: number;
+  email: string;
+  number?: string;
+  comments?: string | null;
+  resolvedBy?: string | null;
+  projectType?: string;
+  queryCount?: number | null;
   createdAt: string;
-  resolvedOn: string;
-  name: string;
-  userPendingQueries: {
-    id: number;
-    userId: number;
-    queryStatus: string;
-    pendingComments: string;
-    resolvedBy: string;
-    resolvedOn: string;
-    ticketId: number;
-    createdAt: string;
-    message: string;
-    projectType: string;
-    randomTicketId: string;
-  }[];
-  userDocuments: {
-    userDocumentId: number;
-    userId: number;
-    filePath: string;
-    fileName: string;
-    createdDate: string;
-    adminDocumentId: number;
-    adminUploadedFileName: string;
-    adminUploadedFilePath: string;
-    adminUploadCreatedDate: string;
-    projectType: string;
-    fileId: number;
-    adminId: number;
-  }[];
+  resolvedOn?: string | null;
+  issueResolved?: boolean;
+  userDocuments: UserDocument[];
+  userPendingQueries?: UserPendingQuery[];
 }
 
 export const writeQuery = async (
   payload: WriteQueryPayload,
 ): Promise<WriteQueryResponse> => {
+  const body = {
+    userId: payload.userId,
+    query: payload.query,
+    email: payload.email,
+    ticketId: payload.ticketId ?? 0,
+    issueResolved: payload.issueResolved ?? false,
+  };
   const response = await authenticatedFetch(`${BASE_URL}/helpdesk/writeQuery`, {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data?.message || "Failed to submit query");
   const result = data?.data || data;
-  const ticketId = Number(result?.ticketId);
-  if (!Number.isInteger(ticketId) || ticketId <= 0) {
-    throw new Error("Query was created, but the ticket ID was not returned.");
-  }
+  const returnedTicketId = Number(result?.ticketId ?? payload.ticketId);
+  const finalTicketId =
+    Number.isInteger(returnedTicketId) && returnedTicketId > 0
+      ? returnedTicketId
+      : payload.ticketId ?? 0;
+
   return {
-    ticketId,
+    ticketId: finalTicketId,
     email: String(result?.email || payload.email),
     randomTicketId: String(result?.randomTicketId || ""),
   };
