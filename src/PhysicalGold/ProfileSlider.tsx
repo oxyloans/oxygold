@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Image } from "antd";
 import {
     ArrowLeft,
     Check,
@@ -282,6 +283,38 @@ const GET_USER_DATA = () => {
     } catch { return null; }
 };
 
+const extractUserData = (u: any) => {
+    if (!u) return { email: "", mobileNumber: "", firstName: "", lastName: "" };
+    const p = u.data?.body || u.body || u.data || u;
+    const email =
+        p.email ||
+        u.email ||
+        u.data?.email ||
+        u.data?.body?.email ||
+        "";
+    const mobileNumber =
+        p.mobileNumber ||
+        p.phoneNumber ||
+        p.phone ||
+        u.mobileNumber ||
+        u.phoneNumber ||
+        u.phone ||
+        u.data?.mobileNumber ||
+        u.data?.phoneNumber ||
+        u.data?.phone ||
+        u.data?.body?.mobileNumber ||
+        u.data?.body?.phoneNumber ||
+        "";
+    const firstName = p.firstName || u.firstName || u.data?.firstName || "";
+    const lastName = p.lastName || u.lastName || u.data?.lastName || "";
+    return {
+        email: String(email || "").trim(),
+        mobileNumber: String(mobileNumber || "").trim(),
+        firstName: String(firstName || "").trim(),
+        lastName: String(lastName || "").trim(),
+    };
+};
+
 /* ────────────────────────────────────────────────────────── */
 /*  Shared input styles                                       */
 /* ────────────────────────────────────────────────────────── */
@@ -338,22 +371,25 @@ const ProfilePage: React.FC = () => {
     const [selectedHistoryTicket, setSelectedHistoryTicket] = useState<HelpdeskQuery | null>(null);
     const [selectedReplyTicket, setSelectedReplyTicket] = useState<HelpdeskQuery | null>(null);
 
+    const initialUserData = GET_USER_DATA();
+    const initialContact = extractUserData(initialUserData);
+
     const [s, setS] = useState<PageState>({
         activeTab: initialTab,
-        isEditingProfile: initialTab === "info" && !(GET_USER_DATA()?.data?.body?.firstName || GET_USER_DATA()?.firstName || "").trim(),
+        isEditingProfile: initialTab === "info" && !(initialUserData?.data?.body?.firstName || initialUserData?.firstName || "").trim(),
         isSavingProfile: false,
         isProfileLoading: false,
         isVerifyingPan: false,
         profileForm: {
-            firstName: "",
-            lastName: "",
-            email: "",
-            alternativeNumber: "",
-            whatsappNumber: "",
-            mobileNumber: "",
-            gender: "",
-            panNumber: "",
-            panVerified: false,
+            firstName: initialContact.firstName || "",
+            lastName: initialContact.lastName || "",
+            email: initialContact.email || "",
+            alternativeNumber: initialUserData?.data?.body?.alternativeNumber || initialUserData?.alternativeNumber || "",
+            whatsappNumber: initialUserData?.data?.body?.whatsappNumber || initialUserData?.whatsappNumber || "",
+            mobileNumber: initialContact.mobileNumber || "",
+            gender: initialUserData?.data?.body?.gender || initialUserData?.gender || "",
+            panNumber: initialUserData?.data?.body?.panNumber || initialUserData?.panNumber || "",
+            panVerified: initialUserData?.data?.body?.panVerified || initialUserData?.panVerified || false,
         },
         profileErrors: {},
         addresses: [],
@@ -441,20 +477,21 @@ const ProfilePage: React.FC = () => {
     useEffect(() => {
         if (user) {
             const profile = user.data?.body || user;
+            const extracted = extractUserData(user);
             const hasExistingProfile = Boolean(
                 (profile.firstName && String(profile.firstName).trim()) ||
                 (profile.lastName && String(profile.lastName).trim()) ||
-                (profile.email && String(profile.email).trim())
+                (extracted.email && String(extracted.email).trim())
             );
             patch({
                 ...(hasExistingProfile ? { isEditingProfile: false } : {}),
                 profileForm: {
-                    firstName: profile.firstName || "",
-                    lastName: profile.lastName || "",
-                    email: profile.email || "",
+                    firstName: profile.firstName || extracted.firstName || "",
+                    lastName: profile.lastName || extracted.lastName || "",
+                    email: extracted.email || profile.email || "",
                     alternativeNumber: profile.alternativeNumber || "",
                     whatsappNumber: profile.whatsappNumber || "",
-                    mobileNumber: profile.mobileNumber || profile.phone || profile.phoneNumber || "",
+                    mobileNumber: extracted.mobileNumber || profile.mobileNumber || profile.phone || profile.phoneNumber || "",
                     gender: profile.gender || "",
                     panNumber: profile.panNumber || "",
                     panVerified: profile.panVerified || false,
@@ -471,28 +508,29 @@ const ProfilePage: React.FC = () => {
         patch({ isProfileLoading: true });
         try {
             const res = await getUserProfile(uid);
-            const profile = res.data?.body || res.data;
-            if (res.success && profile) {
+            const profile = res.data?.body || res.data || res;
+            if (profile && typeof profile === "object") {
+                const freshUser = { ...userData, data: { ...userData?.data, body: profile } };
+                const extracted = extractUserData(freshUser);
                 const hasExistingProfile = Boolean(
                     (profile.firstName && String(profile.firstName).trim()) ||
                     (profile.lastName && String(profile.lastName).trim()) ||
-                    (profile.email && String(profile.email).trim())
+                    (extracted.email && String(extracted.email).trim())
                 );
                 patch({
                     isEditingProfile: !hasExistingProfile,
                     profileForm: {
-                        firstName: profile.firstName || "",
-                        lastName: profile.lastName || "",
-                        email: profile.email || "",
+                        firstName: profile.firstName || extracted.firstName || "",
+                        lastName: profile.lastName || extracted.lastName || "",
+                        email: extracted.email || profile.email || "",
                         alternativeNumber: profile.alternativeNumber || "",
                         whatsappNumber: profile.whatsappNumber || "",
-                        mobileNumber: profile.mobileNumber || profile.phone || profile.phoneNumber || "",
+                        mobileNumber: extracted.mobileNumber || profile.mobileNumber || profile.phone || profile.phoneNumber || "",
                         gender: profile.gender || "",
                         panNumber: profile.panNumber || "",
                         panVerified: profile.panVerified || false,
                     },
                 });
-                const freshUser = { ...userData, data: { ...userData.data, body: profile } };
                 localStorage.setItem("user", JSON.stringify(freshUser));
                 setUser(freshUser);
             }
@@ -569,13 +607,46 @@ const ProfilePage: React.FC = () => {
         }
     }, [patch]);
 
+    const loadQueries = useCallback(async (statusOverride?: string) => {
+        const userData = GET_USER_DATA();
+        const uid = userData?.data?.userId;
+        if (!uid) return;
+        patch({ isQueriesLoading: true });
+        try {
+            const res = await getAllQueries({
+                userId: uid,
+                queryStatus: statusOverride ?? s.queryStatusFilter,
+                page: 0,
+                size: 20,
+            });
+            const queries = Array.isArray(res?.data)
+                ? res.data
+                : res?.data?.content || res?.content || [];
+            patch({ queries });
+        } catch (err) {
+            console.error('Failed to fetch queries:', err);
+        } finally {
+            patch({ isQueriesLoading: false });
+        }
+    }, [patch, s.queryStatusFilter]);
+
+    // Always fetch profile on mount so all tabs have fresh details
+    useEffect(() => {
+        fetchProfile();
+    }, [fetchProfile]);
+
     useEffect(() => {
         if (s.activeTab === "info") fetchProfile();
         if (s.activeTab === "address") loadAddresses();
         if (s.activeTab === "wallet") fetchWalletInfo();
         if (s.activeTab === "orders") loadOrders();
-        if (s.activeTab === "support") loadQueries();
-    }, [s.activeTab, fetchProfile, loadAddresses, fetchWalletInfo, loadOrders]);
+        if (s.activeTab === "support") {
+            loadQueries();
+            if (!s.profileForm.email || !s.profileForm.mobileNumber) {
+                fetchProfile();
+            }
+        }
+    }, [s.activeTab, fetchProfile, loadAddresses, fetchWalletInfo, loadOrders, loadQueries, s.profileForm.email, s.profileForm.mobileNumber]);
 
     /* ── actions ── */
     const validatePan = (pan: string): boolean => {
@@ -1130,40 +1201,42 @@ const ProfilePage: React.FC = () => {
         } finally { setIsSavingReview(false); }
     };
 
-    const loadQueries = useCallback(async (statusOverride?: string) => {
+    const handleOpenQueryForm = () => {
         const userData = GET_USER_DATA();
-        const uid = userData?.data?.userId;
-        if (!uid) return;
-        patch({ isQueriesLoading: true });
-        try {
-            const res = await getAllQueries({
-                userId: uid,
-                queryStatus: statusOverride ?? s.queryStatusFilter,
-                page: 0,
-                size: 20,
-            });
-            const queries = Array.isArray(res?.data)
-                ? res.data
-                : res?.data?.content || res?.content || [];
-            patch({ queries });
-        } catch (err) {
-            console.error('Failed to fetch queries:', err);
-        } finally {
-            patch({ isQueriesLoading: false });
+        const extracted = extractUserData(userData);
+        const email = s.profileForm.email || extracted.email || "";
+        const mobileNumber = s.profileForm.mobileNumber || extracted.mobileNumber || "";
+
+        patch({
+            showQueryForm: true,
+            queryFormErrors: {},
+            profileForm: {
+                ...s.profileForm,
+                email,
+                mobileNumber,
+            },
+        });
+
+        if (!email || !mobileNumber) {
+            fetchProfile();
         }
-    }, [patch, s.queryStatusFilter]);
+    };
 
     const handleSubmitQuery = async () => {
         const userData = GET_USER_DATA();
-        const uid = userData?.data?.userId;
+        const uid = userData?.data?.userId || userData?.userId;
         if (!uid) return;
 
         const errors: Record<string, string> = {};
         const query = s.queryForm.query.trim();
-        if (!s.profileForm.email?.trim()) errors.email = 'Email is required.';
-        else if (!validateEmail(s.profileForm.email)) errors.email = 'Enter a valid email address.';
-        if (!s.profileForm.mobileNumber?.trim()) errors.mobileNumber = 'Mobile number is required.';
-        else if (!validateMobileNumber(s.profileForm.mobileNumber)) errors.mobileNumber = 'Enter a valid 10-digit mobile number.';
+        const extracted = extractUserData(userData);
+        const email = (s.profileForm.email || extracted.email || '').trim();
+        const mobileNumber = (s.profileForm.mobileNumber || extracted.mobileNumber || '').trim();
+
+        if (!email) errors.email = 'Email is required.';
+        else if (!validateEmail(email)) errors.email = 'Enter a valid email address.';
+        if (!mobileNumber) errors.mobileNumber = 'Mobile number is required.';
+        else if (!validateMobileNumber(mobileNumber)) errors.mobileNumber = 'Enter a valid 10-digit mobile number.';
         if (!query) errors.query = 'Please describe your issue or question.';
         else if (query.length < 10) errors.query = 'Query must contain at least 10 characters.';
 
@@ -1177,7 +1250,7 @@ const ProfilePage: React.FC = () => {
             const result = await writeQuery({
                 userId: uid,
                 query,
-                email: s.profileForm.email,
+                email: email,
                 ticketId: 0,
                 issueResolved: false,
             });
@@ -2395,7 +2468,7 @@ const ProfilePage: React.FC = () => {
                                 <h3 className="text-[18px] font-semibold text-[#1A1A1A]">Help & Support</h3>
                                 {!s.showQueryForm && (
                                     <button
-                                        onClick={() => patch({ showQueryForm: true, queryFormErrors: {} })}
+                                        onClick={handleOpenQueryForm}
                                         className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#8B6914] text-white text-[14px] font-medium hover:bg-[#7A5C10] transition"
                                     >
                                         <Plus className="h-3 w-3" strokeWidth={2.5} /> New Query
@@ -2638,7 +2711,28 @@ const ProfilePage: React.FC = () => {
                                                                         const filePath = doc.filePath || doc.adminUploadedFilePath || "";
                                                                         const resolvedUrl = resolveS3ImageUrl(filePath);
                                                                         const fileName = doc.fileName || doc.adminUploadedFileName || "Attachment";
-                                                                        return (
+                                                                        const cleanPath = filePath.split("?")[0];
+                                                                        const isImg =
+                                                                            /\.(jpg|jpeg|png|gif|webp|svg|bmp|jfif|avif)/i.test(fileName) ||
+                                                                            /\.(jpg|jpeg|png|gif|webp|svg|bmp|jfif|avif)/i.test(cleanPath) ||
+                                                                            /^data:image\//i.test(resolvedUrl) ||
+                                                                            (!fileName.includes(".") && !!filePath);
+
+                                                                        return isImg ? (
+                                                                            <div
+                                                                                key={doc.userDocumentId || docIdx}
+                                                                                className="inline-block rounded-lg overflow-hidden border border-[#E8E0D5] bg-white hover:border-[#8B6914] shadow-xs transition"
+                                                                            >
+                                                                                <Image
+                                                                                    src={resolvedUrl}
+                                                                                    alt={fileName}
+                                                                                    width={52}
+                                                                                    height={52}
+                                                                                    style={{ objectFit: "cover", display: "block" }}
+                                                                                    className="cursor-pointer"
+                                                                                />
+                                                                            </div>
+                                                                        ) : (
                                                                             <a
                                                                                 key={doc.userDocumentId || docIdx}
                                                                                 href={resolvedUrl}
@@ -2771,35 +2865,43 @@ const ProfilePage: React.FC = () => {
                                                                                 const fPath = doc.filePath || doc.adminUploadedFilePath || "";
                                                                                 const rUrl = resolveS3ImageUrl(fPath);
                                                                                 const fName = doc.fileName || doc.adminUploadedFileName || "Attachment";
-                                                                                const isImg = /\.(jpg|jpeg|png|gif|webp|svg)/i.test(fName) || /\.(jpg|jpeg|png|gif|webp|svg)/i.test(fPath);
-                                                                                return (
+                                                                                const cleanFPath = fPath.split("?")[0];
+                                                                                const isImg =
+                                                                                    /\.(jpg|jpeg|png|gif|webp|svg|bmp|jfif|avif)/i.test(fName) ||
+                                                                                    /\.(jpg|jpeg|png|gif|webp|svg|bmp|jfif|avif)/i.test(cleanFPath) ||
+                                                                                    /^data:image\//i.test(rUrl) ||
+                                                                                    (!fName.includes(".") && !!fPath);
+
+                                                                                return isImg ? (
+                                                                                    <div
+                                                                                        key={doc.userDocumentId || dIdx}
+                                                                                        className="inline-block rounded-lg overflow-hidden border border-[#E8E0D5] bg-white hover:border-[#8B6914] shadow-xs transition"
+                                                                                    >
+                                                                                        <Image
+                                                                                            src={rUrl}
+                                                                                            alt={fName}
+                                                                                            width={56}
+                                                                                            height={56}
+                                                                                            style={{ objectFit: "cover", display: "block" }}
+                                                                                            className="cursor-pointer"
+                                                                                        />
+                                                                                    </div>
+                                                                                ) : (
                                                                                     <a
                                                                                         key={doc.userDocumentId || dIdx}
                                                                                         href={rUrl}
                                                                                         target="_blank"
                                                                                         rel="noopener noreferrer"
-                                                                                        className="group inline-block"
+                                                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#E8E0D5] bg-[#FAF8F5] text-xs text-[#8B6914] hover:border-[#8B6914] transition"
                                                                                         title={fName}
                                                                                     >
-                                                                                        {isImg ? (
-                                                                                            <div className="h-14 w-14 rounded border border-[#E8E0D5] overflow-hidden bg-white hover:border-[#8B6914] transition">
-                                                                                                <img
-                                                                                                    src={rUrl}
-                                                                                                    alt={fName}
-                                                                                                    className="h-full w-full object-cover group-hover:scale-105 transition-transform"
-                                                                                                />
-                                                                                            </div>
-                                                                                        ) : (
-                                                                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#E8E0D5] bg-[#FAF8F5] text-xs text-[#8B6914]">
-                                                                                                <Paperclip className="h-3 w-3" />
-                                                                                                <span className="max-w-[120px] truncate">{fName}</span>
-                                                                                            </div>
-                                                                                        )}
-                                                    </a>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
+                                                                                        <Paperclip className="h-3 w-3" />
+                                                                                        <span className="max-w-[120px] truncate">{fName}</span>
+                                                                                    </a>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    )}
                                 </td>
                             </tr>
                         ));

@@ -81,13 +81,42 @@ const Footer: React.FC = () => {
                 <MapPin size={16} className="mt-0.5 flex-shrink-0" style={{ color: "hsl(38, 80%, 55%)" }} />
                 <span>AI Research Center, Entrance D, SE02 Concourse, Miyapur Metro Station, Hyderabad, Telangana 500049</span>
               </li>
+              {/* Highlighted Toll Free Number */}
+              <li className="pt-1">
+                <a
+                  href="tel:04041897778"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full shadow-md transition-all duration-300 hover:scale-[1.02] text-decoration-none group max-w-full"
+                  style={{
+                    background: "linear-gradient(135deg, #FDE68A 0%, #F5D36C 50%, #E8B949 100%)",
+                    color: "#2A1202",
+                  }}
+                  title="Click to call Toll Free: 040 4189 7778"
+                >
+                  <span className="text-xs font-bold tracking-wide whitespace-nowrap">
+                    Toll Free: 040 4189 7778
+                  </span>
+                  <span
+                    className="text-[10px] px-2 py-0.5 rounded-full font-semibold border border-black/10 whitespace-nowrap"
+                    style={{
+                      background: "rgba(42, 18, 2, 0.1)",
+                      color: "#2A1202",
+                    }}
+                  >
+                    24/7 · 365 Days
+                  </span>
+                </a>
+              </li>
               <li className="flex items-center gap-2">
                 <Phone size={16} className="flex-shrink-0" style={{ color: "hsl(38, 80%, 55%)" }} />
-                <span>+91 81432 71103</span>
+                <a href="tel:+918143271103" className="transition-colors hover:text-[#C29B27]" style={{ color: "hsl(30, 15%, 70%)" }}>
+                  <span>+91 81432 71103</span>
+                </a>
               </li>
               <li className="flex items-center gap-2">
                 <Mail size={16} className="flex-shrink-0" style={{ color: "hsl(38, 80%, 55%)" }} />
-                <span>support@oxygold.ai</span>
+                <a href="mailto:support@oxygold.ai" className="transition-colors hover:text-[#C29B27]" style={{ color: "hsl(30, 15%, 70%)" }}>
+                  <span>support@oxygold.ai</span>
+                </a>
               </li>
             </ul>
           </div>

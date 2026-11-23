@@ -1,6 +1,6 @@
 import React from "react";
 import Logo from "../assets/oxygoldlogo-wk.webp";
-import { PhoneCall } from "lucide-react";
+import { PhoneCall, ArrowUp } from "lucide-react";
 import {
   EnvironmentOutlined,
   PhoneOutlined,
@@ -34,6 +34,13 @@ export default function OxyGoldFooter({
   links = DEFAULT_LINKS,
   year = new Date().getFullYear(),
 }: OxyGoldFooterProps) {
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
   return (
     <footer className="w-full border-t border-white/10 pt-12 pb-6 text-white relative overflow-hidden">
       {/* Subtle gradient overlay */}
@@ -94,22 +101,22 @@ export default function OxyGoldFooter({
             </div>
 
             {/* Toll Free Pill Button (matching design in reference image) */}
-            <div className="pt-2 flex flex-wrap items-center gap-3">
+            <div className="pt-2 flex flex-wrap items-center gap-2.5 sm:gap-3">
               <a
                 href="tel:04041897778"
-                className="inline-flex items-center gap-2.5 sm:gap-3 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full shadow-lg transition-all duration-300 hover:scale-[1.02] text-decoration-none group"
+                className="inline-flex items-center gap-2 sm:gap-2.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-md transition-all duration-300 hover:scale-[1.02] text-decoration-none group max-w-full"
                 style={{
                   background: 'linear-gradient(135deg, #FDE68A 0%, #F5D36C 50%, #E8B949 100%)',
                   color: '#2A1202',
                 }}
                 title="Click to call Toll Free: 040 4189 7778"
               >
-                <PhoneCall size={18} className="text-[#2A1202] group-hover:scale-110 transition-transform" />
-                <span className="text-sm sm:text-base font-bold tracking-wide">
+                <PhoneCall size={15} className="text-[#2A1202] group-hover:scale-110 transition-transform flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-bold tracking-wide whitespace-nowrap">
                   Toll Free: 040 4189 7778
                 </span>
                 <span
-                  className="text-[11px] sm:text-xs px-2.5 py-0.5 rounded-full font-semibold border border-black/10"
+                  className="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full font-semibold border border-black/10 whitespace-nowrap"
                   style={{
                     background: 'rgba(42, 18, 2, 0.1)',
                     color: '#2A1202',
@@ -122,17 +129,17 @@ export default function OxyGoldFooter({
               {/* Email Glass Pill Button (matching design in reference image) */}
               <a
                 href={`mailto:${email}`}
-                className="inline-flex items-center gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 backdrop-blur-md text-gray-200 hover:text-white transition-all duration-300 text-sm sm:text-base group text-decoration-none shadow-sm"
+                className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 backdrop-blur-md text-gray-200 hover:text-white transition-all duration-300 text-xs sm:text-sm group text-decoration-none shadow-sm max-w-full"
                 title="Email Us"
               >
-                <MailOutlined className="text-amber-400 group-hover:scale-110 transition-transform text-base" />
-                <span className="font-medium">{email}</span>
+                <MailOutlined className="text-amber-400 group-hover:scale-110 transition-transform text-sm flex-shrink-0" />
+                <span className="font-medium truncate">{email}</span>
               </a>
             </div>
 
             <div className="pt-1 flex items-center gap-2 text-xs text-gray-400">
               <PhoneOutlined className="text-amber-400 flex-shrink-0" />
-              <span>Direct lines: {phones.join(" , ")}</span>
+              <span>Mobile Number: {phones.join(" , ")}</span>
             </div>
           </div>
         </div>
@@ -146,11 +153,22 @@ export default function OxyGoldFooter({
         </div>
 
         {/* Bottom row */}
-        <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-gray-400/80 w-full">
-          <p className="m-0 text-left">
+        <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-gray-400/80 w-full text-center sm:text-left">
+          <p className="m-0">
             © {year}-{year + 1} OXYGOLD.AI. All rights reserved.
           </p>
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2.5 sm:gap-4">
+            <button
+              type="button"
+              onClick={scrollToTop}
+              className="group inline-flex items-center gap-1.5 text-gray-400/90 hover:text-amber-400 transition-colors bg-transparent border-0 p-0 cursor-pointer font-medium text-xs"
+              aria-label="Back to Top"
+              title="Back to Top"
+            >
+              <span>Back to Top</span>
+              <ArrowUp size={13} className="transition-transform group-hover:-translate-y-0.5 text-amber-400/90 group-hover:text-amber-400" />
+            </button>
+            <span className="text-gray-600">|</span>
             {links.map((link, idx) => (
               <React.Fragment key={link.href}>
                 {idx > 0 && <span className="text-gray-600">|</span>}

@@ -1,7 +1,14 @@
-import { PhoneCall } from 'lucide-react';
+import { PhoneCall, ArrowUp } from 'lucide-react';
 import '../styles/Footer.css';
 
 const Footer = () => {
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
+
   return (
     <footer className="app-footer">
       {/* <div className="footer-content">
@@ -108,7 +115,6 @@ const Footer = () => {
             </div>
             <div className="toll-free-info">
               <span className="toll-free-label">
-                <span className="toll-free-dot" />
                 TOLL FREE HELPLINE • 24/7
               </span>
               <span className="toll-free-number">040 4189 7778</span>
@@ -119,6 +125,17 @@ const Footer = () => {
             © 2026 OXYGOLD.AI. All rights reserved.
           </p>
           <div className="footer-bottom-links">
+            <button
+              type="button"
+              onClick={scrollToTop}
+              className="footer-back-to-top"
+              aria-label="Back to Top"
+              title="Back to Top"
+            >
+              <span>Back to Top</span>
+              <ArrowUp size={13} className="back-to-top-icon" />
+            </button>
+            <span className="separator">|</span>
             <a href="/terms">Terms & Conditions</a>
             <span className="separator">|</span>
             <a href="/privacy">Privacy Policy</a>

@@ -273,6 +273,8 @@ function AppContent() {
             {/* Main */}
             <Route path="/" element={<OxyGoldAI />} />
             <Route path="/oxygold-ai" element={<Landing />} />
+            <Route path="/oxygold" element={<Navigate to="/" replace />} />
+            <Route path="/landing" element={<Navigate to="/" replace />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
 
             {/* Digital Gold */}
@@ -367,8 +369,8 @@ function AppContent() {
       </div>
       {!isAuthPage && !isTestPage && !isFullPageFlow && <Footer />}
 
-      {/* Fixed Floating Toll Free Helpline Badge (ONLY on Landing Page, NOT inside app / NOT when logged in) */}
-      {['/', '/oxygold-ai'].includes(location.pathname) && (
+      {/* Fixed Floating Toll Free Helpline Badge (ONLY on Landing Page) */}
+      {['/', '/oxygold-ai', '/oxygold', '/landing', '/home'].includes(location.pathname.replace(/\/+$/, '') || '/') && (
         <TollFreeHelplineBadge />
       )}
     </div>

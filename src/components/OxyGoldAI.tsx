@@ -11,9 +11,6 @@ import {
   Scale,
   CheckCircle2,
 } from "lucide-react";
-import { ArrowUp } from "lucide-react";
-import { useEffect, useState } from "react";
-
 import heroImage from "../assets/hero.webp";
 import BuyGoldCoins from "./BuyGoldCoins";
 import OxyGoldFooter from "./OxyGoldFooter";
@@ -156,27 +153,6 @@ const modules8 = [
 
 export default function OxyGoldLandingPage({ assets }: Props) {
   const A = { ...DEFAULT_ASSETS, ...(assets || {}) };
-
-  const [showScroll, setShowScroll] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScroll(window.scrollY > 300);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
 
   return (
     <div
@@ -743,47 +719,6 @@ export default function OxyGoldLandingPage({ assets }: Props) {
       >
         <OxyGoldFooter />
       </section>
-
-      {/* Scroll To Top */}
-      {showScroll && (
-        <button
-          aria-label="scrollarrow"
-          onClick={scrollToTop}
-          className="
-            group
-            fixed
-            bottom-6
-            right-6
-            z-50
-          "
-        >
-          <div
-            className="
-              flex
-              h-12
-              w-12
-              items-center
-              justify-center
-              rounded-full
-              border
-              border-white/15
-              shadow-[0_10px_28px_rgba(12,2,35,0.28)]
-              transition-all
-              duration-300
-              hover:scale-105
-            "
-            style={{
-              background: `linear-gradient(
-                135deg,
-                ${BRAND.purple.primary},
-                ${BRAND.gold.primary}
-              )`,
-            }}
-          >
-            <ArrowUp className="h-5 w-5 text-white" />
-          </div>
-        </button>
-      )}
     </div>
   );
 }
