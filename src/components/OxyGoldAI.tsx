@@ -22,6 +22,7 @@ import IBJAPartnerSection from "./Ibjapage";
 import OxyEcosystem from "./OxyPlatforms";
 import TrackTrace from "./TracknTrace";
 import OurTeam from "./OurTeam";
+import LeaseGold from "./LeaseGold";
 
 import SectionHeader from "./ui/SectionHeader";
 import ModuleCard from "./ui/ModuleCard";
@@ -494,6 +495,14 @@ export default function OxyGoldLandingPage({ assets }: Props) {
               className="py-0"
             >
               <DesignGoldOrnaments />
+            </section>
+
+            {/* Lease Gold */}
+            <section
+              id="lease-gold"
+              className="py-0"
+            >
+              <LeaseGold />
             </section>
 
             {/* Leadership Team */}

@@ -54,7 +54,7 @@ const Register = () => {
       setResendTimer(30);
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err: any) {
-      setError(err.message || 'Something went wrong. Please try again.');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -85,13 +85,8 @@ const Register = () => {
         data?.token || data?.data?.token || data?.result?.token ||
         data?.accessToken || data?.data?.accessToken || '';
       localStorage.setItem('user', JSON.stringify({ phone, isLoggedIn: true, token, role: selectedRole }));
-      await fetch(API_ROLE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ role: selectedRole }),
-      });
       setShowSuccess(true);
-      setTimeout(() => { navigate('/portfolio'); }, 1000);
+      setTimeout(() => { navigate('/login'); }, 3000);
     } catch (err: any) {
       setError(err.message || 'Verification failed. Please try again.');
     } finally {

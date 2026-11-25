@@ -203,7 +203,7 @@ function GoogleAnalyticsTracker() {
 function AppContent() {
   const [transactionData, setTransactionData] = useState<any>(null);
   const location = useLocation();
-  const isAuthPage = ['/login', '/register', '/hiddenlogin'].includes(location.pathname);
+  const isAuthPage = ['/login','/login/', '/register','/register/', '/hiddenlogin','/hiddenlogin/'].includes(location.pathname);
   const isTestPage = location.pathname === '/api-test';
   const isFullPageFlow = [
     '/review-order',
