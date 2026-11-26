@@ -15,6 +15,7 @@ const NAV_LINKS: LinkItem[] = [
   { label: "Buy Gold Coins", targetId: "buy-gold" },
 
   // { label: "Design Own Jewellery", targetId: "design-jewellery" },
+  { label: "Lease Gold", targetId: "lease-gold-page" },
   { label: "Our Platforms", targetId: "platforms" },
 
   { label: "Our Certificates", targetId: "our-certifications" },
@@ -74,6 +75,10 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
     // "Our Certifications" → dedicated /certificates page
     if (targetId === "our-certifications") {
       navigate("/certificates");
+      return;
+    }
+    if (targetId === "lease-gold-page") {
+      navigate("/lease-gold");
       return;
     }
     const onLanding = location.pathname === "/" || location.pathname === "/oxygold";

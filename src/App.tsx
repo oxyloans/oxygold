@@ -99,6 +99,7 @@ const GoldSelection = lazy(() => import('./pages/GoldSelection'));
 const BISCertificate = lazy(() => import('./pages/BISCertificate'));
 const Home = lazy(() => import('./Verified'));
 const CertificatesPage = lazy(() => import('./components/CertificatesPage'));
+const LeaseGoldLanding = lazy(() => import('./components/LeaseGoldLanding'));
 
 // Global loading fallback
 function PageLoader() {
@@ -226,6 +227,8 @@ function AppContent() {
     "/verified",
     "/certificates",
     "/certificates/",
+    "/lease-gold",
+    "/lease-gold/",
     "/verified/",
     "/hiddenlogin",
     "/hiddenlogin/",
@@ -253,6 +256,8 @@ function AppContent() {
             <Route path="/register" element={<Register />} />
             <Route path="/hiddenlogin" element={<HiddenLogin />} />
             <Route path="/certificates" element={<CertificatesPage />} />
+            <Route path="/lease-gold" element={<LeaseGoldLanding />} />
+            <Route path="/lease-gold-silver" element={<Navigate to="/lease-gold" replace />} />
             
             <Route path="/api-test" element={<APITest />} />
             <Route path="/select-gold" element={<ProtectedRoute> <GoldSelection /> </ProtectedRoute>} />
