@@ -104,19 +104,19 @@ export default function OxyGoldFooter({
             <div className="pt-2 flex flex-wrap items-center gap-2.5 sm:gap-3">
               <a
                 href="tel:04041897778"
-                className="inline-flex items-center gap-2 sm:gap-2.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-md transition-all duration-300 hover:scale-[1.02] text-decoration-none group max-w-full"
+                className="inline-flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4.5 py-[9px] sm:py-[11px] rounded-full shadow-md transition-all duration-300 hover:scale-[1.02] text-decoration-none group max-w-full"
                 style={{
                   background: 'linear-gradient(135deg, #FDE68A 0%, #F5D36C 50%, #E8B949 100%)',
                   color: '#2A1202',
                 }}
                 title="Click to call Toll Free: 040 4189 7778"
               >
-                <PhoneCall size={15} className="text-[#2A1202] group-hover:scale-110 transition-transform flex-shrink-0" />
+                <PhoneCall size={16} className="text-[#2A1202] group-hover:scale-110 transition-transform flex-shrink-0" />
                 <span className="text-xs sm:text-sm font-bold tracking-wide whitespace-nowrap">
                   Toll Free: 040 4189 7778
                 </span>
                 <span
-                  className="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full font-semibold border border-black/10 whitespace-nowrap"
+                  className="text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full font-semibold border border-black/10 whitespace-nowrap"
                   style={{
                     background: 'rgba(42, 18, 2, 0.1)',
                     color: '#2A1202',

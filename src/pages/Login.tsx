@@ -147,6 +147,7 @@ const Login = () => {
           expiresIn: data.data.expiresIn,
           userId,
           tokenType: data.data.tokenType || 'Bearer',
+          phone: data.data.mobileNumber || data.data.phoneNumber || data.data.phone || phone,
         });
 
       } else {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Image } from "antd";
 import {
@@ -285,7 +285,7 @@ const GET_USER_DATA = () => {
 
 const extractUserData = (u: any) => {
     if (!u) return { email: "", mobileNumber: "", firstName: "", lastName: "" };
-    const p = u.data?.body || u.body || u.data || u;
+    const p = u.data?.body || u.data?.user || u.body || u.user || u.data || u;
     const email =
         p.email ||
         u.email ||
@@ -296,14 +296,21 @@ const extractUserData = (u: any) => {
         p.mobileNumber ||
         p.phoneNumber ||
         p.phone ||
+        p.mobile ||
+        p.contactNumber ||
+        p.userPhone ||
+        p.userMobile ||
         u.mobileNumber ||
         u.phoneNumber ||
         u.phone ||
+        u.mobile ||
         u.data?.mobileNumber ||
         u.data?.phoneNumber ||
         u.data?.phone ||
+        u.data?.mobile ||
         u.data?.body?.mobileNumber ||
         u.data?.body?.phoneNumber ||
+        u.data?.body?.phone ||
         "";
     const firstName = p.firstName || u.firstName || u.data?.firstName || "";
     const lastName = p.lastName || u.lastName || u.data?.lastName || "";
@@ -447,6 +454,10 @@ const ProfilePage: React.FC = () => {
     const patchProfile = (partial: Partial<PageState["profileForm"]>) =>
         setS((prev) => ({ ...prev, profileForm: { ...prev.profileForm, ...partial } }));
 
+    const profileFormRef = useRef(s.profileForm);
+    profileFormRef.current = s.profileForm;
+    const didMountInfoFetchRef = useRef(false);
+
     useEffect(() => {
         const tab = searchParams.get("tab") as Tab;
         const editId = searchParams.get("editId");
@@ -508,10 +519,23 @@ const ProfilePage: React.FC = () => {
         patch({ isProfileLoading: true });
         try {
             const res = await getUserProfile(uid);
-            const profile = res.data?.body || res.data || res;
+            const profile = res?.data?.body || res?.data?.user || res?.data || res;
             if (profile && typeof profile === "object") {
-                const freshUser = { ...userData, data: { ...userData?.data, body: profile } };
+                const freshUser = {
+                    ...userData,
+                    data: { ...userData?.data, body: profile },
+                };
                 const extracted = extractUserData(freshUser);
+                const resolvedMobile =
+                    extracted.mobileNumber ||
+                    profile.mobileNumber ||
+                    profile.phone ||
+                    profile.phoneNumber ||
+                    extractUserData(userData).mobileNumber ||
+                    "";
+                if (resolvedMobile && !profile.mobileNumber) {
+                    profile.mobileNumber = resolvedMobile;
+                }
                 const hasExistingProfile = Boolean(
                     (profile.firstName && String(profile.firstName).trim()) ||
                     (profile.lastName && String(profile.lastName).trim()) ||
@@ -525,7 +549,7 @@ const ProfilePage: React.FC = () => {
                         email: extracted.email || profile.email || "",
                         alternativeNumber: profile.alternativeNumber || "",
                         whatsappNumber: profile.whatsappNumber || "",
-                        mobileNumber: extracted.mobileNumber || profile.mobileNumber || profile.phone || profile.phoneNumber || "",
+                        mobileNumber: resolvedMobile,
                         gender: profile.gender || "",
                         panNumber: profile.panNumber || "",
                         panVerified: profile.panVerified || false,
@@ -632,21 +656,28 @@ const ProfilePage: React.FC = () => {
 
     // Always fetch profile on mount so all tabs have fresh details
     useEffect(() => {
+        didMountInfoFetchRef.current = true;
         fetchProfile();
     }, [fetchProfile]);
 
     useEffect(() => {
-        if (s.activeTab === "info") fetchProfile();
+        if (s.activeTab === "info") {
+            if (didMountInfoFetchRef.current) {
+                didMountInfoFetchRef.current = false;
+            } else {
+                fetchProfile();
+            }
+        }
         if (s.activeTab === "address") loadAddresses();
         if (s.activeTab === "wallet") fetchWalletInfo();
         if (s.activeTab === "orders") loadOrders();
         if (s.activeTab === "support") {
             loadQueries();
-            if (!s.profileForm.email || !s.profileForm.mobileNumber) {
+            if (!profileFormRef.current.email || !profileFormRef.current.mobileNumber) {
                 fetchProfile();
             }
         }
-    }, [s.activeTab, fetchProfile, loadAddresses, fetchWalletInfo, loadOrders, loadQueries, s.profileForm.email, s.profileForm.mobileNumber]);
+    }, [s.activeTab, fetchProfile, loadAddresses, fetchWalletInfo, loadOrders, loadQueries]);
 
     /* ── actions ── */
     const validatePan = (pan: string): boolean => {
@@ -699,7 +730,7 @@ const ProfilePage: React.FC = () => {
 
         patch({ isSavingProfile: true, profileErrors: {} });
         try {
-            await saveUserProfile({
+            const saveRes = await saveUserProfile({
                 userId: uid,
                 email: profileForm.email,
                 alternativeNumber: profileForm.alternativeNumber,
@@ -709,18 +740,50 @@ const ProfilePage: React.FC = () => {
                 gender: profileForm.gender,
                 panNumber: profileForm.panNumber.trim() ? profileForm.panNumber.trim().toUpperCase() : "",
             });
-            const updatedUser = JSON.parse(JSON.stringify(userData));
-            const profile = updatedUser.data?.body || updatedUser;
-            profile.firstName = profileForm.firstName;
-            profile.lastName = profileForm.lastName;
-            profile.email = profileForm.email;
-            profile.alternativeNumber = profileForm.alternativeNumber;
-            profile.whatsappNumber = profileForm.whatsappNumber;
-            profile.gender = profileForm.gender;
-            profile.panNumber = profileForm.panNumber.trim() ? profileForm.panNumber.trim().toUpperCase() : "";
+            const savedBody = saveRes?.data?.body || saveRes?.data || saveRes || {};
+            const savedExtracted = extractUserData(savedBody);
+            const resolvedMobile =
+                savedExtracted.mobileNumber ||
+                profileForm.mobileNumber ||
+                extractUserData(userData).mobileNumber ||
+                "";
+            const normalizedPan = profileForm.panNumber.trim() ? profileForm.panNumber.trim().toUpperCase() : "";
+
+            const updatedUser = JSON.parse(JSON.stringify(userData || {}));
+            if (updatedUser.data) {
+                updatedUser.data.body = {
+                    ...(updatedUser.data.body || {}),
+                    ...(typeof savedBody === "object" && savedBody ? savedBody : {}),
+                    firstName: profileForm.firstName,
+                    lastName: profileForm.lastName,
+                    email: profileForm.email,
+                    alternativeNumber: profileForm.alternativeNumber,
+                    whatsappNumber: profileForm.whatsappNumber,
+                    gender: profileForm.gender,
+                    panNumber: normalizedPan,
+                    ...(resolvedMobile ? { mobileNumber: resolvedMobile } : {}),
+                };
+            } else {
+                updatedUser.firstName = profileForm.firstName;
+                updatedUser.lastName = profileForm.lastName;
+                updatedUser.email = profileForm.email;
+                updatedUser.alternativeNumber = profileForm.alternativeNumber;
+                updatedUser.whatsappNumber = profileForm.whatsappNumber;
+                updatedUser.gender = profileForm.gender;
+                updatedUser.panNumber = normalizedPan;
+                if (resolvedMobile) updatedUser.mobileNumber = resolvedMobile;
+            }
             localStorage.setItem("user", JSON.stringify(updatedUser));
             setUser(updatedUser);
-            patch({ isEditingProfile: false, toast: { message: "Profile updated successfully", type: "success" } });
+            patch({
+                isEditingProfile: false,
+                profileForm: {
+                    ...profileForm,
+                    mobileNumber: resolvedMobile,
+                    panNumber: normalizedPan,
+                },
+                toast: { message: "Profile updated successfully", type: "success" },
+            });
             if (returnTo === "cart") { setTimeout(() => navigate("/physical-gold/cart"), 800); }
             else if (returnTo === "support") { setTimeout(() => { setSearchParams({ tab: "support" }); patch({ activeTab: "support" }); }, 800); }
             else if (returnTo && returnTo.startsWith("/")) { setTimeout(() => navigate(returnTo), 800); }
@@ -1432,12 +1495,15 @@ const ProfilePage: React.FC = () => {
         }
     };
 
+    const headerContact = extractUserData(user);
     const displayName = user
-        ? `${user.data?.body?.firstName || user.firstName || ""} ${user.data?.body?.lastName || user.lastName || ""}`.trim() || "My Account"
+        ? `${s.profileForm.firstName || headerContact.firstName || ""} ${s.profileForm.lastName || headerContact.lastName || ""}`.trim() || "My Account"
         : "My Account";
 
-    const displayEmail = user?.data?.body?.email || user?.email || "";
-    const displayPhone = user?.data?.body?.mobileNumber || user?.phone || "";
+    const displayEmail = s.profileForm.email || headerContact.email || "";
+    const displayPhone = s.profileForm.mobileNumber || headerContact.mobileNumber || "";
+    const isSupportEmailLocked = Boolean(headerContact.email && validateEmail(headerContact.email));
+    const isSupportMobileLocked = Boolean(headerContact.mobileNumber && validateMobileNumber(headerContact.mobileNumber));
 
     const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
         { id: "info", label: "Profile", icon: User },
@@ -2512,13 +2578,13 @@ const ProfilePage: React.FC = () => {
                                             <input
                                                 type="email"
                                                 value={s.profileForm.email || ''}
-                                                disabled={!!s.profileForm.email && validateEmail(s.profileForm.email)}
+                                                disabled={isSupportEmailLocked}
                                                 onChange={(e) => {
                                                     patchProfile({ email: e.target.value });
                                                     patch({ queryFormErrors: { ...s.queryFormErrors, email: '' } });
                                                 }}
                                                 placeholder="Enter your email"
-                                                className={`${inputCls} ${s.profileForm.email && validateEmail(s.profileForm.email) ? 'bg-[#F5F2EE] cursor-not-allowed opacity-70' : !s.profileForm.email ? 'border-amber-300 focus:border-amber-500' : ''}`}
+                                                className={`${inputCls} ${isSupportEmailLocked ? 'bg-[#F5F2EE] cursor-not-allowed opacity-70' : !s.profileForm.email ? 'border-amber-300 focus:border-amber-500' : ''}`}
                                             />
                                             {s.queryFormErrors.email && <p className="text-[11px] text-rose-500 mt-1">{s.queryFormErrors.email}</p>}
                                         </div>
@@ -2527,7 +2593,7 @@ const ProfilePage: React.FC = () => {
                                             <input
                                                 type="tel"
                                                 value={s.profileForm.mobileNumber || ''}
-                                                disabled={!!s.profileForm.mobileNumber && validateMobileNumber(s.profileForm.mobileNumber)}
+                                                disabled={isSupportMobileLocked}
                                                 onChange={(e) => {
                                                     const val = formatMobileNumber(e.target.value);
                                                     if (val.length <= 10) {
@@ -2537,7 +2603,7 @@ const ProfilePage: React.FC = () => {
                                                 }}
                                                 placeholder="Enter 10-digit mobile number"
                                                 maxLength={10}
-                                                className={`${inputCls} ${s.profileForm.mobileNumber && validateMobileNumber(s.profileForm.mobileNumber) ? 'bg-[#F5F2EE] cursor-not-allowed opacity-70' : !s.profileForm.mobileNumber ? 'border-amber-300 focus:border-amber-500' : ''}`}
+                                                className={`${inputCls} ${isSupportMobileLocked ? 'bg-[#F5F2EE] cursor-not-allowed opacity-70' : !s.profileForm.mobileNumber ? 'border-amber-300 focus:border-amber-500' : ''}`}
                                             />
                                             {s.queryFormErrors.mobileNumber && <p className="text-[11px] text-rose-500 mt-1">{s.queryFormErrors.mobileNumber}</p>}
                                         </div>

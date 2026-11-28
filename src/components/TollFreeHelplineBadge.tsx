@@ -21,7 +21,7 @@ const TollFreeHelplineBadge: React.FC<TollFreeHelplineBadgeProps> = ({
         href={`tel:${phoneNumber}`}
         aria-label="Call 24/7 Toll Free Helpline 040 4189 7778"
         title="Call 24/7 Toll Free Helpline: 040 4189 7778"
-        className="group relative inline-flex items-center gap-2 sm:gap-2.5 rounded-full px-2.5 py-1 sm:px-3.5 sm:py-1.5 backdrop-blur-xl border border-amber-500/35 hover:border-amber-400 shadow-[0_6px_24px_rgba(15,3,38,0.65)] hover:shadow-[0_10px_28px_rgba(212,175,55,0.3)] transition-all duration-300 hover:scale-[1.03] text-decoration-none"
+        className="group relative inline-flex items-center gap-2 sm:gap-2.5 rounded-full px-3 py-[7px] sm:px-3.5 sm:py-[9px] backdrop-blur-xl border border-amber-500/35 hover:border-amber-400 shadow-[0_6px_24px_rgba(15,3,38,0.65)] hover:shadow-[0_10px_28px_rgba(212,175,55,0.3)] transition-all duration-300 hover:scale-[1.03] text-decoration-none"
         style={{
           background: 'linear-gradient(135deg, rgba(26, 10, 46, 0.94) 0%, rgba(15, 3, 30, 0.97) 100%)',
         }}
@@ -34,25 +34,25 @@ const TollFreeHelplineBadge: React.FC<TollFreeHelplineBadgeProps> = ({
 
         {/* Circular Phone Icon Badge - Existing Gold Theme */}
         <div
-          className="relative z-10 flex h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 items-center justify-center rounded-full shadow-md group-hover:scale-105 transition-transform duration-200"
+          className="relative z-10 flex h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full shadow-md group-hover:scale-105 transition-transform duration-200"
           style={{
             background: 'linear-gradient(135deg, #F5D36C 0%, #D4AF37 50%, #B8962E 100%)',
           }}
         >
-          <PhoneCall size={14} className="text-[#3D0B7A]" />
+          <PhoneCall size={15} className="text-[#3D0B7A]" />
         </div>
 
         {/* Text Details */}
         <div className="relative z-10 flex flex-col items-start text-left leading-tight">
           {/* Top Row: Label */}
-          <div className="text-[8.5px] sm:text-[9.5px] font-bold tracking-wider text-gray-300 uppercase">
+          <div className="text-[9px] sm:text-[10px] font-bold tracking-wider text-gray-300 uppercase">
             <span className="text-gray-300 group-hover:text-amber-200 transition-colors">
               TOLL FREE HELPLINE • 24/7
             </span>
           </div>
 
           {/* Bottom Row: Toll Free Phone Number */}
-          <div className="mt-0.5 text-[11px] sm:text-xs font-extrabold tracking-wide text-white group-hover:text-[#F5D36C] transition-colors">
+          <div className="mt-0.5 text-[11.5px] sm:text-[13px] font-extrabold tracking-wide text-white group-hover:text-[#F5D36C] transition-colors">
             {displayNumber}
           </div>
         </div>

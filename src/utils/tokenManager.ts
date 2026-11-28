@@ -7,6 +7,7 @@ interface TokenData {
   expiresIn: string;
   userId: number;
   tokenType: string;
+  phone?: string;
 }
 
 interface ApiResponse<T = any> {
@@ -79,7 +80,29 @@ class TokenManager {
 
   public setTokens(tokenData: TokenData): void {
     console.log('[TokenManager] Setting new tokens for user:', tokenData.userId);
-    
+
+    // Preserve phone / profile body when refreshing tokens for the same user
+    let existingPhone: string | undefined;
+    let existingBody: unknown;
+    try {
+      const raw = localStorage.getItem('user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.data?.userId === tokenData.userId) {
+          existingPhone =
+            parsed.phone ||
+            parsed.mobileNumber ||
+            parsed.data?.mobileNumber ||
+            parsed.data?.phoneNumber ||
+            parsed.data?.body?.mobileNumber ||
+            parsed.data?.body?.phoneNumber;
+          existingBody = parsed.data?.body;
+        }
+      }
+    } catch {
+      // ignore storage read errors
+    }
+
     // Clear any existing tokens first to prevent data mixing
     this.clearTokens();
     
@@ -99,13 +122,17 @@ class TokenManager {
       this.expiresAt = isNaN(d.getTime()) ? null : d;
     }
 
+    const phone = tokenData.phone || existingPhone;
     const userData = {
+      ...(phone ? { phone, mobileNumber: phone } : {}),
       data: {
         accessToken: tokenData.accessToken,
         refreshToken: tokenData.refreshToken,
         expiresIn: this.expiresAt ? this.expiresAt.toISOString() : tokenData.expiresIn,
         userId: tokenData.userId,
         tokenType: tokenData.tokenType,
+        ...(phone ? { mobileNumber: phone } : {}),
+        ...(existingBody ? { body: existingBody } : {}),
       }
     };
     localStorage.setItem('user', JSON.stringify(userData));

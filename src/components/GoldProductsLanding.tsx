@@ -12,7 +12,7 @@ import {
   Tag,
   X,
 } from "lucide-react";
-import { resolveS3ImageUrl } from "../PhysicalGold/physicalGoldData";
+import { ProductVariant, resolveS3ImageUrl } from "../PhysicalGold/physicalGoldData";
 import { fetchGoldSilverRateBreakdown, fetchProductVariants, GoldSilverRateBreakdown } from "../PhysicalGold/physicalGoldService";
 
 interface Product {
@@ -24,6 +24,21 @@ interface Product {
   frontViewurl: string | null;
   status: string;
   price: number;
+  mrp: number | null;
+  size: string;
+  purity: string;
+  weight: number | null;
+}
+
+interface VariantSnippet {
+  id?: number | string;
+  size?: string | null;
+  purity?: string | null;
+  weight?: number | string | null;
+  price?: number | null;
+  mrp?: number | null;
+  status?: string | null;
+  stockQuantity?: number | null;
 }
 
 interface ProductResponse {
@@ -32,6 +47,12 @@ interface ProductResponse {
   description: string | null;
   image: string | null;
   price: number | null;
+  mrp?: number | null;
+  size?: string | null;
+  purity?: string | null;
+  weight?: number | string | null;
+  variants?: VariantSnippet[] | null;
+  listVariantResponse?: VariantSnippet[] | null;
   status?: string;
 }
 
@@ -49,8 +70,30 @@ const API_URL =
 const currency = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
+
+function formatWeight(weight: number): string {
+  return Number.isInteger(weight)
+    ? String(weight)
+    : weight.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function pickPrimaryVariant<
+  T extends { status?: string | null; stockQuantity?: number | null }
+>(variants?: T[] | null): T | undefined {
+  if (!variants?.length) return undefined;
+  return (
+    variants.find(
+      (v) =>
+        (!v.status || v.status === "ACTIVE") &&
+        (v.stockQuantity == null || Number(v.stockQuantity) > 0)
+    ) ||
+    variants.find((v) => !v.status || v.status === "ACTIVE") ||
+    variants[0]
+  );
+}
 
 function ProductImage({ product }: { product: Product }) {
   const [failed, setFailed] = useState(false);
@@ -89,7 +132,8 @@ export default function GoldProductsLanding() {
   const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false);
   const [canScrollTabsRight, setCanScrollTabsRight] = useState(false);
 
-  // Price Breakup State
+  // Price Breakup & Variant State
+  const [variantCache, setVariantCache] = useState<Record<number, ProductVariant>>({});
   const [breakupCache, setBreakupCache] = useState<Record<number, GoldSilverRateBreakdown>>({});
   const [loadingBreakupId, setLoadingBreakupId] = useState<number | null>(null);
   const [hoveredProductId, setHoveredProductId] = useState<number | null>(null);
@@ -101,7 +145,11 @@ export default function GoldProductsLanding() {
     setLoadingBreakupId(productId);
     try {
       const { variants } = await fetchProductVariants(String(productId));
-      const targetVariantId = variants?.[0]?.id || productId;
+      const primaryVariant = pickPrimaryVariant(variants);
+      if (primaryVariant) {
+        setVariantCache((prev) => ({ ...prev, [productId]: primaryVariant }));
+      }
+      const targetVariantId = primaryVariant?.id || productId;
       const data = await fetchGoldSilverRateBreakdown(targetVariantId);
       if (data) {
         setBreakupCache((prev) => ({ ...prev, [productId]: data }));
@@ -142,6 +190,7 @@ export default function GoldProductsLanding() {
 
       setLoading(true);
       setError("");
+      fetchingRef.current.clear();
 
       try {
         const response = await fetch(API_URL, {
@@ -170,16 +219,28 @@ export default function GoldProductsLanding() {
           .flatMap((parentCategory) =>
             (parentCategory.products ?? [])
               .filter((product) => !product.status || product.status === "ACTIVE")
-              .map<Product>((product) => ({
-                id: product.id,
-                name: product.name,
-                description: product.description?.trim() ?? "",
-                categoryId: parentCategory.id,
-                categoryName: parentCategory.name,
-                frontViewurl: resolveS3ImageUrl(product.image) || null,
-                status: product.status ?? "ACTIVE",
-                price: Number(product.price) || 0,
-              }))
+              .map<Product>((product) => {
+                const primaryEmbedded = pickPrimaryVariant(
+                  product.variants ?? product.listVariantResponse
+                );
+                const rawWeight = primaryEmbedded?.weight ?? product.weight;
+                const rawMrp = primaryEmbedded?.mrp ?? product.mrp;
+
+                return {
+                  id: product.id,
+                  name: product.name,
+                  description: product.description?.trim() ?? "",
+                  categoryId: parentCategory.id,
+                  categoryName: parentCategory.name,
+                  frontViewurl: resolveS3ImageUrl(product.image) || null,
+                  status: product.status ?? "ACTIVE",
+                  price: Number(primaryEmbedded?.price ?? product.price) || 0,
+                  mrp: rawMrp != null ? Number(rawMrp) : null,
+                  size: String(primaryEmbedded?.size ?? product.size ?? "").trim(),
+                  purity: String(primaryEmbedded?.purity ?? product.purity ?? "").trim(),
+                  weight: rawWeight != null && rawWeight !== "" ? Number(rawWeight) : null,
+                };
+              })
           );
 
         setProducts(mappedProducts);
@@ -467,7 +528,34 @@ export default function GoldProductsLanding() {
                       : "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5"
                 }
               >
-                {filteredProducts.map((product) => (
+                {filteredProducts.map((product) => {
+                  const activeVariant = variantCache[product.id];
+                  const displayPrice =
+                    activeVariant?.price != null && Number(activeVariant.price) > 0
+                      ? Number(activeVariant.price)
+                      : product.price;
+                  const displayMrp =
+                    activeVariant?.mrp != null && Number(activeVariant.mrp) > 0
+                      ? Number(activeVariant.mrp)
+                      : product.mrp;
+                  const displayPurity =
+                    (activeVariant?.purity != null
+                      ? String(activeVariant.purity).trim()
+                      : "") || product.purity;
+                  const displayWeight =
+                    activeVariant?.weight != null && Number(activeVariant.weight) > 0
+                      ? Number(activeVariant.weight)
+                      : product.weight;
+                  const hasMrpDiscount =
+                    displayMrp != null &&
+                    displayMrp > 0 &&
+                    displayPrice > 0 &&
+                    displayMrp > displayPrice;
+                  const mrpDiscountPct = hasMrpDiscount
+                    ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
+                    : 0;
+
+                  return (
                   <article
                     key={product.id}
                     role="link"
@@ -484,6 +572,8 @@ export default function GoldProductsLanding() {
                     }}
                     className={`
                         group
+                        flex
+                        flex-col
                         w-full
                         min-w-0
                         cursor-pointer
@@ -505,8 +595,8 @@ export default function GoldProductsLanding() {
                         ${hoveredProductId === product.id ? "z-30" : "z-0 hover:z-20"}
                         ${useFeaturedCards
                         ? isSingleProduct
-                          ? "sm:flex sm:min-h-[230px]"
-                          : "sm:flex sm:min-h-[250px]"
+                          ? "sm:flex-row sm:min-h-[230px]"
+                          : "sm:flex-row sm:min-h-[250px]"
                         : ""
                       }
                       `}
@@ -519,12 +609,18 @@ export default function GoldProductsLanding() {
                           : "aspect-square rounded-t-xl sm:rounded-t-2xl"
                         }`}
                     >
+                      {hasMrpDiscount && mrpDiscountPct > 0 && (
+                        <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                          <Tag size={10} />
+                          {mrpDiscountPct}% OFF
+                        </span>
+                      )}
                       <ProductImage product={product} />
                     </div>
 
                     <div
-                      className={`p-2.5 sm:p-4 ${useFeaturedCards
-                          ? "sm:flex sm:flex-1 sm:flex-col sm:justify-center sm:p-5 lg:p-6"
+                      className={`flex flex-1 flex-col p-2.5 sm:p-4 ${useFeaturedCards
+                          ? "sm:justify-center sm:p-5 lg:p-6"
                           : ""
                         }`}
                     >
@@ -543,20 +639,43 @@ export default function GoldProductsLanding() {
                         </p>
                       )}
 
-                      <div className="relative mt-1.5 sm:mt-2.5 flex items-center justify-between gap-1 flex-wrap">
-                        <p
-                          className={`font-black text-[#F5D36C] ${useFeaturedCards
-                              ? "text-sm sm:text-xl"
-                              : "text-sm sm:text-lg"
-                            }`}
-                        >
-                          {currency.format(product.price)}
-                        </p>
+                      {(displayPurity || (displayWeight != null && displayWeight > 0)) && (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1 sm:mt-2 sm:gap-1.5">
+                          {displayPurity && (
+                            <span className="rounded-md border border-[#D4AF37]/30 bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-semibold text-white/80 whitespace-nowrap sm:text-[11px]">
+                              Purity: <span className="text-[#F5D36C]">{displayPurity}</span>
+                            </span>
+                          )}
+                          {displayWeight != null && displayWeight > 0 && (
+                            <span className="rounded-md border border-[#D4AF37]/30 bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-semibold text-white/80 whitespace-nowrap sm:text-[11px]">
+                              Weight: <span className="text-[#F5D36C]">{formatWeight(displayWeight)}g</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="relative mt-2 sm:mt-2.5 flex items-center justify-between gap-1.5">
+                        <div className="flex min-w-0 flex-wrap items-baseline gap-1.5">
+                          <p
+                            className={`font-black text-[#F5D36C] whitespace-nowrap ${useFeaturedCards
+                                ? "text-sm sm:text-xl"
+                                : "text-sm sm:text-lg"
+                              }`}
+                          >
+                            {currency.format(displayPrice)}
+                          </p>
+
+                          {hasMrpDiscount && displayMrp != null && (
+                            <span className="text-[11px] font-medium text-white/50 line-through whitespace-nowrap sm:text-xs">
+                              {currency.format(displayMrp)}
+                            </span>
+                          )}
+                        </div>
 
                         {/* Price Breakup Hover Trigger & Popover - Only displayed if discountPercentage > 0 or discountAmount > 0 */}
                         {hasOfferDiscount(breakupCache[product.id]) && (
                           <div
-                            className="relative"
+                            className="relative shrink-0 ml-auto"
                             onMouseEnter={() => handleMouseEnterBreakup(product.id)}
                             onMouseLeave={() => setHoveredProductId(null)}
                           >
@@ -570,7 +689,7 @@ export default function GoldProductsLanding() {
                                   handleMouseEnterBreakup(product.id);
                                 }
                               }}
-                              className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-[#F5D36C]/90 hover:text-[#F5D36C] bg-white/[0.08] hover:bg-white/[0.16] border border-[#D4AF37]/35 px-2 py-0.5 rounded-full transition cursor-pointer"
+                              className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-[#F5D36C]/90 hover:text-[#F5D36C] bg-white/[0.08] hover:bg-white/[0.16] border border-[#D4AF37]/35 px-2 py-0.5 rounded-full transition cursor-pointer whitespace-nowrap"
                               title="View Offer"
                             >
                               <Info size={11} className="shrink-0 text-[#F5D36C]" />
@@ -627,7 +746,7 @@ export default function GoldProductsLanding() {
                                     )}
                                     <div className="flex justify-between border-t border-white/20 pt-1.5 text-[12px] font-bold text-[#F5D36C]">
                                       <span>Final Amount:</span>
-                                      <span>₹{Number(breakupCache[product.id].finalAmount || product.price).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                      <span>₹{Number(breakupCache[product.id].finalAmount || displayPrice).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                   </div>
                                 ) : (
@@ -641,23 +760,26 @@ export default function GoldProductsLanding() {
                         )}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          openProduct(product);
-                        }}
-                        className={`mt-2.5 inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#D4AF37] to-[#F5D36C] px-2 text-[11px] font-black text-[#2B0A59] shadow-[0_7px_18px_rgba(212,175,55,.18)] transition hover:-translate-y-0.5 hover:brightness-105 active:scale-95 sm:mt-3 sm:rounded-xl sm:px-3 sm:text-xs ${useFeaturedCards
-                            ? "w-full sm:w-fit sm:min-w-32"
-                            : "w-full"
-                          }`}
-                      >
-                        Buy Now
-                        <ArrowRight size={14} />
-                      </button>
+                      <div className={useFeaturedCards ? "mt-3" : "mt-auto pt-2.5 sm:pt-3"}>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openProduct(product);
+                          }}
+                          className={`inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-[#D4AF37] to-[#F5D36C] px-2 text-[11px] font-black text-[#2B0A59] shadow-[0_7px_18px_rgba(212,175,55,.18)] transition hover:-translate-y-0.5 hover:brightness-105 active:scale-95 sm:rounded-xl sm:px-3 sm:text-xs ${useFeaturedCards
+                              ? "w-full sm:w-fit sm:min-w-32"
+                              : "w-full"
+                            }`}
+                        >
+                          Buy Now
+                          <ArrowRight size={14} />
+                        </button>
+                      </div>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

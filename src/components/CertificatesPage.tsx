@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
-import { Eye, FileCheck2, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Eye, FileCheck2, X } from "lucide-react";
 
 type Certificate = {
   id: number;
@@ -43,6 +44,7 @@ const getPreviewUrl = (fileId: string) =>
   `https://drive.google.com/file/d/${fileId}/preview`;
 
 const CertificatesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedCertificate, setSelectedCertificate] =
     useState<Certificate | null>(null);
 
@@ -119,6 +121,18 @@ const CertificatesPage: React.FC = () => {
     <>
       <section className="certificates-page" id="our-certifications">
         <div className="certificates-container">
+          <div className="certificates-topbar">
+            <button
+              type="button"
+              className="certificates-back-btn"
+              onClick={() => navigate(-1)}
+              aria-label="Go back"
+            >
+              <ArrowLeft size={16} aria-hidden="true" />
+              <span>Back</span>
+            </button>
+          </div>
+
           <div className="certificates-section-header">
             <h3 className="certificates-title">Our Certificates</h3>
             <div className="certificates-title-accent" aria-hidden="true" />
@@ -205,8 +219,9 @@ const CertificatesPage: React.FC = () => {
 
         .certificates-page {
           width: 100%;
+          min-height: 100dvh;
           background: #12051f;
-          padding: 48px 0 72px;
+          padding: 28px 0 72px;
           color: #ffffff;
           font-family: inherit;
         }
@@ -214,6 +229,42 @@ const CertificatesPage: React.FC = () => {
         .certificates-container {
           width: min(1240px, calc(100% - 48px));
           margin: 0 auto;
+        }
+
+        .certificates-topbar {
+          display: flex;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .certificates-back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          min-height: 40px;
+          padding: 8px 16px;
+          border-radius: 10px;
+          border: 1px solid rgba(241, 201, 91, 0.35);
+          background: rgba(255, 255, 255, 0.06);
+          color: #f5d87a;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          transition:
+            background 0.2s ease,
+            border-color 0.2s ease,
+            transform 0.2s ease;
+        }
+
+        .certificates-back-btn:hover {
+          background: rgba(241, 201, 91, 0.14);
+          border-color: rgba(241, 201, 91, 0.65);
+          transform: translateX(-2px);
+        }
+
+        .certificates-back-btn:focus-visible {
+          outline: 2px solid #f5d87a;
+          outline-offset: 2px;
         }
 
         /* ===========================
@@ -745,6 +796,7 @@ const CertificatesPage: React.FC = () => {
         }
 
         @media (prefers-reduced-motion: reduce) {
+          .certificates-back-btn,
           .certificate-card,
           .certificate-preview img,
           .certificate-overlay,
