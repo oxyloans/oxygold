@@ -33,12 +33,19 @@ import leaseGoldVideo from "../assets/lease_Gold&sliver.mp4";
 
 type PayoutFrequency = "Monthly" | "Quarterly" | "Half-Yearly" | "Yearly";
 type MetalChoice = "Gold" | "Silver";
-type FaqCategory =
-  | "All"
-  | "Getting Started"
-  | "Returns & Payouts"
-  | "TDS & Taxation"
-  | "Safety & Terms";
+const FAQ_CATEGORIES = [
+  "All",
+  "Basic Information",
+  "Returns & Earnings",
+  "Gold & Silver Eligibility",
+  "Registration & Documentation",
+  "Gold Safety & Settlement",
+  "TDS & Taxation",
+  "Customer Concerns",
+  "Additional Questions",
+] as const;
+
+type FaqCategory = (typeof FAQ_CATEGORIES)[number];
 
 interface FaqItem {
   id: string;
@@ -161,93 +168,367 @@ const SAMPLE_TDS_ROWS = [
 ];
 
 const FAQS: FaqItem[] = [
+  // Section 1: Basic Information
   {
-    id: "what-is-leasing",
-    category: "Getting Started",
-    question: "What is Gold & Silver Leasing with OXYGOLD.AI?",
+    id: "what-is-oxygold",
+    category: "Basic Information",
+    question: "What is OxyGold.ai?",
     answer:
-      "Gold & Silver leasing enables owners of eligible precious metals to earn potential passive income instead of letting their metals sit idle. Leased metals are collected by Radhakrishna Jewellery And Gold Finance, while digital onboarding and tracking are managed via ULP – OxyBricks.",
+      "OxyGold.ai is engineering a next-generation gold ecosystem where benchmark pricing, compliance frameworks and AI intelligence converge to modernize how gold is owned, validated and scaled.",
   },
   {
-    id: "oxygold-vs-ulp",
-    category: "Getting Started",
-    question:
-      "What are the roles of Radhakrishna Jewellery And Gold Finance and ULP – OxyBricks?",
+    id: "what-services-oxygold-offers",
+    category: "Basic Information",
+    question: "What services does OxyGold.ai offer?",
     answer:
-      "Radhakrishna Jewellery And Gold Finance is the collecting Jewellery & Gold Finance company participating in the lease program, while ULP – OxyBricks (ulp.oxybricks.world) serves as our dedicated digital platform for KYC onboarding, lease agreements, and payout tracking.",
+      "OxyGold.ai facilitates eligible gold and silver coin pledging activities under its applicable business arrangements.",
   },
   {
-    id: "eligibility-kyc",
-    category: "Getting Started",
-    question: "Who can participate and what KYC documents are required?",
-    answer:
-      "Resident individuals and eligible entities meeting the onboarding requirements on ULP – OxyBricks can participate. You will typically need a valid PAN card (essential for TDS reporting), Aadhaar/identity verification, and an active bank account in your own name for receiving payouts.",
+    id: "accept-both-gold-and-silver",
+    category: "Basic Information",
+    question: "Do you accept both gold and silver?",
+    answer: "Yes. We accept eligible gold coins and silver coins.",
   },
   {
-    id: "indicative-returns",
-    category: "Returns & Payouts",
-    question: "What are the indicative returns on Gold & Silver leasing?",
+    id: "what-is-gold-silver-pledging",
+    category: "Basic Information",
+    question: "What is gold and silver pledging?",
     answer:
-      "The program highlights indicative monthly returns of 0.75% – 1% and advertised annual returns of 9% – 13%. Actual returns depend on the specific leasing plan, metal type, tenure, and terms accepted at the time of agreement. Returns are indicative and not guaranteed.",
+      "Pledging is an arrangement in which eligible gold or silver is provided as security under agreed terms for a specified tenure.",
   },
   {
-    id: "payout-frequencies",
-    category: "Returns & Payouts",
-    question: "What payout frequencies can I choose from?",
+    id: "benefit-of-pledging-gold",
+    category: "Basic Information",
+    question: "What is the benefit of pledging gold?",
     answer:
-      "You can select from four flexible payout options based on your financial goals: Monthly, Quarterly, Half-Yearly, or Yearly. Payouts are settled to your verified bank account as per the schedule defined in your lease agreement.",
+      "Customers can participate in an eligible pledging arrangement without selling their gold, subject to the agreement and return conditions.",
+  },
+
+  // Section 2: Returns & Earnings
+  {
+    id: "monthly-returns-offered",
+    category: "Returns & Earnings",
+    question: "What monthly returns do you offer?",
+    answer:
+      "The indicated monthly return range is 0.75% to 1%, depending on the applicable scheme.",
   },
   {
-    id: "guaranteed-returns",
-    category: "Returns & Payouts",
-    question: "Are the leasing returns guaranteed?",
+    id: "annual-return",
+    category: "Returns & Earnings",
+    question: "What is the annual return?",
     answer:
-      "No. Returns are indicative and subject to applicable leasing terms, market conditions, counterparty and operational risks, and statutory TDS deductions. Always review the complete lease agreement carefully before committing.",
+      "The indicated annual return range is approximately 9% to 13%, depending on the applicable scheme and calculation method.",
   },
   {
-    id: "how-tds-works",
+    id: "same-return-for-every-customer",
+    category: "Returns & Earnings",
+    question: "Is the return the same for every customer?",
+    answer:
+      "Returns depend on the selected scheme, tenure and applicable agreement.",
+  },
+  {
+    id: "how-to-receive-returns",
+    category: "Returns & Earnings",
+    question: "How will I receive my returns?",
+    answer:
+      "The payment frequency and method will be communicated as per the selected scheme agreement.",
+  },
+  {
+    id: "calculate-expected-returns",
+    category: "Returns & Earnings",
+    question: "Can I calculate my expected returns before participating?",
+    answer:
+      "Yes. Our team can explain the applicable rate and provide an illustrative calculation before participation.",
+  },
+
+  // Section 3: Gold & Silver Eligibility
+  {
+    id: "accepted-gold-purity",
+    category: "Gold & Silver Eligibility",
+    question: "Which gold purity do you accept?",
+    answer: "We accept eligible 22-karat and 24-karat gold coins.",
+  },
+  {
+    id: "accept-gold-ornaments",
+    category: "Gold & Silver Eligibility",
+    question: "Do you accept gold ornaments?",
+    answer:
+      "No. Currently, we accept eligible gold coins only, not gold ornaments.",
+  },
+  {
+    id: "accept-silver-jewellery",
+    category: "Gold & Silver Eligibility",
+    question: "Do you accept silver jewellery?",
+    answer:
+      "Our current acceptance criteria cover eligible silver coins. Silver jewellery is not included.",
+  },
+  {
+    id: "accept-silver-coins-every-purity",
+    category: "Gold & Silver Eligibility",
+    question: "Do you accept silver coins of every purity?",
+    answer:
+      "Acceptance is subject to the applicable purity and verification criteria.",
+  },
+  {
+    id: "how-verify-gold-purity",
+    category: "Gold & Silver Eligibility",
+    question: "How do you verify gold purity?",
+    answer:
+      "Gold is subject to purity and weight verification according to the applicable acceptance process.",
+  },
+  {
+    id: "pledge-coins-other-jewellery-shop",
+    category: "Gold & Silver Eligibility",
+    question: "Can I pledge coins purchased from another jewellery shop?",
+    answer:
+      "Eligibility depends on authenticity, purity, weight and verification requirements.",
+  },
+  {
+    id: "minimum-gold-quantity-required",
+    category: "Gold & Silver Eligibility",
+    question: "Is there a minimum gold quantity required?",
+    answer:
+      "The applicable minimum quantity must be confirmed with the team before participation.",
+  },
+
+  // Section 4: Registration & Documentation
+  {
+    id: "how-can-i-register",
+    category: "Registration & Documentation",
+    question: "How can I register?",
+    answer:
+      "Customers can register through the applicable OxyGold platform and complete the required verification process.",
+  },
+  {
+    id: "what-documents-required",
+    category: "Registration & Documentation",
+    question: "What documents are required?",
+    answer:
+      "Required identity, address, ownership and transaction-related documents will be communicated during registration.",
+  },
+  {
+    id: "receive-confirmation-after-pledging",
+    category: "Registration & Documentation",
+    question: "Do I receive a confirmation after pledging?",
+    answer:
+      "Customers should receive the applicable transaction and pledging documentation as per the approved process.",
+  },
+  {
+    id: "check-pledging-details-online",
+    category: "Registration & Documentation",
+    question: "Can I check my pledging details online?",
+    answer:
+      "Customers can check the information made available through their registered platform account.",
+  },
+  {
+    id: "registered-business-entity",
+    category: "Registration & Documentation",
+    question: "Is there a registered business entity?",
+    answer:
+      "The business has identified Radhakrishna Jewellery and Gold Finance as its associated registered entity. Customers can request the applicable registration documents for verification.",
+  },
+
+  // Section 5: Gold Safety & Settlement
+  {
+    id: "get-same-gold-coins-back",
+    category: "Gold Safety & Settlement",
+    question: "Will I get the same gold coins back?",
+    answer:
+      "The return arrangement must be understood from the signed agreement. If the agreement provides for equivalent gold, the equivalent quantity and purity will be returned rather than necessarily the identical physical coins.",
+  },
+  {
+    id: "receive-same-gold-weight",
+    category: "Gold Safety & Settlement",
+    question: "Will I receive the same gold weight?",
+    answer:
+      "The agreed settlement quantity and purity will be governed by the pledging agreement.",
+  },
+  {
+    id: "when-tenure-is-completed",
+    category: "Gold Safety & Settlement",
+    question: "What happens when my tenure is completed?",
+    answer:
+      "Settlement and return of the pledged metal will be carried out according to the agreement.",
+  },
+  {
+    id: "withdraw-before-tenure-ends",
+    category: "Gold Safety & Settlement",
+    question: "Can I withdraw before the tenure ends?",
+    answer:
+      "Early withdrawal depends on the applicable scheme terms and conditions.",
+  },
+  {
+    id: "delay-in-settlement",
+    category: "Gold Safety & Settlement",
+    question: "What happens if there is a delay in settlement?",
+    answer:
+      "Customers should contact the support team. The team will verify the transaction and communicate the applicable resolution process.",
+  },
+  {
+    id: "maintain-gold-safety",
+    category: "Gold Safety & Settlement",
+    question: "How do you maintain gold safety?",
+    answer:
+      "Customers should refer to the approved custody, insurance, storage and security arrangements documented by the operating entity.",
+  },
+
+  // Section 6: TDS & Taxation
+  {
+    id: "tds-deducted-on-gold-returns",
     category: "TDS & Taxation",
-    question: "How does TDS (Tax Deduction at Source) apply to lease payouts?",
+    question: "Is TDS deducted on gold returns?",
     answer:
-      "Lease income is subject to Tax Deduction at Source (TDS) as per applicable provisions of the Income Tax Act, 1961. Radhakrishna Jewellery And Gold Finance (the deductor) deducts applicable TDS before crediting the net payout to your bank account and deposits it with the Government against your PAN.",
+      "The currently communicated rate is 10%, subject to the applicable tax provisions and customer circumstances.",
   },
   {
-    id: "sample-tds-certificate",
+    id: "why-tds-deducted",
     category: "TDS & Taxation",
-    question: "Will I receive a TDS certificate for my lease earnings?",
+    question: "Why is TDS deducted?",
     answer:
-      "Yes. For deducted TDS, a statutory TDS certificate (such as Form 16A) is issued for the relevant quarter/period, and the tax credit is reflected in your Form 26AS and Annual Information Statement (AIS) linked to your PAN. You can view our Sample TDS Certificate section above to see the exact fields included.",
+      "TDS is tax deducted at source as required under applicable income tax provisions.",
   },
   {
-    id: "pan-importance",
+    id: "receive-form-16a",
     category: "TDS & Taxation",
-    question: "What happens if my PAN is invalid or not linked?",
+    question: "Will I receive Form 16A?",
+    answer: "Eligible customers will receive the applicable TDS certificate.",
+  },
+  {
+    id: "when-receive-tds-certificate",
+    category: "TDS & Taxation",
+    question: "When will I receive my TDS certificate?",
     answer:
-      "Under Indian tax regulations, failure to furnish a valid PAN (or an inoperative PAN) can attract a higher TDS deduction rate (such as 20% under Section 206AA) and delay credit reflection in Form 26AS. Ensure your PAN is valid and linked before starting a lease.",
+      "The certificate will be provided according to the applicable TDS reporting and issuance schedule.",
+  },
+  {
+    id: "check-deducted-tds",
+    category: "TDS & Taxation",
+    question: "How can I check my deducted TDS?",
+    answer:
+      "Customers can check eligible tax credit information through Form 26AS or the Annual Information Statement (AIS), subject to reporting.",
+  },
+  {
+    id: "how-file-income-tax-return",
+    category: "TDS & Taxation",
+    question: "How do I file my income tax return?",
+    answer:
+      "Customers can use their TDS certificate and other relevant income documents while filing their income tax return.",
+  },
+  {
+    id: "oxygold-help-with-tds-filing",
+    category: "TDS & Taxation",
+    question: "Can OxyGold help me with TDS filing?",
+    answer:
+      "Yes. Our support team can guide customers regarding TDS certificates and the general filing process.",
   },
   {
     id: "claim-tds-refund",
     category: "TDS & Taxation",
-    question:
-      "Can I adjust or claim deducted TDS when filing my Income Tax Return?",
+    question: "Can I claim a TDS refund?",
     answer:
-      "Yes. Any TDS deposited against your PAN appears in your Form 26AS / AIS and can be claimed as tax credit against your total income tax liability (or claimed as a refund if eligible) when filing your annual ITR. Consult a qualified tax advisor for personalized advice.",
+      "If eligible, customers may claim excess TDS through their income tax return, subject to applicable tax rules.",
+  },
+
+  // Section 7: Customer Concerns
+  {
+    id: "is-gold-sold-when-pledged",
+    category: "Customer Concerns",
+    question: "Is my gold sold when I pledge it?",
+    answer:
+      "Pledging and selling are different arrangements. Your exact ownership rights and obligations depend on the agreement you sign.",
   },
   {
-    id: "risks-and-terms",
-    category: "Safety & Terms",
-    question:
-      "What risks should I understand before leasing Gold or Silver?",
+    id: "pledge-gold-coins-multiple-times",
+    category: "Customer Concerns",
+    question: "Can I pledge gold coins multiple times?",
     answer:
-      "Precious metal leasing carries market price risk (gold and silver prices fluctuate), counterparty/lessee credit risk, liquidity or lock-in restrictions during the lease tenure, and regulatory or tax changes. Unlike bank fixed deposits, leasing plans are not RBI-insured deposits.",
+      "This depends on the availability of eligible coins and the applicable scheme conditions.",
   },
   {
-    id: "maturity-exit",
-    category: "Safety & Terms",
-    question:
-      "What happens at the end of the lease tenure or if I want to exit early?",
+    id: "add-more-gold-after-first-participation",
+    category: "Customer Concerns",
+    question: "Can I add more gold after my first participation?",
     answer:
-      "Upon maturity, you can choose to renew your lease or settle/redeem your holdings in accordance with the terms of your executed lease agreement on ULP – OxyBricks. Early exit conditions, notice periods, or adjustments—if permitted—are governed strictly by the specific plan's lease contract.",
+      "Additional participation may be possible subject to eligibility and approval.",
+  },
+  {
+    id: "transfer-participation-to-another-person",
+    category: "Customer Concerns",
+    question: "Can I transfer my participation to another person?",
+    answer:
+      "Transferability depends on the agreement and applicable procedures.",
+  },
+  {
+    id: "lose-transaction-confirmation",
+    category: "Customer Concerns",
+    question: "What happens if I lose my transaction confirmation?",
+    answer:
+      "Contact customer support with your registered details so the team can help retrieve the applicable records.",
+  },
+  {
+    id: "get-statement-of-transactions",
+    category: "Customer Concerns",
+    question: "Can I get a statement of my transactions?",
+    answer:
+      "Customers can request the applicable transaction statement through the support team or available platform facilities.",
+  },
+  {
+    id: "how-to-raise-complaint",
+    category: "Customer Concerns",
+    question: "How can I raise a complaint?",
+    answer:
+      "Customers can contact the official support team and provide their registered details and transaction reference.",
+  },
+  {
+    id: "visit-office-for-clarification",
+    category: "Customer Concerns",
+    question: "Can I visit your office for clarification?",
+    answer:
+      "Customers can contact the team to confirm the office address and arrange a visit.",
+  },
+  {
+    id: "any-additional-fee",
+    category: "Customer Concerns",
+    question: "Is there any additional fee?",
+    answer:
+      "Any applicable charges will be disclosed in the official scheme documentation before participation.",
+  },
+
+  // Section 8: Additional Questions
+  {
+    id: "how-value-of-gold-calculated",
+    category: "Additional Questions",
+    question: "How is the value of gold calculated?",
+    answer:
+      "The value is determined according to the applicable valuation method, verified weight, purity and benchmark pricing.",
+  },
+  {
+    id: "market-price-fluctuation-affect-agreement",
+    category: "Additional Questions",
+    question: "Does gold market price fluctuation affect my agreement?",
+    answer:
+      "The impact of gold price fluctuations depends on the valuation and settlement terms specified in the agreement.",
+  },
+  {
+    id: "can-nris-participate",
+    category: "Additional Questions",
+    question: "Can NRIs participate?",
+    answer:
+      "NRI eligibility must be confirmed based on applicable legal, regulatory and operational requirements.",
+  },
+  {
+    id: "how-to-contact-oxygold-team",
+    category: "Additional Questions",
+    question: "How can I contact the OxyGold team?",
+    answer:
+      "Customers can contact the official OxyGold support team through the available communication channels.",
+  },
+  {
+    id: "why-understand-agreement-before-participating",
+    category: "Additional Questions",
+    question: "Why should I understand the agreement before participating?",
+    answer:
+      "The agreement explains the return terms, tenure, custody, settlement, charges, tax treatment and customer obligations. Customers should read and understand it before proceeding.",
   },
 ];
 
@@ -258,6 +539,9 @@ const formatINR = (amount: number) =>
     maximumFractionDigits: 0,
   }).format(Math.round(amount));
 
+const INITIAL_FAQ_COUNT = 8;
+const FAQ_LOAD_STEP = 10;
+
 export default function LeaseGoldLanding() {
   const [metal, setMetal] = useState<MetalChoice>("Gold");
   const [principal, setPrincipal] = useState<number>(500000);
@@ -267,8 +551,10 @@ export default function LeaseGoldLanding() {
   const [tdsRatePercent, setTdsRatePercent] = useState<number>(10);
 
   const [faqCategory, setFaqCategory] = useState<FaqCategory>("All");
+  const [visibleAllCount, setVisibleAllCount] = useState<number>(INITIAL_FAQ_COUNT);
   const [allExpanded, setAllExpanded] = useState<boolean>(false);
   const faqContainerRef = useRef<HTMLDivElement>(null);
+  const faqSectionRef = useRef<HTMLElement>(null);
 
   const tdsDialogRef = useRef<HTMLDialogElement>(null);
   const videoDialogRef = useRef<HTMLDialogElement>(null);
@@ -338,6 +624,11 @@ export default function LeaseGoldLanding() {
     return FAQS.filter((item) => item.category === faqCategory);
   }, [faqCategory]);
 
+  const displayedFaqs = useMemo(() => {
+    if (faqCategory !== "All") return filteredFaqs;
+    return filteredFaqs.slice(0, visibleAllCount);
+  }, [faqCategory, filteredFaqs, visibleAllCount]);
+
   const syncAllExpandedState = () => {
     const container = faqContainerRef.current;
     if (!container) return;
@@ -361,9 +652,25 @@ export default function LeaseGoldLanding() {
     setAllExpanded(nextState);
   };
 
+  const handleSelectCategory = (cat: FaqCategory) => {
+    setFaqCategory(cat);
+    if (cat === "All") {
+      setVisibleAllCount(INITIAL_FAQ_COUNT);
+    }
+  };
+
+  const handleLoadMoreFaqs = () => {
+    setVisibleAllCount((prev) => Math.min(prev + FAQ_LOAD_STEP, filteredFaqs.length));
+  };
+
+  const handleShowLessFaqs = () => {
+    setVisibleAllCount(INITIAL_FAQ_COUNT);
+    faqSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   useEffect(() => {
     syncAllExpandedState();
-  }, [faqCategory]);
+  }, [faqCategory, visibleAllCount]);
 
   const estimator = useMemo(() => {
     const selectedOption =
@@ -1310,6 +1617,7 @@ export default function LeaseGoldLanding() {
           {/* 6. FREQUENTLY ASKED QUESTIONS (Semantic <details> Accordion) */}
           <section
             id="lease-faqs"
+            ref={faqSectionRef}
             aria-labelledby="faq-heading"
             className="scroll-mt-32 flex flex-col gap-6"
           >
@@ -1343,20 +1651,12 @@ export default function LeaseGoldLanding() {
               role="group"
               aria-label="Filter FAQs by topic"
             >
-              {(
-                [
-                  "All",
-                  "Getting Started",
-                  "Returns & Payouts",
-                  "TDS & Taxation",
-                  "Safety & Terms",
-                ] as FaqCategory[]
-              ).map((cat) => (
+              {FAQ_CATEGORIES.map((cat) => (
                 <button
                   key={cat}
                   type="button"
                   aria-pressed={faqCategory === cat}
-                  onClick={() => setFaqCategory(cat)}
+                  onClick={() => handleSelectCategory(cat)}
                   className={`min-h-[36px] shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
                     faqCategory === cat
                       ? "border-[#D4AF37] bg-gradient-to-r from-[#D4AF37] to-[#F5D36C] text-[#1B053A]"
@@ -1373,7 +1673,7 @@ export default function LeaseGoldLanding() {
               ref={faqContainerRef}
               className="lease-faq-accordion flex flex-col gap-3"
             >
-              {filteredFaqs.map((faq) => (
+              {displayedFaqs.map((faq) => (
                 <details
                   key={faq.id}
                   onToggle={syncAllExpandedState}
@@ -1398,6 +1698,53 @@ export default function LeaseGoldLanding() {
                 </details>
               ))}
             </div>
+
+            {faqCategory === "All" && filteredFaqs.length > INITIAL_FAQ_COUNT && (
+              <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 sm:flex-row sm:px-6">
+                <p className="m-0 text-xs font-medium text-white/65 sm:text-sm">
+                  Showing{" "}
+                  <span className="font-semibold text-white">
+                    {displayedFaqs.length}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-white">
+                    {filteredFaqs.length}
+                  </span>{" "}
+                  questions
+                </p>
+
+                <div className="flex flex-wrap items-center justify-center gap-2.5">
+                  {visibleAllCount > INITIAL_FAQ_COUNT && (
+                    <button
+                      type="button"
+                      onClick={handleShowLessFaqs}
+                      className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/85 transition hover:border-[#D4AF37]/40 hover:text-[#F5D36C] sm:text-sm"
+                    >
+                      <ChevronDown size={15} className="rotate-180" />
+                      <span>Show Less</span>
+                    </button>
+                  )}
+
+                  {visibleAllCount < filteredFaqs.length && (
+                    <button
+                      type="button"
+                      onClick={handleLoadMoreFaqs}
+                      className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#D4AF37]/45 bg-[#D4AF37]/15 px-5 py-2 text-xs font-bold text-[#F5D36C] transition hover:bg-[#D4AF37]/25 sm:text-sm"
+                    >
+                      <span>
+                        Load More (
+                        {Math.min(
+                          FAQ_LOAD_STEP,
+                          filteredFaqs.length - visibleAllCount
+                        )}
+                        )
+                      </span>
+                      <ChevronDown size={15} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* 7. RISK DISCLOSURE & FINAL CTA */}
