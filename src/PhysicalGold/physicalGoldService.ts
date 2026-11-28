@@ -484,6 +484,7 @@ export const fetchProducts = async (
 };
 export const fetchProductVariants = async (
   productId: string,
+  options?: { includeImages?: boolean },
 ): Promise<{ variants: ProductVariant[]; product: PhysicalGoldProduct }> => {
   const response = await authenticatedFetch(
     `${BASE_URL}/productvariants/getVariantByProduct?productId=${productId}`,
@@ -503,9 +504,11 @@ export const fetchProductVariants = async (
 
   const result = await response.json();
   const variantsData = result.data;
-  console.log(variantsData);
 
-  const productImages = await fetchProductImageURLs(productId);
+  const includeImages = options?.includeImages !== false;
+  const productImages = includeImages
+    ? await fetchProductImageURLs(productId)
+    : null;
   const variants = variantsData.listVariantResponse.map((item: any) => ({
     id: item.id.toString(),
     price: item.price,

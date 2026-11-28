@@ -111,7 +111,7 @@ const LandingHeader: React.FC<Props> = ({ offsetPx = 106 }) => {
           background: "radial-gradient(1200px 700px at 10% 10%, rgba(91,46,255,0.14) 0%, transparent 62%), radial-gradient(900px 520px at 90% 18%, rgba(212,175,55,0.08) 0%, transparent 62%)",
         }} />
 
-  <div className="mx-auto h-full max-w-7xl sm:px-4 px-2">
+  <div className="mx-auto h-full max-w-8xl sm:px-4 px-2">
 
           <div className="og-header-row" style={{ display: "flex", alignItems: "center", height: "100%", gap: "12px" }}>
 

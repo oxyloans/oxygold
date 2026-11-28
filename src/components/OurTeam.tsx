@@ -102,7 +102,7 @@ const OurTeam: React.FC = () => {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,#5b2eff40_0%,transparent_35%),radial-gradient(circle_at_bottom_right,#d4af3730_0%,transparent_35%)]" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/25" />
 
-      <div className="relative mx-auto max-w-7xl">
+      <div className="relative mx-auto max-w-8xl">
         {/* Section Heading */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}

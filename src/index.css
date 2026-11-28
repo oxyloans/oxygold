@@ -19,6 +19,7 @@
   --color-gold-light: hsl(40, 70%, 65%);
   --color-gold-dark: hsl(35, 85%, 30%);
   --color-success: #2e7d32;
+  --container-8xl: 88rem;
 }
 
 :root {

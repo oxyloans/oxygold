@@ -35,10 +35,18 @@ const certificates: Certificate[] = [
     fileId: "1X34Oa6_QMNK1brgVHgEV3GUlxnDiDuBK",
     title: "Trade Licence",
   },
+  {
+    id: 5,
+    fileId: "148bckA9as-rPaf0dNSoFwVTfotlFTorT",
+    title: "For Melting GST and Cost Invoice",
+  },
 ];
 
-const getThumbnailUrl = (fileId: string) =>
-  `https://drive.google.com/thumbnail?id=${fileId}&sz=w1600`;
+const getThumbnailCandidates = (fileId: string): string[] => [
+  `https://drive.google.com/thumbnail?id=${fileId}&sz=w1600`,
+  `https://lh3.googleusercontent.com/d/${fileId}=w1200`,
+  `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`,
+];
 
 const getPreviewUrl = (fileId: string) =>
   `https://drive.google.com/file/d/${fileId}/preview`;
@@ -50,6 +58,7 @@ const CertificatesPage: React.FC = () => {
 
   const [loadedImages, setLoadedImages] = useState<Record<number, boolean>>({});
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
+  const [thumbnailAttempts, setThumbnailAttempts] = useState<Record<number, number>>({});
 
   const closeCertificate = () => setSelectedCertificate(null);
 
@@ -166,23 +175,39 @@ const CertificatesPage: React.FC = () => {
                     )}
 
                   {!imageErrors[certificate.id] ? (
-                    <img
-                      src={getThumbnailUrl(certificate.fileId)}
-                      alt={certificate.title}
-                      loading="lazy"
-                      onLoad={() =>
-                        setLoadedImages((prev) => ({
-                          ...prev,
-                          [certificate.id]: true,
-                        }))
-                      }
-                      onError={() =>
-                        setImageErrors((prev) => ({
-                          ...prev,
-                          [certificate.id]: true,
-                        }))
-                      }
-                    />
+                    (() => {
+                      const candidates = getThumbnailCandidates(certificate.fileId);
+                      const attempt = thumbnailAttempts[certificate.id] ?? 0;
+                      const src = candidates[attempt] ?? candidates[0];
+
+                      return (
+                        <img
+                          src={src}
+                          alt={certificate.title}
+                          loading="eager"
+                          referrerPolicy="no-referrer"
+                          onLoad={() =>
+                            setLoadedImages((prev) => ({
+                              ...prev,
+                              [certificate.id]: true,
+                            }))
+                          }
+                          onError={() => {
+                            if (attempt + 1 < candidates.length) {
+                              setThumbnailAttempts((prev) => ({
+                                ...prev,
+                                [certificate.id]: attempt + 1,
+                              }));
+                            } else {
+                              setImageErrors((prev) => ({
+                                ...prev,
+                                [certificate.id]: true,
+                              }));
+                            }
+                          }}
+                        />
+                      );
+                    })()
                   ) : (
                     <div className="certificate-fallback">
                       <FileCheck2 size={38} />

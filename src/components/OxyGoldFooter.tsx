@@ -46,7 +46,7 @@ export default function OxyGoldFooter({
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
       
-      <div className="max-w-7xl mx-auto sm:px-4 px-2  relative z-10">
+      <div className="max-w-8xl mx-auto sm:px-4 px-2  relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           {/* Column 1: Logo + About */}
           <div className="space-y-5">
@@ -85,11 +85,9 @@ export default function OxyGoldFooter({
             <span className="text-xs font-semibold uppercase tracking-widest text-amber-300/80">
               OFFICE ADDRESS
             </span>
-            <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight m-0">
-              Visit us in Hyderabad
-            </h3>
+          
 
-            <div className="flex flex-col gap-3 text-gray-300/90 text-sm sm:text-base leading-relaxed pt-1">
+            <div className="flex flex-col gap-3 mt-4 text-gray-300/90 text-sm sm:text-base leading-relaxed pt-1">
               <div className="flex gap-2.5 items-start">
                 <EnvironmentOutlined className="mt-1 text-amber-400 text-base flex-shrink-0" />
                 <p className="m-0 leading-relaxed">{address1}</p>

@@ -28,6 +28,7 @@ interface Product {
   size: string;
   purity: string;
   weight: number | null;
+  variantId?: number | string | null;
 }
 
 interface VariantSnippet {
@@ -53,6 +54,8 @@ interface ProductResponse {
   weight?: number | string | null;
   variants?: VariantSnippet[] | null;
   listVariantResponse?: VariantSnippet[] | null;
+  productVariants?: VariantSnippet[] | null;
+  variantResponses?: VariantSnippet[] | null;
   status?: string;
 }
 
@@ -135,21 +138,30 @@ export default function GoldProductsLanding() {
   // Price Breakup & Variant State
   const [variantCache, setVariantCache] = useState<Record<number, ProductVariant>>({});
   const [breakupCache, setBreakupCache] = useState<Record<number, GoldSilverRateBreakdown>>({});
+  const [variantSettled, setVariantSettled] = useState<Record<number, true>>({});
+  const [breakupSettled, setBreakupSettled] = useState<Record<number, true>>({});
   const [loadingBreakupId, setLoadingBreakupId] = useState<number | null>(null);
   const [hoveredProductId, setHoveredProductId] = useState<number | null>(null);
   const fetchingRef = useRef<Set<number>>(new Set());
 
-  const fetchBreakupForProduct = useCallback(async (productId: number) => {
+  const fetchBreakupForProduct = useCallback(async (product: Product) => {
+    const productId = product.id;
     if (fetchingRef.current.has(productId)) return;
     fetchingRef.current.add(productId);
     setLoadingBreakupId(productId);
     try {
-      const { variants } = await fetchProductVariants(String(productId));
-      const primaryVariant = pickPrimaryVariant(variants);
-      if (primaryVariant) {
-        setVariantCache((prev) => ({ ...prev, [productId]: primaryVariant }));
+      let targetVariantId: string | number = product.variantId || productId;
+      if (!product.variantId) {
+        const { variants } = await fetchProductVariants(String(productId), {
+          includeImages: false,
+        });
+        const primaryVariant = pickPrimaryVariant(variants);
+        if (primaryVariant) {
+          setVariantCache((prev) => ({ ...prev, [productId]: primaryVariant }));
+          targetVariantId = primaryVariant.id;
+        }
+        setVariantSettled((prev) => ({ ...prev, [productId]: true }));
       }
-      const targetVariantId = primaryVariant?.id || productId;
       const data = await fetchGoldSilverRateBreakdown(targetVariantId);
       if (data) {
         setBreakupCache((prev) => ({ ...prev, [productId]: data }));
@@ -157,7 +169,9 @@ export default function GoldProductsLanding() {
     } catch (err) {
       console.warn("Failed to fetch price breakup for product:", productId, err);
     } finally {
-      setLoadingBreakupId(null);
+      setVariantSettled((prev) => (prev[productId] ? prev : { ...prev, [productId]: true }));
+      setBreakupSettled((prev) => (prev[productId] ? prev : { ...prev, [productId]: true }));
+      setLoadingBreakupId((curr) => (curr === productId ? null : curr));
     }
   }, []);
 
@@ -169,10 +183,12 @@ export default function GoldProductsLanding() {
     );
   }, []);
 
-  const handleMouseEnterBreakup = useCallback((productId: number) => {
-    setHoveredProductId(productId);
-    fetchBreakupForProduct(productId);
-  }, [fetchBreakupForProduct]);
+  const handleMouseEnterBreakup = useCallback((product: Product) => {
+    setHoveredProductId(product.id);
+    if (!breakupCache[product.id]) {
+      fetchBreakupForProduct(product);
+    }
+  }, [breakupCache, fetchBreakupForProduct]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -191,6 +207,8 @@ export default function GoldProductsLanding() {
       setLoading(true);
       setError("");
       fetchingRef.current.clear();
+      setVariantSettled({});
+      setBreakupSettled({});
 
       try {
         const response = await fetch(API_URL, {
@@ -221,7 +239,10 @@ export default function GoldProductsLanding() {
               .filter((product) => !product.status || product.status === "ACTIVE")
               .map<Product>((product) => {
                 const primaryEmbedded = pickPrimaryVariant(
-                  product.variants ?? product.listVariantResponse
+                  product.variants ??
+                    product.listVariantResponse ??
+                    product.productVariants ??
+                    product.variantResponses
                 );
                 const rawWeight = primaryEmbedded?.weight ?? product.weight;
                 const rawMrp = primaryEmbedded?.mrp ?? product.mrp;
@@ -239,6 +260,7 @@ export default function GoldProductsLanding() {
                   size: String(primaryEmbedded?.size ?? product.size ?? "").trim(),
                   purity: String(primaryEmbedded?.purity ?? product.purity ?? "").trim(),
                   weight: rawWeight != null && rawWeight !== "" ? Number(rawWeight) : null,
+                  variantId: primaryEmbedded?.id ?? null,
                 };
               })
           );
@@ -264,12 +286,106 @@ export default function GoldProductsLanding() {
 
   useEffect(() => {
     if (!products.length) return;
-    products.forEach((product) => {
-      if (!fetchingRef.current.has(product.id)) {
-        fetchBreakupForProduct(product.id);
+
+    let cancelled = false;
+    let pendingVariants: Record<number, ProductVariant> = {};
+    let pendingBreakups: Record<number, GoldSilverRateBreakdown> = {};
+    let pendingVariantDone: Record<number, true> = {};
+    let pendingBreakupDone: Record<number, true> = {};
+    let flushTimer: number | null = null;
+
+    const flush = () => {
+      if (flushTimer !== null) {
+        window.clearTimeout(flushTimer);
+        flushTimer = null;
       }
+      if (cancelled) return;
+      const vBatch = pendingVariants;
+      const bBatch = pendingBreakups;
+      const vDoneBatch = pendingVariantDone;
+      const bDoneBatch = pendingBreakupDone;
+      pendingVariants = {};
+      pendingBreakups = {};
+      pendingVariantDone = {};
+      pendingBreakupDone = {};
+
+      if (Object.keys(vBatch).length > 0) {
+        setVariantCache((prev) => ({ ...prev, ...vBatch }));
+      }
+      if (Object.keys(vDoneBatch).length > 0) {
+        setVariantSettled((prev) => ({ ...prev, ...vDoneBatch }));
+      }
+      if (Object.keys(bBatch).length > 0) {
+        setBreakupCache((prev) => ({ ...prev, ...bBatch }));
+      }
+      if (Object.keys(bDoneBatch).length > 0) {
+        setBreakupSettled((prev) => ({ ...prev, ...bDoneBatch }));
+      }
+    };
+
+    const scheduleFlush = () => {
+      if (flushTimer === null) {
+        flushTimer = window.setTimeout(flush, 50);
+      }
+    };
+
+    const inFlightIds = new Set<number>();
+
+    const tasks = products
+      .filter((product) => !fetchingRef.current.has(product.id))
+      .map(async (product) => {
+        fetchingRef.current.add(product.id);
+        inFlightIds.add(product.id);
+        try {
+          let targetVariantId: string | number = product.variantId || product.id;
+
+          if (!product.variantId) {
+            const { variants } = await fetchProductVariants(String(product.id), {
+              includeImages: false,
+            });
+            if (cancelled) return;
+            const primaryVariant = pickPrimaryVariant(variants);
+            if (primaryVariant) {
+              pendingVariants[product.id] = primaryVariant;
+              targetVariantId = primaryVariant.id;
+            }
+            pendingVariantDone[product.id] = true;
+            scheduleFlush();
+          }
+
+          const breakup = await fetchGoldSilverRateBreakdown(targetVariantId);
+          if (!cancelled) {
+            if (breakup) {
+              pendingBreakups[product.id] = breakup;
+            }
+            pendingBreakupDone[product.id] = true;
+            scheduleFlush();
+            inFlightIds.delete(product.id);
+          }
+        } catch (err) {
+          inFlightIds.delete(product.id);
+          fetchingRef.current.delete(product.id);
+          if (!cancelled) {
+            pendingVariantDone[product.id] = true;
+            pendingBreakupDone[product.id] = true;
+            scheduleFlush();
+          }
+          console.warn("Failed to prefetch product details:", product.id, err);
+        }
+      });
+
+    void Promise.allSettled(tasks).then(() => {
+      if (!cancelled) flush();
     });
-  }, [products, fetchBreakupForProduct]);
+
+    return () => {
+      cancelled = true;
+      inFlightIds.forEach((id) => fetchingRef.current.delete(id));
+      if (flushTimer !== null) {
+        window.clearTimeout(flushTimer);
+      }
+    };
+  }, [products]);
 
   const categories = useMemo(
     () => [
@@ -364,7 +480,7 @@ export default function GoldProductsLanding() {
     >
       <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(rgba(255,255,255,.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.14)_1px,transparent_1px)] [background-size:52px_52px]" />
 
-      <div className="relative mx-auto w-full max-w-7xl sm:px-4 px-2 pb-6 pt-4  sm:pb-10 sm:pt-8  lg:pb-8 lg:pt-6">
+      <div className="relative mx-auto w-full max-w-8xl sm:px-4 px-2 pb-6 pt-4  sm:pb-10 sm:pt-8  lg:pb-8 lg:pt-6">
         <header className="mx-auto max-w-3xl text-center">
           <h1
             id="gold-products-title"
@@ -456,16 +572,25 @@ export default function GoldProductsLanding() {
 
         {loading && (
           <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5">
-            {Array.from({ length: 6 }).map((_, index) => (
+            {Array.from({ length: 10 }).map((_, index) => (
               <div
                 key={index}
-                className="w-full overflow-hidden rounded-xl border border-white/10 bg-white/[0.06] sm:rounded-2xl"
+                className="flex w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-white/[0.06] sm:rounded-2xl"
               >
                 <div className="aspect-square animate-pulse bg-white/[0.08]" />
 
-                <div className="space-y-3 p-4">
+                <div className="space-y-2.5 p-2.5 sm:p-4">
                   <div className="h-4 animate-pulse rounded bg-white/10" />
-                  <div className="h-4 w-1/2 animate-pulse rounded bg-white/10" />
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-white/10" />
+                  <div className="flex items-center gap-1.5 pt-0.5">
+                    <div className="h-[22px] w-16 animate-pulse rounded-md border border-[#D4AF37]/20 bg-white/[0.08] sm:h-6 sm:w-20" />
+                    <div className="h-[22px] w-16 animate-pulse rounded-md border border-[#D4AF37]/20 bg-white/[0.08] sm:h-6 sm:w-20" />
+                  </div>
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
+                    <div className="h-5 w-16 animate-pulse rounded bg-white/15" />
+                    <div className="h-[22px] w-[72px] animate-pulse rounded-full border border-[#D4AF37]/20 bg-white/[0.08]" />
+                  </div>
+                  <div className="h-10 w-full animate-pulse rounded-lg bg-[#D4AF37]/20 sm:rounded-xl" />
                 </div>
               </div>
             ))}
@@ -554,6 +679,8 @@ export default function GoldProductsLanding() {
                   const mrpDiscountPct = hasMrpDiscount
                     ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
                     : 0;
+                  const isVariantPending = !product.variantId && !variantSettled[product.id];
+                  const isBreakupPending = !breakupSettled[product.id];
 
                   return (
                   <article
@@ -639,7 +766,7 @@ export default function GoldProductsLanding() {
                         </p>
                       )}
 
-                      {(displayPurity || (displayWeight != null && displayWeight > 0)) && (
+                      {(displayPurity || (displayWeight != null && displayWeight > 0)) ? (
                         <div className="mt-1.5 flex flex-wrap items-center gap-1 sm:mt-2 sm:gap-1.5">
                           {displayPurity && (
                             <span className="rounded-md border border-[#D4AF37]/30 bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-semibold text-white/80 whitespace-nowrap sm:text-[11px]">
@@ -652,18 +779,33 @@ export default function GoldProductsLanding() {
                             </span>
                           )}
                         </div>
-                      )}
+                      ) : isVariantPending ? (
+                        <div
+                          aria-hidden="true"
+                          className="mt-1.5 flex flex-wrap items-center gap-1 sm:mt-2 sm:gap-1.5"
+                        >
+                          <span className="h-[22px] w-16 animate-pulse rounded-md border border-[#D4AF37]/20 bg-white/[0.08] sm:h-6 sm:w-20" />
+                          <span className="h-[22px] w-16 animate-pulse rounded-md border border-[#D4AF37]/20 bg-white/[0.08] sm:h-6 sm:w-20" />
+                        </div>
+                      ) : null}
 
                       <div className="relative mt-2 sm:mt-2.5 flex items-center justify-between gap-1.5">
                         <div className="flex min-w-0 flex-wrap items-baseline gap-1.5">
-                          <p
-                            className={`font-black text-[#F5D36C] whitespace-nowrap ${useFeaturedCards
-                                ? "text-sm sm:text-xl"
-                                : "text-sm sm:text-lg"
-                              }`}
-                          >
-                            {currency.format(displayPrice)}
-                          </p>
+                          {isVariantPending && displayPrice <= 0 ? (
+                            <span
+                              aria-hidden="true"
+                              className="h-5 w-16 animate-pulse rounded bg-white/15 sm:h-6 sm:w-20"
+                            />
+                          ) : (
+                            <p
+                              className={`font-black text-[#F5D36C] whitespace-nowrap ${useFeaturedCards
+                                  ? "text-sm sm:text-xl"
+                                  : "text-sm sm:text-lg"
+                                }`}
+                            >
+                              {currency.format(displayPrice)}
+                            </p>
+                          )}
 
                           {hasMrpDiscount && displayMrp != null && (
                             <span className="text-[11px] font-medium text-white/50 line-through whitespace-nowrap sm:text-xs">
@@ -673,10 +815,10 @@ export default function GoldProductsLanding() {
                         </div>
 
                         {/* Price Breakup Hover Trigger & Popover - Only displayed if discountPercentage > 0 or discountAmount > 0 */}
-                        {hasOfferDiscount(breakupCache[product.id]) && (
+                        {hasOfferDiscount(breakupCache[product.id]) ? (
                           <div
                             className="relative shrink-0 ml-auto"
-                            onMouseEnter={() => handleMouseEnterBreakup(product.id)}
+                            onMouseEnter={() => handleMouseEnterBreakup(product)}
                             onMouseLeave={() => setHoveredProductId(null)}
                           >
                             <button
@@ -686,7 +828,7 @@ export default function GoldProductsLanding() {
                                 if (hoveredProductId === product.id) {
                                   setHoveredProductId(null);
                                 } else {
-                                  handleMouseEnterBreakup(product.id);
+                                  handleMouseEnterBreakup(product);
                                 }
                               }}
                               className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-[#F5D36C]/90 hover:text-[#F5D36C] bg-white/[0.08] hover:bg-white/[0.16] border border-[#D4AF37]/35 px-2 py-0.5 rounded-full transition cursor-pointer whitespace-nowrap"
@@ -757,7 +899,12 @@ export default function GoldProductsLanding() {
                               </div>
                             )}
                           </div>
-                        )}
+                        ) : isBreakupPending ? (
+                          <span
+                            aria-hidden="true"
+                            className="ml-auto h-[22px] w-[74px] shrink-0 animate-pulse rounded-full border border-[#D4AF37]/20 bg-white/[0.08] sm:h-6 sm:w-20"
+                          />
+                        ) : null}
                       </div>
 
                       <div className={useFeaturedCards ? "mt-3" : "mt-auto pt-2.5 sm:pt-3"}>
